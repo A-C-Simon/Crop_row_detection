@@ -1,0 +1,24 @@
+name,cfg,fft_spacing_px,fft_angle_deg,final_angle_deg,n_lines,runtime_s,status
+bev,BEV,210.00,-90.00,nan,13,929.24,ok
+bev2,BEV,728.00,-0.00,nan,0,0.04,ZeroDivisionError: float division by zero
+bev4,BEV,17.57,-90.00,nan,0,0.44,ok
+bev5,BEV,32.60,-0.00,nan,0,0.01,ZeroDivisionError: float division by zero
+bev6,BEV,17.38,-0.00,nan,0,0.05,ZeroDivisionError: float division by zero
+bev7,BEV,27.92,-0.00,nan,0,0.04,ZeroDivisionError: float division by zero
+photo_10_2026-08-18_17-17-57,pitch45+yaw75,275.44,43.38,nan,0,10.84,ok
+photo_11_2026-08-18_17-17-57,pitch45+yaw75,464.00,-90.00,nan,0,10.41,ok
+photo_12_2026-08-18_17-17-57,pitch40+yaw60,196.00,-0.00,nan,0,4.06,ZeroDivisionError: float division by zero
+photo_13_2026-08-18_17-17-57,pitch45+yaw95,152.46,8.11,nan,0,35.21,ok
+photo_14_2026-08-18_17-17-57,pitch45+yaw120,946.00,-90.00,nan,0,19.54,ok
+photo_15_2026-08-18_17-17-57,pitch40+yaw75,413.00,-90.00,nan,8,7.48,ok
+photo_16_2026-08-18_17-17-57,pitch35,237.00,-0.00,nan,0,0.75,ZeroDivisionError: float division by zero
+photo_17_2026-08-18_17-17-57,pitch40+yaw60,292.00,-0.00,nan,0,5.07,ZeroDivisionError: float division by zero
+photo_1_2026-08-18_17-17-57,pitch40,169.00,-0.00,nan,0,1.04,ZeroDivisionError: float division by zero
+photo_2_2026-08-18_17-17-57,pitch35,220.00,-0.00,nan,0,0.81,ZeroDivisionError: float division by zero
+photo_3_2026-08-18_17-17-57,pitch35+yaw45,116.32,45.17,nan,0,3.96,ok
+photo_4_2026-08-18_17-17-57,pitch45+yaw75,35.48,-11.43,nan,0,6.97,SystemExit: end index out of bounds.
+photo_5_2026-08-18_17-17-57,pitch35,195.00,-0.00,nan,0,0.49,ZeroDivisionError: float division by zero
+photo_6_2026-08-18_17-17-57,pitch40+yaw95,183.00,-0.00,nan,0,4.43,ZeroDivisionError: float division by zero
+photo_7_2026-08-18_17-17-57,pitch35,221.00,-0.00,nan,0,0.45,ZeroDivisionError: float division by zero
+photo_8_2026-08-18_17-17-57,pitch45+yaw15,140.00,-0.00,nan,0,7.22,ZeroDivisionError: float division by zero
+photo_9_2026-08-18_17-17-57,pitch40+yaw60,190.45,41.93,42.60,28,8.24,ok

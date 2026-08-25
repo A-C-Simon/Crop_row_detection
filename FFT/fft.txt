@@ -1,0 +1,2542 @@
+Version of Record: https://www.sciencedirect.com/science/article/pii/S0168169924010573
+Manuscript_e6f0fbd7d753d938a7174fadbad0b0ab
+
+1
+2
+
+Robust Crop Row Detection using Discrete Fourier Transform (DFT) for Vision-based In-Field
+Navigation
+
+3
+4
+5
+6
+
+Jingyao Gaia, b*, Zhiyang Guoa, Aditya Rajb, Lie Tangb*
+a College of Mechanical Engineering, Guangxi University, Nanning, Guangxi 50037, China
+b Department of Agricultural and Biosystems Engineering, Iowa State University, Ames, Iowa 50011-3270, USA
+
+* Corresponding author. E-mail address: jygai@gxu.edu.cn (J. Gai); lietang@iastate.edu (L. Tang)
+
+7
+
+Abstract
+
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+
+Accurate row detection is crucial for autonomous navigation systems in agricultural applications.
+Since the crops are typically planted in evenly spaced, parallel rows, crop rows mathematically
+correlate to a specific spectral signature within the frequency domain. In this study, we propose a
+robust frequency domain-based image processing pipeline for accurately locating crop rows
+within images. Using the two-dimensional discrete Fourier transform (DFT), we identify the
+spacing and direction of crop rows from significant frequency components, and their positions
+from the phase. To enhance precision, we apply frequency domain interpolation, a Hanning
+window, and discrete-time Fourier transform (DTFT) to accurately locate peak responses and
+corresponding phases in the spectrum. Extensive experiments were conducted to validate the
+accuracy and efficiency of our algorithm. The algorithm accurately detected crop rows in images
+and estimated lateral position and heading deviations relative to row centerlines, across different
+plant growth stages and illumination conditions. Additionally, by integrating a linear quadratic
+Gaussian (LQG) navigation controller with this vision-based crop row detection algorithm, we
+successfully enabled a robot to follow crop row centerlines with a mean absolute tracking error
+of 3.74 cm. These results highlight the potential of our frequency domain-based approach for
+enhancing precision agriculture through robust crop row detection and navigation.
+Keywords: agricultural robot navigation; row detection; above-canopy imaging; discrete Fourier
+transform; LQG control
+
+26
+
+1.
+
+27
+
+1.1 General Background in Agricultural Field Navigation
+
+28
+29
+30
+31
+32
+33
+34
+
+Robotic techniques have been widely applied in various field operations in agriculture, including
+cultivation, spraying, harvesting, and weeding (Åstrand & Baerveldt, 2005). A robust navigation
+system is essential for robots to traverse between crop rows without damaging the crops.
+Accurate estimation of robot poses relative to crop rows, including both position and heading, is
+fundamental for reliable in-field navigation. Currently, most agricultural navigation systems rely
+on global navigation satellite system/inertial navigation system (GNSS/INS) or machine vision
+systems for in field positioning and heading estimation (Wang et al., 2022).
+
+35
+36
+
+GNSS/INS can provide centimeter-level positioning accuracy and precise heading estimations in
+open fields. However, GNSS/INS-based navigation requires a pre-planned operating trajectory
+
+Introduction
+
+1
+
+© 2024 published by Elsevier. This manuscript is made available under the Elsevier user license
+https://www.elsevier.com/open-access/userlicense/1.0/
+
+37
+38
+39
+40
+41
+
+for path tracking. Additionally, GNSS signal quality may degrade under plant canopies or in
+greenhouses, resulting in insufficient positioning accuracy (Chen et al., 2020; Sivakumar et al.,
+2021). Moreover, the accuracy of INS is affected by temperature variations and integration drifts,
+impacting velocity and heading estimation (Shen et al., 2021). These limitations constrain the
+application of GNSS/INS-based navigation in certain scenarios.
+
+42
+43
+44
+45
+46
+47
+48
+49
+50
+51
+
+Vision-based navigation is increasingly applied in in-field robotic applications due to its wide
+applicability, low cost, and high level of artificial intelligence. Visual guidance, which keeps a
+robot centered in constrained spaces like corridor-like environments, can be effectively applied
+to agricultural settings where crop rows act as parallel obstacles (Winterhalter et al., 2021). The
+fundamental technique in visual guidance is vision-based crop row detection. Top-view or frontview monocular color cameras are the most widely used vision sensors for crop row detection in
+visual guidance applications due to their reliability, affordability, and ability to capture semantic
+information (Sivakumar et al., 2021). However, achieving accurate crop row detection is
+challenging due to inconsistent and extreme illumination, weed infestation, and missing plants in
+crop fields.
+
+52
+
+1.2 Crop Row Detection Algorithms
+
+53
+54
+55
+56
+57
+58
+59
+
+The crop row detection algorithm must meet the following criteria for visual guidance
+applications: 1) accuracy with centimeter-level precision; 2) computational efficiency to
+maintain sufficient control rates; 3) capability to detect crop plants that may be smaller than
+weeds; and 4) robustness to function under high weed pressure and in the presence of missing
+plants within rows (Åstrand & Baerveldt, 2005). Various methods have been reported effective
+in identifying crop rows using a monocular camera. Based on the techniques used, these methods
+can be broadly categorized as “traditional methods” and “deep learning-based methods”.
+
+60
+
+1.2.1 Traditional methods
+
+61
+62
+63
+64
+65
+66
+67
+68
+69
+70
+71
+72
+
+Traditional methods for crop row detection primarily locate crop plants in images and then fit
+lines corresponding to crop rows. Color-based segmentation algorithms are often applied,
+including color index-based segmentation, thresholding-based segmentation, and learning-based
+segmentation (Bai et al., 2023). However, these methods struggle with robustness due to
+uncontrolled lighting in the field. To improve robustness, some feature extraction algorithms
+were developed and applied, focusing on the morphological differences between crop plants and
+other objects like weeds. For instance, Harris corner features were used to determine the 3D
+position of crop rows in a binocular vision-based multi-crop row detection algorithm (Zhai et al.,
+2016). SUSAN corner features were extracted for corn seedling belt localization for a weed
+control robot (Lai et al., 2023). General feature extraction algorithms such as SIFT and FAST
+have also been effective in identifying crop rows in the field (Song et al., 2023; Y. Yang et al.,
+2023).
+2
+
+73
+74
+75
+76
+77
+78
+79
+80
+81
+82
+
+After extracting crop plants and features, line detection algorithms are often applied to fit line
+segments representing crop rows. The Hough transform is a widely used algorithm for detecting
+discontinuous lines in images (Bossu et al., 2006; Choi et al., 2015; Winterhalter et al., 2018),
+though it is computationally intensive. Variants like the median point Hough transform (Chen et
+al., 2020) and the probabilistic Hough transform (Lin et al., 2020) have been developed to
+improve efficiency and adaptability. Least square methods are less computationally intensive and
+have been used to fit straight lines as crop rows after semantic segmentation and feature
+extraction (Ospina & Noguchi, 2019; Liang et al., 2022). Other effective row detection
+algorithms include RANSAC and green pixels accumulation, etc. (García-Santillán et al., 2018;
+Li et al., 2020).
+
+83
+84
+85
+86
+87
+
+In general, traditional algorithms effectively detect crop rows by focusing on spatial information
+within the image, such as color, texture, and morphological features representing crop plants.
+However, the design and selection of handcrafted features require prior knowledge of the crop
+field. Line detection is also susceptible to noise caused by weed infestations and image defects
+due to extreme illumination, resulting in limited robustness.
+
+88
+
+1.2.2 Deep learning-based methods
+
+89
+90
+91
+92
+93
+94
+95
+96
+97
+98
+99
+
+With the development of artificial intelligence, deep learning techniques have been widely
+adopted in agricultural applications. Convolutional Neural Networks (CNNs), which can be
+trained to extract abstract features from images, are more robust than traditional algorithms
+against variations in crop plant shape, presence of weeds, and illumination inconsistencies in the
+field. The YOLO series are representative algorithms for object detection, where the bounding
+boxes of crop plants are extracted, and centroids are taken as feature points for crop plants. For
+instance, Yang et al. (2023) used the YOLOv5 network to extract centroids of maize and rice
+crop plants' bounding boxes, followed by a least square algorithm to find crop rows. Similarly,
+Liu et al. (2024) detected pineapple plants in fields using an enhanced YOLOv5 network for crop
+row detection. Diao et al. (2023) improved the YOLOv8 network to create the ASPPF-YOLOv8s
+network for locating the center of corn plants.
+
+100
+101
+102
+103
+104
+105
+
+Semantic segmentation is another approach to accurately locating crop plants in images by
+labeling all pixels belonging to crop plants. For example, Yang et al. (2023) used the SegNet
+network to segment wheat canopy areas for detecting the centerline of wheat, while De Silva et
+al. (2024) employed U-Net to identify sugar beet crop regions and used the pixels to find crop
+row centerlines. Zhang et al. (2023) proposed the ResC-UNet network to improve maize crop
+row segmentation accuracy.
+
+106
+107
+108
+
+Beyond CNNs, Transformer networks have been leveraged to detect sugarcane rows and gaps,
+demonstrating better generalization to unseen data (dos Santos Ferreira et al., 2022). Some
+studies employed end-to-end CNN models to predict row and column anchors, simplifying the
+3
+
+109
+110
+
+crop row detection process without pixel-level segmentation or objective detection and
+improving adaptability (Quan et al., 2024).
+
+111
+112
+113
+114
+115
+116
+117
+118
+
+In general, deep learning-based approaches have demonstrated significant superiority in crop
+plant detection applications. However, their performance is highly dependent on a high-quality
+annotated dataset. Building such a dataset requires substantial resources to collect diverse and
+high-quality images and accurately label them, which is both time-consuming and costly (Xiong
+et al., 2019). Beyond this, deploying deep learning models on field robots requires substantial
+hardware capabilities, which adds to the overall cost and complexity. These factors can hinder
+the widespread adoption of deep learning techniques for crop row detection in practical
+agricultural settings (S. Zhang et al., 2024).
+
+119
+
+1.2.3 Frequency domain analysis
+
+120
+121
+122
+123
+
+Most of the aforementioned algorithms identify individual crop rows as separate lines within
+images rather than leveraging the global spatial pattern of the crop rows. This can result in false
+positive detections, particularly in situations where the plants are large (Winterhalter et al.,
+2018), the crop rows are infested with weeds, and there are missing plants (Romeo et al., 2012).
+
+124
+125
+126
+127
+128
+129
+130
+131
+132
+133
+134
+135
+136
+137
+
+Given that agronomically planted crop rows are parallel and equally spaced with known spacing,
+this global spatial pattern imparts distinct and dominant properties in the 2D frequency domain.
+Weed infestations, missing plants, and image defects contribute to the noise at different
+frequencies than the crop rows. Frequency-based filtering algorithms have been developed to
+suppress the effects of weeds and missing plants for crop row detection (Hague & Tillett, 2001;
+Tenhunen et al., 2019). Specifically, the row patterns create a strong spectral signature where the
+frequency corresponds to row spacing, the location of such corresponding frequency in the 2D
+frequency domain represents direction, and its phase indicates the locations of the crop rows in
+the spatial domain. These spectral properties are not only true for straight crop rows but also
+valid for curved crop rows as they are largely linear within an image frame. Although there were
+studies using 2D Fourier transform and Gabor filter to locate parallel crop rows in aerial images,
+they were concerned about how to segment crop plants with pixel level accuracy, which was not
+designed to extract navigation lines for navigation applications (Vioix et al., 2002; Bossu et al.,
+2009).
+
+138
+139
+140
+141
+142
+143
+144
+145
+
+Despite the aforementioned potential in the frequency-based approach in crop row detection,
+little research has been conducted on the feasibility of using frequency domain analysis,
+particularly the discrete Fourier transform (DFT), for detecting crop rows in agricultural fieldbased navigation applications. In this study, our overall goal was to explore the potential of
+applying DFT and frequency domain analysis to address the challenge of crop row detection for
+in-field navigation. In addition, with the development of such a frequency information driven
+row detection algorithm, as a proof-of-concept, it would be interesting to demonstrate how well
+the row detection results can be utilized for robot navigation control in the field. Hence, the
+4
+
+146
+147
+148
+149
+
+specific objectives of this study were to (1) develop the row detection algorithm in frequency
+domain; (2) assess the robustness of the developed row detection algorithm under different
+growth stages, field conditions, and outdoor lighting conditions; and (3) evaluate the
+performance of a navigation control system utilizing the proposed row detection algorithm.
+
+150
+151
+152
+153
+154
+155
+
+The rest of the paper is organized as follows. In Section 2, we describe the hardware and data
+acquisition process, followed by an introduction to the proposed crop row detection algorithm.
+Section 3 presents the results of the quantitative analysis of position and heading deviation
+estimation, as well as the robot navigation experiments. This section also discusses the
+capabilities and limitations of the proposed method in depth. Finally, the study is concluded in
+Section 4.
+
+156
+
+2.
+
+157
+
+2.1 Hardware and Data Acquisition
+
+158
+159
+160
+161
+162
+163
+164
+165
+166
+
+PhenoBot 3.0 (Gai et al., 2021; Bao et al., 2021), a robot developed by Iowa State University,
+was used as the platform for data acquisition and evaluation of the proposed method. Designed to
+automatically acquire phenotypic data of tall plants such as corn and sorghum at close range,
+PhenoBot 3.0 features a narrow body design (0.51 m wide and 2.1 m long) and a central
+articulated steering mechanism, enabling it to traverse between narrow crop rows (Figure 1). The
+robot is equipped with a telescoping, self-balanced sensor mast that carries cameras for capturing
+close-range and side-view stereoscopic images of plants at different heights, in order to extract
+morphological traits of corn and sorghum plants across different growth stages, including stalk
+size, ear height, leaf angle, and tassel/panicle morphology (Xiang et al., 2021).
+
+167
+168
+169
+
+Figure 1. Phenobot 3.0 is articulated with a front and back section, and an actively-controlled vertical
+sensor mast for carrying sensors.
+
+Materials and Methods
+
+5
+
+170
+171
+172
+173
+174
+175
+176
+177
+178
+
+The images of crop rows used in this study were collected using a monocular RGB color camera
+(Phoenix 3.2MP, Lucid Vision Labs, Canada) placed on top of the sensor mast. With a 4.0 mm
+focal length lens, the camera has a horizontal view angle of 85.8° and a vertical view angle of
+63.6°. The camera is angled downward at 37° and positioned 2.1 m above the ground when the
+mast is vertical and contracted. This setup allows the camera's field of view to cover crop rows
+from 1.1 m to 23 m in front of the robot, with the covered area width varying from 4 m (at 1.1 m
+ahead of the robot) to 40 m (at 23 m ahead of the robot). The raw images have a resolution of
+2048 x 1536 pixels, with a spatial resolution of 2.0 mm/pixel at 1.1 m ahead of the robot and 21
+mm/pixel at 23 m ahead of the robot (Figure 2).
+
+179
+180
+181
+182
+
+Figure 2. Illustration of the sensor placement, the field of view of the camera, and the definition of a
+series of coordinate frames used in the proposed algorithm and the navigation system, including the
+camera frame , the robot frame , and the world frame
+.
+
+183
+184
+185
+186
+187
+188
+189
+190
+191
+192
+193
+
+The ground truth of the robot pose in x, y and yaw, and the camera pose were calculated in realtime by fusing a series of sensors on the robot. An encoder measures the steering angle to
+calculate the robot posture change. An IMU (Adafruit BNO055, Adafruit, NY, USA) placed at
+the base of the sensor mast measures the incline angle of the mast. These two sensors track the
+relative to the robot frame , denoted as . The RTK-GPS
+pose of the camera frame
+antenna (Reach RS2, Emlid, Hungary) on the top of the sensor mast provides global positioning
+signal of the robot. The positioning accuracy is 7mm+1ppm in RTK mode. Motor encoders and a
+separate IMU (3DM-GX5-15, LORD Sensing MicroStrain, USA) on the rover were used for
+vehicle dead-reckoning and heading tracking. The bias instability of the accelerometer and the
+gyroscope of the IMU are 0.04 mg and 8°/hr, respectively. The signals from the RTK-GPS, IMU
+and motor encoders were fused by an Extended Kalman Filter (EKF) (Moore & Stouch, 2016) to
+6
+
+194
+195
+196
+
+calculate the pose of the robot frame
+relative to the world frame
+, denoted as
+. The
+real-time estimation of the poses of the robot and the camera was implemented using the TF2
+and the navigation packages in ROS (Foote, 2013).
+
+197
+198
+199
+200
+201
+202
+203
+204
+205
+206
+207
+208
+209
+210
+
+The images were collected in the fall of 2020 at an experimental cornfield within Iowa State
+University Agricultural Engineering and Agronomy Research Farm, located in Boone, Iowa,
+USA. The experimental field contained 12 crop rows, each about 50 m long, with a 76 cm (30”)
+row spacing and about 15 cm (6”) inter-plant spacing (Figure 3). The study considered varied
+working conditions, including crop growth stages, sunlight directions, and robot positions
+relative to the field edge. Data acquisitions were conducted when the corn plants were at the V3
+and V7 growth stages. The sunlight illuminance ranged from 20,000 to 80,000 lux, and the
+camera exposure parameters were adjusted accordingly to ensure image quality. Images were
+taken at noon (~55° solar altitude angle) and evening (~20° solar altitude angle). Some images
+were taken when the robot faced the sunlight, causing glare, while others were taken when the
+robot moved along the sunlight direction, resulting in shadows of the robot in the images (Figure
+4). The robot was manually driven at a speed of 0.8 m/s during data collection, and images were
+collected at 4 frames per second. The traveled paths during data acquisition are shown in Figure
+3.
+
+211
+212
+213
+214
+215
+216
+217
+
+During image acquisition, the ground truth of the robot poses was calculated using the EKFbased positioning approach described above in real-time. For the ground truth of row centerlines,
+since the corn plants were sown in straight lines, we manually surveyed the position of the start
+and end points of each crop row in the field using an RTK-GPS antenna. The row centerlines
+were then determined by calculating the centers of every two adjacent rows. The calculated
+poses and the images were recorded with their timestamps using the ros_bag package in ROS. In
+total, the travel distance was about 1,000 m, and 6,755 images were recorded.
+
+218
+219
+220
+221
+222
+
+Figure 3. Robot paths for both data collection and navigation system evaluation in this study. The
+sequentially travelled through different crop rows, and the data collection and navigation system
+evaluation were performed when the robot was between crop rows and was more than 8 meters from
+the end of the row. The testing field was surrounded by grasslands and grown corn plants.
+
+7
+
+223
+224
+225
+226
+
+Figure 4. Images collected under different photographic conditions. The left image was collected at V3
+growth stage, not at the edge of the field, glares exist in the image. The right image was collected at V7
+growth stage, close to the edge of the field, shadows exist in the image.
+
+227
+
+2.2 Crop Row Detection and In-Row Pose Estimation
+
+228
+229
+230
+231
+232
+
+Vision-based row detection can be interpreted as the task of identifying parallel and periodic
+patterns in an image, despite the presence of perspective distortion and high-frequency noise. In
+this study, we proposed a DFT-based processing pipeline to efficiently extract the direction and
+position of crop rows from the frequency domain. The image processing pipeline consists of the
+following steps:
+
+233
+234
+235
+
+1) Image Pre-processing: Correct the lens distortion of the raw image and then transform the
+image into a simulated bird’s-eye view using inverse perspective mapping to correct the
+perspective distortion.
+
+236
+237
+238
+
+2) DFT-Based Crop Row Detection: Transform the image into the two-dimensional
+frequency domain using fast Fourier transform (FFT) combined with a Hanning window
+function.
+
+239
+240
+241
+
+3) Extraction of Crop Row Position and Orientation: Detect the peak magnitude using
+Taylor expansion-based interpolation and calculate the corresponding phase angle with
+discrete time Fourier transform (DTFT).
+
+242
+243
+
+4) Estimation of Tracking Position and Heading Deviation: Use the row detection results to
+estimate the robot's tracking position and heading deviation.
+
+244
+
+2.2.1 Image pre-processing
+
+245
+246
+247
+
+To make crop rows appear as parallel and periodic patterns in the image, optical distortion was
+corrected using distortion coefficients obtained from camera calibration (Z. Zhang, 2000).
+Perspective distortion was rectified by generating a bird’s-eye view map through inverse
+8
+
+248
+249
+250
+251
+
+perspective mapping, projecting the image onto the ground plane (Figure 5), which is an inverse
+perspective mapping problem (Hartley & Zisserman, 2003). The transformation is represented by
+a 3x3 homography matrix H. The relationship between world coordinates on the plane and image
+coordinates can be expressed in a homogenous form:
+1
+
+1
+
+(1)
+
+252
+253
+254
+255
+
+Where
+,
+is a point in the image frame ,
+,
+, 0 is the corresponding
+projected point in the local map frame
+on the ground plane, and s is a scale factor. The local
+map frame
+aligns with the robot frame , with the origin located at the robot’s navigation
+reference position, and the
+plane aligned with the ground plane.
+
+256
+257
+258
+259
+
+Figure 5. The illustration of the Homography transformation from the image frame
+to a bird-eye’s
+view image in ROI image frame
+. The relationship between a series of coordinate frames are
+illustrated, including the local map frame
+, the robot frame
+, the camera frame
+, the image
+
+9
+
+260
+261
+
+frame , and the ROI image frame
+. The definition of tracking deviation, including ey for position
+deviation, and eθ for heading deviation, are also illustrated.
+
+262
+263
+264
+
+The homography matrix H can be calculated using the intrinsic and extrinsic parameters of the
+camera. The intrinsic parameters are denoted by the intrinsic matrix K, which defines the
+transformation between the image frame and camera frame :
+
+265
+266
+267
+268
+
+269
+270
+271
+272
+
+Where
+
+,
+
+0
+0
+
+275
+276
+277
+
+1
+
+,
+
+(2)
+
+are the coordinates of the principal point,
+
+"
+obtained through camera calibration (Z. Zhang, 2000). The coordinates ! ,
+and
+,
+,$
+represent the same point in the image frame and the camera frame
+respectively.
+$
+
+1
+
+,
+
+(3)
+
+The extrinsic parameters of the camera, denoted as &% , represent the real-time pose of the
+camera frame
+in the map frame
+, is calculated using sensors on the robot as described in
+Section 2.1. Therefore, the transformation matrix from the map frame to the camera frame, %
+&,
+&
+is the inverse of % :
+1
+
+(
+
+%
+& '$
+
+1
+
+! &% "
+
+(
+
+)*
+
+'$
+
+1
+
+(
+
+(4)
+
+Where
+,
+,$
+and
+,
+,$
+are the coordinates of the same point in the local
+map frame + and the camera frame , respectively.
+Based on the principle of projective projection, for a point on the ground plane
+,
+the local map frame
+and the corresponding point
+,
+on the image plane, the
+relationship is:
+1
+
+278
+
+0
+
+are the focal lengths, and
+
+'$
+
+273
+274
+
+0
+
+∙ -.|01 ∙
+
+%
+& '
+
+Where I is a 3x3 identity matrix. When representing
+10
+
+0
+1
+
+(
+
+%
+& as:
+
+, 0 in
+
+(5)
+
+%
+&
+
+279
+280
+
+3
+2 4×4
+0
+
+8*9
+899
+849
+0
+
+8**
+∙ 89*
+8*4
+
+8*9
+899
+894
+
+:
+:
+:;
+
+4×*
+
+1
+
+8*4
+894
+844
+0
+
+:
+:
+<
+:;
+1
+
+(6)
+
+Where 8=> is the element of the rotation matrix R, and : , : , :; are the translations along the
+corresponding axis. The homography matrix H in equation (1) is therefore:
+?
+
+281
+282
+
+6
+
+8**
+8
+7 9*
+84*
+0
+
+Thus, the inverse perspective mapping from the image frame
+be formulated as:
+1
+
+1
+
+?)*
+
+1
+
+(7)
+to the local map frame
+
+can
+
+(8)
+
+283
+284
+
+where s is a scale factor to normalize the homogeneous coordinates after applying the
+transformation.
+
+285
+286
+287
+288
+289
+290
+291
+292
+293
+294
+295
+
+After generating the bird’s eye view image, the maximum axis-aligned inscribed rectangle
+(MAAIR) of the projected area was extracted as a new region of interest (ROI) image (Figure 5).
+The MAAIR ensures all pixels in the extracted area are valid (i.e. has the corresponding pixels in
+the raw image) and contain the most information for crop row detection. The area can be further
+cropped based on the surveyed field boundary. To ensure accurate row detection, the maximum
+looking ahead distance was set to 16 m for heading estimation and 8 m for position deviation
+estimation. The spatial resolution of the ROI image was set to 0.01 m/pixel. The transformation
+and ROI image frame
+, which is simply a combination of
+between the local map frame
+scaling and translation on ground plane, was recorded. The extracted ROI image was converted
+into grayscale using the Excess Green Index (ExG) (W. Yang et al., 2015) to highlight the
+vegetation pixels.
+
+296
+
+2.2.2 Hanning window for Fourier transform
+
+297
+298
+299
+300
+301
+302
+303
+
+According to the intrinsic of Fourier transformation, the crop row pattern in the ROI image
+corresponds to a peak in the low frequency part of the spectrum. The period (i.e. the inverse of
+the frequency) of the peak represents the spacing, the angular location of that peak represents the
+direction of the crop rows, and the corresponding phase angle represents the position of the crop
+rows. However, directly applying the two-dimensional FFT algorithm to the image and finding
+the bin with maximum magnitude in the spectrum is inaccurate in locating the crop rows. This
+inaccuracy is due to insufficient resolution for low-frequency components and the spectrum
+11
+
+304
+305
+
+leakage problem of the 2D FFT (Weichert et al., 2023). In this study, a Hanning window was
+applied to the image during DFT to reduce spectrum leakage.
+
+306
+307
+308
+309
+310
+
+The principle is as follows: the image boundary inherently acts as a rectangular window, which
+contributes to spectrum leakage. Applying a Hanning window is a widely used approach to
+reduce spectrum leakage and increase the accuracy of peak detection in signal processing (Ming
+& Kang, 1996). For 1D signals, such as time-series data, the Hanning window function @ A is
+defined as:
+@ A
+
+0.5
+
+2IA
+0.5 cos G
+K,0 ≤ A ≤ J
+J 1
+
+1
+
+(9)
+
+311
+312
+313
+314
+315
+316
+
+where M is the sample size and n is the sampled position (i.e., the timestamps of a time-series
+data). Compared with a rectangular window, the frequency domain of Hanning has lower side
+lobes, which are responsible for spectral leakage (Figure 6). The reduction in side lobe levels
+leads to a cleaner frequency spectrum with less interference from adjacent frequencies.
+Therefore, the Hanning window increases the robustness of the DFT result compared with a
+rectangular window, thus reducing spectral leakage.
+
+317
+318
+319
+
+Figure 6. The frequency spectrum of a rectangular window and a Hanning window. The Hanning window
+has a wider main lobe, and lower side lobes.
+
+320
+321
+
+In this study, for each ROI image acquired by the previous steps, the 2D Hanning window
+function @ , was generated as the cross product of two 1D Hanning window functions:
+@
+
+322
+323
+324
+
+,
+
+1
+-1
+4
+
+cos G
+
+2I
+K1-1
+J 1
+
+2I
+0≤
+cos G
+K1, O
+0≤
+N 1
+
+≤J
+≤N
+
+1
+1
+
+(10)
+
+where (M, N) is the image size and (x, y) is the sampled pixel position (i.e. image pixel
+coordinate along each axis). After applying the 2D Hanning window to the image, the FFT
+algorithm was used to compute the magnitude spectrum f(x, y) and the phase spectrum p(x, y).
+12
+
+325
+
+2.2.3 Crop row pattern detection and localization
+
+326
+327
+328
+
+To locate crop rows with sufficient accuracy for robot navigation, sub-pixel resolution is
+necessary for identifying the magnitude peak in the magnitude spectrum f(x, y). The steps are as
+follows:
+
+329
+330
+331
+332
+
+1) Bandpass filtering and coarse peak detection: a bandpass filter is firstly applied to the
+magnitude spectrum f(x, y) to preserve only the components with periods closed to the crop row
+distancing. And the magnitude peak is coarsely located as the maximum magnitude value in the
+spectrum f(x, y), with its position recorded as P , P .
+
+333
+334
+335
+336
+
+2) Refining peak detection using Taylor expansion: in the magnitude spectrum f(x, y), a
+Taylor expansion-based interpolation is applied at P , P to refine the peak detection result as
+Q, R
+P + ∆ , P + ∆ , where (∆ , ∆ ) is the position bias. Since the gradient of a peak is
+zero by definition, the bias (∆ , ∆ ) can be computed by solving the following equation:
+U ′
+
+′
+
+337
+338
+
+339
+340
+341
+342
+
+343
+344
+
+P+V
+
+, P+V
+W
+P+V , P+V
+
+P, P
+
+U ′
+
+P, P
+
+′
+
+W+U ″
+
+″
+
+P, P
+
+P, P
+
+″
+
+″
+
+P, P
+
+P, P
+
+WG
+
+V
+K
+V
+
+0
+X Y
+0
+
+(11)
+
+The 1st and 2nd order derivatives of f(x, y) were computed numerically. Therefore, the bias
+(∆ , ∆ ) is:
+V
+G K
+V
+
+U ″
+
+″
+
+P, P
+
+P, P
+
+″
+
+″
+
+P, P
+
+P, P
+
+W
+
+)*
+
+U ′
+
+′
+
+P, P
+
+P, P
+
+W
+
+(12)
+
+3) Phase angle calculation using DTFT: the corresponding phase Z of the magnitude peak is
+determined by applying the discrete time Fourier transform (DTFT) on the windowed ROI image
+obtained in Section 2.2.2. The frequency content of the ROI image signal at the frequency of
+Q, R was calculated using DTFT:
+[ Q, R
+
+∑+fP ∑e
+dfP
+
+], A ^ )>9_ `+/ bcd/e
+
+(13)
+
+where (m, n) are the pixel coordinates in the ROI image, and (M, N) is the image size. The
+accurate estimation of the phase angle Z is:
+Z
+
+gℎi ^ [ Q, R
+
+(14)
+
+345
+346
+
+Since DTFT is more computationally intensive compared to FFT, it is only applied once for
+accurate phase estimation after locating the peak frequency.
+
+347
+348
+
+4) Determining crop row positions: the positions of the crop rows in the image are the
+wavefronts of the sinusoidal waves corresponding to the peak frequency Q, R . The points on
+13
+
+349
+350
+
+the wavefront lines have their phase values equal to 0. Therefore, the periods Tx, Ty of the crop
+rows along x and y directions are:
+J
+Q
+
+j
+
+351
+352
+
+353
+354
+
+(15)
+
+N
+R
+
+j
+
+(16)
+
+where (M, N) is the image size, and units are in pixels. Therefore, the normalized line direction
+vector k of the crop rows in the ROI image is:
+k
+
+l ,l
+
+j , j /m
+
+j ,j m
+
+A set of intersections n
+op , oq , … of the parallel lines along the x-axis in the image
+coordinate were calculated as:
+os
+
+-j ∗ 2uI
+
+Z , 01, u ∈ w
+
+(17)
+
+(18)
+
+355
+356
+
+Therefore, with the determined set of intersections n and the line direction k, the position and
+direction of the crop rows are established in the ROI image frame
+.
+
+357
+
+2.2.4 Position and heading deviation estimation
+
+358
+359
+360
+361
+
+Lastly, the tracking deviation and heading deviation were determined. Specifically, the detected
+parallel crop rows in the ROI image frame
+were mapped back to the local map frame
+.
+For instance, for a crop row which has a direction vector of k passing through os , the mapped
+becomes:
+line in the local map frame
+k
+
+362
+363
+364
+365
+
+366
+367
+368
+
+o{
+
+!l
+
+! {
+
+,l
+
+, {
+
+, 0"
+
+x
+
+, 1"
+
+x
+
+Ay8]ilz$^ X
+
+!l , l , 0" Y
+
+j ∗ 2uI
+
+x
+
+Z , 0,1 x
+
+(19)
+(20)
+
+Then the navigation line to track was determined as the centerline of two adjacent crop rows that
+have the shortest perpendicular distance to the robot position, which is the origin in the local map
+frame
+(Figure 5). The signed perpendicular distance |{ from the robot position to the crop
+rows defined by k and o{
+was calculated by a dot product:
+|{
+
+! {
+
+, {
+
+" ∙ !l
+
+,l
+
+"
+
+(21)
+
+The tracking deviation ey was calculated as the perpendicular distance from robot position to the
+centerline of two lines with the shortest perpendicular distance, |{ and |{b* , to the robot, as
+illustrated in Figure 5:
+14
+
+369
+370
+371
+372
+
+^
+
+|{ + |{b* /2
+
+(22)
+
+atan l
+
+(23)
+
+This metric quantifies the lateral displacement of the vehicle from the desired path. The heading
+deviation ^} is defined as the angular difference between the vehicle's heading direction and the
+direction of the navigation line. It quantifies the misalignment of the vehicle's heading with
+respect to the row direction.
+^}
+
+/l
+
+373
+
+The row detection algorithm was implemented in Python using OpenCV and Eigen library.
+
+374
+
+3.
+
+375
+376
+377
+378
+
+The experiments were designed to evaluate the performance of our proposed navigation control
+system for in-field navigation, specifically focusing on (1) the performance of the proposed
+DFT-based algorithm in locating crop rows and (2) the performance of the row detection
+algorithm within a row-guidance system.
+
+379
+
+3.1 Row Detection Algorithm Evaluation
+
+380
+381
+382
+
+This experiment evaluated the proposed method's ability to find crop rows in images and
+estimate tracking deviations. The robustness of the algorithm was also assessed against various
+crop growth stages, sunlight directions, and robot positions in the field.
+
+383
+
+3.1.1 Evaluation matrices
+
+384
+385
+386
+
+The Pearson correlation coefficients (r) and root mean square errors (RMSE) of both calculated
+position and heading deviations (ey, eθ) were used as evaluation matrices for the proposed row
+detection algorithm. The definition of r and RMSE are as follows:
+
+Results and Discussions
+
+•
+
+∑†ƒfp ‚ƒ
+
+‡∑†ƒfp ‚ƒ
+
+ˆJ‰Š
+
+„
+‚
+
+„ …ƒ
+‚
+
+„
+…
+
+∑†ƒfp …ƒ
+
+d
+1
+‹ Œ
+A
+=f*
+
+=
+
+=
+
+„
+…
+
+9
+
+(24)
+
+(25)
+
+387
+388
+
+Where xi and yi are the predicted values and the corresponding ground truth values, respectively.
+̅x and ̅y are the means of xi and yi, and n is the number of data samples.
+
+389
+
+3.1.2 Qualitative analysis
+
+390
+391
+
+Among the 6755 collected images, 6264 images were successfully processed, and the crop rows
+were detected. The average processing time for a frame was 252 ms with a standard deviation of
+15
+
+392
+393
+394
+395
+
+33 ms, using a computer with an i5-6500TE processor. Most failures occurred when the robot
+traversed hard bumps in the field, causing rapid camera pose changes that the selected IMU
+model on the mast could not track, leading to incorrect camera pose estimations and rectification
+results.
+
+396
+397
+398
+399
+400
+
+The step-by-step results of the proposed DFT-based row detection algorithm are shown in Figure
+7 to visualize its effectiveness. The algorithm successfully revealed the crop rows within the
+images at different growth stages and proved robust to missing crop rows, glare effects, and
+shadows, which are significant challenges for crop row detection in the field.
+
+401
+402
+403
+404
+
+Figure 7. Step results of the proposed DFT-based row detection algorithm: (a) image taken at V3 growth
+stage, not at the edge of the field, with glares. (b) image taken at V7 growth stage, at the edge of the
+field, with shadows.
+
+405
+
+3.1.3 Performance analysis for different seniors
+
+406
+407
+408
+409
+410
+411
+
+The proposed algorithm's performance in tracking deviation estimation was evaluated under
+different scenarios, defined according to the growth stages of the corn (GS), time of day (TD),
+and whether the robot was facing the sunlight (FS) or near the edge of the field (NE). As shown
+in Table 1, the average RMSE for lateral position and heading deviation estimation across all
+tested scenarios were 6.43 cm and 1.48°, respectively, with corresponding r values of 0.52 and
+0.69.
+
+412
+413
+414
+
+Applying the algorithm to image sequences from entire passes during data collection showed that
+the tracking deviation estimation closely followed the ground truth, indicating the algorithm's
+suitability for in-field vision-based navigation (Figure 8).
+
+415
+416
+
+Table 1. The r values and RMSEs for the estimation of position deviation (Pos Dev) and angular heading
+deviation (Ang Dev) using the proposed row detection algorithm in different scenarios. Scenarios were
+
+16
+
+417
+418
+
+defined according to the growth stages of the corn (GS), time of the day (TD), and whether they are:
+facing the sunlight (FS), and near the edge of the field (NE).
+
+GS
+V3
+V3
+V3
+V3
+V3
+V3
+V3
+V3
+V7
+V7
+V7
+V7
+V7
+V7
+V7
+V7
+
+Scenarios
+TD
+FS
+Noon
+Y
+Noon
+N
+Noon
+Y
+Noon
+N
+Evening
+Y
+Evening
+N
+Evening
+Y
+Evening
+N
+Noon
+Y
+Noon
+N
+Noon
+Y
+Noon
+N
+Evening
+Y
+Evening
+N
+Evening
+Y
+Evening
+N
+Average
+
+NE
+Y
+N
+N
+Y
+Y
+N
+N
+Y
+Y
+N
+N
+Y
+Y
+N
+N
+Y
+
+Pos Dev
+r value
+RMSE/cm
+0.54
+5.50
+6.28
+0.68
+0.48
+4.50
+0.45
+4.26
+0.67
+7.53
+0.40
+7.43
+0.44
+5.97
+7.09
+0.33
+0.45
+7.29
+0.67
+5.25
+0.46
+7.00
+0.46
+5.96
+0.59
+7.46
+0.44
+7.64
+0.61
+6.48
+0.60
+7.22
+0.52
+6.43
+
+17
+
+Ang Dev
+r value
+RMSE/deg
+0.67
+1.24
+0.85
+1.40
+1.30
+0.48
+0.59
+1.31
+0.86
+2.22
+0.67
+1.68
+0.66
+1.04
+0.64
+1.07
+0.50
+1.78
+0.79
+1.59
+0.49
+1.86
+0.76
+1.65
+0.84
+1.34
+0.75
+1.45
+0.72
+1.50
+0.84
+1.32
+0.69
+1.48
+
+419
+420
+
+(a)
+
+421
+422
+423
+424
+425
+426
+
+(b)
+Figure 8. Tracking deviation estimation of example passes, including (top) the estimated robot trajectory
+calculated from position deviation, and (bottom) the measured heading deviation compared with ground
+truth from GPS-IMU localization. (a) V3 growth stage, evening time, facing the sun, not near the edge of
+the field; (b) V7 growth stage, evening time, at the edge of the field, with shadows.
+
+427
+428
+429
+430
+431
+432
+433
+434
+435
+436
+437
+438
+
+As shown in Table 1, performance varied across different scenarios. To investigate factors
+affecting the accuracy of position and heading deviation estimation, a series of two-sample t-tests
+(Snecdecor & Cochran, 1991) were conducted. The null hypothesis was that the means are equal,
+indicating that the accuracy of position or heading deviation estimation is not affected by the
+tested factor. As shown in Table 2, only one test had a significant p-value to reject the null
+hypothesis, indicating that the performance of lateral deviation estimation is affected by the time
+of day. Specifically, operating in the evening with an inclined sunlight angle reduced the
+accuracy of lateral position estimation. However, the difference in accuracy between different
+growth stages was not significant. Despite less obvious crop row patterns at later growth stages,
+heading and position deviations were correctly estimated due to accurate row direction
+estimation from the global pattern in the frequency domain and the higher accuracy in the center
+of images due to the Hanning window function.
+
+18
+
+439
+440
+
+Table 2. Equal mean tests and results of the RMSE’s of the lateral position and heading deviation
+estimation by different factors.
+
+No. of Response
+test
+1
+Pos Dev
+RMSE
+2
+Pos Dev
+RMSE
+3
+Pos Dev
+RMSE
+4
+Pos Dev
+RMSE
+5
+Ang Dev
+RMSE
+6
+Ang Dev
+RMSE
+7
+Ang Dev
+RMSE
+8
+Ang Dev
+RMSE
+
+Factor
+
+p-value
+
+Growth stage (V3/V7)
+
+0.132
+
+Time of the day
+(Noon/Evening)
+Facing the sunlight (Y/N)
+
+0.011*
+
+Near the edge (Y/N)
+
+0.702
+
+Growth stage (V3/V7)
+
+0.345
+
+Time of the day
+(Noon/Evening)
+Facing the sunlight (Y/N)
+
+0.681
+
+Near the edge (Y/N)
+
+0.945
+
+0.897
+
+0.520
+
+441
+442
+443
+444
+445
+446
+447
+
+In general, the algorithm accurately detected crop rows and estimated the robot's tracking
+deviation. The proposed method is robust to varying plant growth stages, operation positions in
+the field, and illumination variations, including glares and shadows in the images. However,
+correct camera calibration is essential. The algorithm's performance decreases when the camera
+pose is inaccurately calculated, resulting in non-parallel and unevenly spaced crop rows in the
+simulated bird’s-eye view.
+
+448
+
+3.2 Navigation System Evaluation
+
+449
+450
+451
+452
+
+The second experiment evaluated the effectiveness of the proposed row detection algorithm
+within a navigation system for crop row tracking. A proof-of-concept navigation system was
+developed, utilizing an LQG controller along with visually derived tracking deviations for robot
+steering control.
+
+453
+
+3.2.1 Navigation control system setup
+
+454
+455
+456
+457
+
+Since the position and heading deviation measurements using the DFT-based method are not
+perfect, the steering control system must accommodate input signals with a certain level of
+uncertainty. In this application, an LQG controller was applied to steer the robot, correcting
+lateral position and heading deviations for in-row navigation. The LQG controller combines a
+
+19
+
+458
+459
+
+Linear Quadratic Regulator (LQR) with a Kalman filter, which considers noise in the linear
+system and measurement process.
+
+460
+461
+462
+
+For this study, the general path tracking error model for car-like vehicles was used as the robot’s
+kinematic model (Corke, 2011). The discrete system model with process and measurement noise
+is defined as:
+
+463
+464
+465
+466
+467
+
+‚†bp •‚† + Ž•† + •
+…† &‚† + ‘
+
+in which w is the process noise vector with covariance matrix Q, and v is the measurement noise
+vector with covariance matrix R. The state vector x of the system includes the lateral position
+error ^ , the heading error ^} and their rates. The input u is the turning curvature ’ of the robot,
+controlled by actuating the steering joint. The measurement … are the lateral position error ^“,
+and the heading error ^“
+} acquired by the proposed row detection algorithm.
+‚
+
+^ , ^ ” , ^} , ^} ′ ′
+
+…
+
+468
+
+469
+470
+471
+472
+473
+
+(26)
+
+•
+
+’
+
+^“, ^“
+} ′
+
+(27
+)
+(28
+)
+(29
+)
+
+Based on the kinematic model of a car-like vehicle, the system model (Equation 26) becomes:
+^
+^ ′
+' (
+^}
+^} ′ db*
+
+1 V:
+0 0
+'
+0 0
+0 0
+
+0
+
+1
+0
+
+^
+0
+0
+^
+′
+0
+0
+(' ( + ' (’ + @
+^}
+V:
+0
+^
+′
+0
+R
+} d
+
+(30)
+
+in which s is the separately controlled forward speed, and Δ: is the control cycle time. The
+covariance matrix Q of process noise w was designed according to the confidence level of the
+robot kinematic model. The covariance matrix R of measurement noise v was designed according
+to the RMSE values of the position and heading deviation estimation. With the designed LQG
+controller, a proof-of-concept navigation system was implemented (Figure 9).
+
+20
+
+Crop row
+detection
+
+IMU
+
+Robot
+posture
+estimation
+
+Encoders
+
+Robot local
+movement
+estimation
+
+In-row pose
+estimtation
+
+LQG
+controller
+
+Front wheel
+motor
+
+Motion controller
+
+Top camera
+
+Rear wheel
+motor
+
+Steering
+motor
+
+474
+475
+
+Figure 9. The architecture of the vision-based navigation control system for tracking crop rows
+
+476
+
+3.2.2 Field tests results
+
+477
+478
+479
+480
+481
+482
+483
+
+The field tests were conducted in the same field and the same passes used during image
+acquisition (Figure 3). Using PhenoBot 3.0 as a testing platform, the experiment was carried out
+with corn plants at the V3 growth stage during the evening. The actual robot trajectory was
+measured using GPS-based localization, and the position and heading deviations were analyzed.
+The forward speed was controlled at 0.8 m/s. The sampling rate of the camera for the row
+detection algorithm was 3 frames per second, and the update frequency of the LQG controller
+was set to 8 Hz.
+
+484
+485
+486
+487
+488
+489
+
+Our experimental results showed that the trajectory along which the robot navigated closely
+matched the reference central path (Figure 10) with a reasonable distribution of the tracking error
+(Figure 11). The mean absolute tracking error was 3.74 cm in average, with the position error
+being less than 8.5 cm in 90% of the cases (Table 3). Among the four passes in the trajectory,
+lower tracking errors were observed when operating in the central region of the field compared
+to near the edges, with average RMSEs of 3.22 cm and 5.40 cm, respectively.
+
+490
+491
+492
+493
+494
+495
+496
+
+As a proof-of-concept, the results have demonstrated that when integrated with an LQG
+controller, the proposed row detection algorithm effectively guided the robot to maintain its
+position centered between crop rows, validating its applicability for field robot operations. The
+navigation control system exhibited robust performance under varying illumination conditions,
+including glares and shadows. However, the system's performance degraded when operating near
+field edges, primarily due to two factors: uneven terrain that increased the process noise level for
+the LQG controller, and increased errors in robot pose estimation.
+
+497
+498
+
+For future implementation of the navigation control system in field conditions, we propose the
+following improvements: first, adopting a more robust strategy for robots pose estimation;
+21
+
+499
+500
+501
+502
+
+Second, implementation of an advanced controller capable of adapting to time-variant process
+noise when operating on uneven terrain; Third, development of a row-end-detection method to
+address the dilution of dominant frequency components from crop rows by non-crop areas at row
+ends. These limitations will be addressed in our future study.
+
+503
+504
+505
+506
+507
+508
+509
+510
+
+Compared to navigation control systems using alternative row detection algorithms, our
+proposed system demonstrates superior robustness across varying plant growth stages, operation
+positions in the field, and illumination variations, including glares and shadows in the images.
+Furthermore, the major computational costs of our algorithm are concentrated in 2D DFT and
+DTFT calculations, which can be efficiently accelerated using commercial embedded digital
+signal processing (DSP) units. This enables deployment on embedded computational systems,
+offering lower costs and higher stability for field-based platforms such as agricultural robots and
+UAVs.
+
+511
+512
+
+Figure 10. Trajectories of the robot using the proposed navigation system
+
+513
+514
+
+Figure 11. The distribution of the tracking error (lateral position), unit: m.
+
+22
+
+515
+516
+517
+
+Table 3. The RMSEs and 90% percentile for the tracking error (lateral position relative to the reference
+central path) in each pass during the field tests. Scenarios were defined according to whether they are:
+facing the sunlight (FS), and near the edge of the field (NE).
+
+No. of
+
+Scenarios
+
+Tracking error (cm)
+
+pass
+
+FS
+
+NE
+
+RMSE
+
+90% percentile
+
+1
+
+Y
+
+Y
+
+5.68
+
+10.33
+
+2
+
+N
+
+N
+
+3.53
+
+6.70
+
+3
+
+Y
+
+N
+
+2.65
+
+4.18
+
+4
+
+N
+
+Y
+
+4.99
+
+8.77
+
+3.74
+
+8.50
+
+Average
+518
+519
+520
+521
+522
+
+In summary, the results of this study demonstrated that the proposed DFT-based row detection
+algorithm effectively detected crop rows, contributing to agricultural robot navigation in the
+field. Compared to other vision-based row detection algorithms, the benefits and limitations of
+the proposed DFT-based row detection algorithm are as follows:
+
+523
+
+Benefits:
+
+524
+525
+
+1) The algorithm utilizes the parallel property and row spacing of the crop rows as prior
+knowledge to accurately locate the crop rows in the images.
+
+526
+527
+
+2) By focusing on global frequency features in images, the approach is robust to various local
+noise, such as weeds, glares, and shadows.
+
+528
+529
+
+3) The computational load for processing each image is low and relatively consistent,
+involving only a few configuration parameters.
+
+530
+
+Limitations and potential solutions:
+
+531
+532
+533
+
+1) The algorithm relies on accurate camera pose estimation for field-based navigation.
+Therefore, precise robot-camera calibration, and real-time sensing of robot pose and posture
+are required when applying this algorithm in field applications.
+
+534
+535
+536
+
+2) The algorithm has an RMSE of about 6 cm for lateral position deviation estimation.
+Therefore, the algorithm necessitates a controller compatible with noisy input signals, such
+as the LQG controller used in this study.
+
+23
+
+537
+
+4.
+
+538
+539
+540
+541
+542
+543
+544
+545
+546
+547
+548
+
+In this paper, we proposed a frequency domain-based crop row detection algorithm for
+agricultural robot navigation. Assuming sectionally straight, parallel, and equally-spaced crop
+rows, we developed a novel image processing pipeline incorporating Taylor expansion-based
+interpolation, Hanning windowing, and DTFT to enhance the accuracy of crop row detection in
+the frequency domain. Experiments conducted with corn plants at various growth stages, under
+different illumination conditions, and at different positions in the field demonstrated the
+algorithm's effectiveness. The results showed that the proposed crop row detection algorithm
+accurately estimated lateral position and heading deviations relative to the row center, with
+average RMSEs of 6.43 cm and 1.48°, respectively. Using an LQG controller, the robot
+maintained a mean absolute tracking error of 3.74 cm, with tracking errors less than 8.5 cm in
+90% of cases.
+
+549
+550
+551
+552
+553
+
+Our study demonstrated that the DFT and frequency domain method is a viable approach for
+crop row detection in vision-based navigation within crop fields. By focusing on the parallel and
+equally spaced nature of crop rows, the algorithm proved robust against local noise such as
+weeds, glares, and shadows. However, the algorithm's performance depends on accurate robotcamera calibration and real-time sensing of robot pose and posture.
+
+554
+555
+556
+557
+558
+
+In summary, the presented algorithm and field-testing results confirmed the feasibility of using
+frequency domain analysis for robotic navigation between crop rows, while also highlighting
+limitations that warrant further investigation. The framework of the proposed algorithm can be
+extended to various agricultural applications involving above-canopy cameras, including
+mapping with unmanned aerial vehicles (UAVs).
+
+559
+
+5.
+
+560
+561
+562
+563
+564
+
+This project was funded by the National Science Foundation Major Research Instrumentation
+Program (Grant No. DBI-1625364) and the Plant Sciences Institute at Iowa State University.
+This research is a product of the Iowa Agriculture Experiment Station, Ames, Iowa, Project No.
+IOW03712, which is partially supported by Hatch Act and State of Iowa funds. We thank Taylor
+Tuel, Benjamin Steward, and Duan Liu for their assistance in hardware design.
+
+565
+
+References
+
+566
+567
+568
+569
+570
+571
+
+Åstrand, B., & Baerveldt, A.-J. (2005). A vision based row-following system for agricultural
+field machinery. Mechatronics, 15(2), 251–269.
+https://doi.org/10.1016/j.mechatronics.2004.05.005
+Bai, Y., Zhang, B., Xu, N., Zhou, J., Shi, J., & Diao, Z. (2023). Vision-based navigation and
+guidance for agricultural autonomous vehicles and robots: A review. Computers and
+Electronics in Agriculture, 205, 107584. https://doi.org/10.1016/j.compag.2022.107584
+
+Conclusions
+
+Acknowledgment
+
+24
+
+572
+573
+574
+575
+576
+577
+578
+579
+580
+581
+582
+583
+584
+585
+586
+587
+588
+589
+590
+591
+592
+593
+594
+595
+596
+597
+598
+599
+600
+601
+602
+603
+604
+605
+606
+607
+608
+609
+610
+611
+612
+613
+614
+615
+616
+617
+
+Bao, Y., Gai, J., Xiang, L., & Tang, L. (2021). Field robotic systems for high-throughput plant
+phenotyping: A review and a case study. High-Throughput Crop Phenotyping, 13–38.
+Bossu, J., Gée, C., Guillemin, J.-P., & Truchetet, F. (2006). Development of methods based on
+double Hough transform or Gabor filtering to discriminate between crop and weed in
+agronomic images. In F. Meriaudeau & K. S. Niel (Eds.), Machine Vision Applications in
+Industrial Inspection XIV (Vol. 6070, p. 60700N). SPIE.
+https://doi.org/10.1117/12.642908
+Bossu, J., Gée, Ch., Jones, G., & Truchetet, F. (2009). Wavelet transform to discriminate
+between crop and weed in perspective agronomic images. Computers and Electronics in
+Agriculture, 65(1), 133–143. https://doi.org/10.1016/j.compag.2008.08.004
+Chen, J., Qiang, H., Wu, J., Xu, G., Wang, Z., & Liu, X. (2020). Extracting the navigation path
+of a tomato-cucumber greenhouse robot based on a median point Hough transform.
+Computers and Electronics in Agriculture, 174, 105472.
+https://doi.org/10.1016/j.compag.2020.105472
+Choi, K. H., Han, S. K., Han, S. H., Park, K.-H., Kim, K.-S., & Kim, S. (2015). Morphologybased guidance line extraction for an autonomous weeding robot in paddy fields.
+Computers and Electronics in Agriculture, 113, 266–274.
+https://doi.org/10.1016/j.compag.2015.02.014
+Corke, P. (2011). Mobile robot vehicles. In Springer Tracts in Advanced Robotics (Vol. 73, pp.
+65–86). Springer Verlag. https://doi.org/10.1007/978-3-642-20144-8_4
+De Silva, R., Cielniak, G., & Gao, J. (2024). Vision based crop row navigation under varying
+field conditions in arable fields. Computers and Electronics in Agriculture, 217, 108581.
+https://doi.org/10.1016/j.compag.2023.108581
+Diao, Z., Guo, P., Zhang, B., Zhang, D., Yan, J., He, Z., Zhao, S., Zhao, C., & Zhang, J. (2023).
+Navigation line extraction algorithm for corn spraying robot based on improved
+YOLOv8s network. Computers and Electronics in Agriculture, 212, 108049.
+https://doi.org/10.1016/j.compag.2023.108049
+dos Santos Ferreira, A., Junior, J. M., Pistori, H., Melgani, F., & Gonçalves, W. N. (2022).
+Unsupervised domain adaptation using transformers for sugarcane rows and gaps
+detection. Computers and Electronics in Agriculture, 203, 107480.
+https://doi.org/10.1016/j.compag.2022.107480
+Foote, T. (2013). Tf: The transform library. IEEE Conference on Technologies for Practical
+Robot Applications, TePRA. https://doi.org/10.1109/TePRA.2013.6556373
+Gai, J., Xiang, L., & Tang, L. (2021). Using a depth camera for crop row detection and mapping
+for under-canopy navigation of agricultural robotic vehicle. Computers and Electronics
+in Agriculture, 188, 106301. https://doi.org/10.1016/j.compag.2021.106301
+García-Santillán, I., Guerrero, J. M., Montalvo, M., & Pajares, G. (2018). Curved and straight
+crop row detection by accumulation of green pixels from images in maize fields.
+Precision Agriculture, 19(1), 18–41. https://doi.org/10.1007/s11119-016-9494-1
+Hague, T., & Tillett, N. D. (2001). A bandpass filter-based approach to crop row location and
+tracking. Mechatronics, 11(1), 1–12.
+Hartley, R., & Zisserman, A. (2003). Multiple view geometry in computer vision. Cambridge
+university press.
+Lai, H., Zhang, Y., Zhang, B., Yin, Y., Liu, Y., & Dong, Y. (2023). Design and experiment of
+the visual navigation system for a maize weeding robot. Transactions of the Chinese
+Society of Agricultural Engineering, 39, 18–27.
+25
+
+618
+619
+620
+621
+622
+623
+624
+625
+626
+627
+628
+629
+630
+631
+632
+633
+634
+635
+636
+637
+638
+639
+640
+641
+642
+643
+644
+645
+646
+647
+648
+649
+650
+651
+652
+653
+654
+655
+656
+657
+658
+659
+660
+661
+662
+663
+
+Li, S., Zhang, Z., Du, F., & He, Y. (2020). A New Automatic Real-Time Crop Row Recognition
+Based on SoC-FPGA. IEEE Access, 8, 37440–37452.
+https://doi.org/10.1109/access.2020.2973756
+Liang, X., Chen, B., Wei, C., & Zhang, X. (2022). Inter-row navigation line detection for cotton
+with broken rows. Plant Methods, 18(1), 90. https://doi.org/10.1186/s13007-022-00913-y
+Lin, G., Tang, Y., Zou, X., Cheng, J., & Xiong, J. (2020). Fruit detection in natural environment
+using partial shape matching and probabilistic Hough transform. Precision Agriculture,
+21(1), 160–177. https://doi.org/10.1007/s11119-019-09662-w
+Liu, T.-H., Zheng, Y., Lai, J.-S., Cheng, Y.-F., Chen, S.-Y., Mai, B.-F., Liu, Y., Li, J.-Y., & Xue,
+Z. (2024). Extracting visual navigation line between pineapple field rows based on an
+enhanced YOLOv5. Computers and Electronics in Agriculture, 217, 108574.
+https://doi.org/10.1016/j.compag.2023.108574
+Ming, X., & Kang, D. (1996). Corrections for frequency, amplitude and phase in a fast fourier
+transform of a harmonic signal. Mechanical Systems and Signal Processing, 10(2), 211–
+221. https://doi.org/10.1006/mssp.1996.0015
+Moore, T., & Stouch, D. (2016). A generalized extended Kalman filter implementation for the
+robot operating system. Advances in Intelligent Systems and Computing, 302, 335–348.
+https://doi.org/10.1007/978-3-319-08338-4_25
+Ospina, R., & Noguchi, N. (2019). Simultaneous mapping and crop row detection by fusing data
+from wide angle and telephoto images. Computers and Electronics in Agriculture, 162,
+602–612. https://doi.org/10.1016/j.compag.2019.05.010
+Quan, L., Guo, Z., Huang, L., Xue, Y., Sun, D., Chen, T., Geng, T., Shi, J., Hou, P., He, J., &
+Lou, Z. (2024). Efficient extraction of corn rows in diverse scenarios: A grid-based
+selection method for intelligent classification. Computers and Electronics in Agriculture,
+218, 108759. https://doi.org/10.1016/j.compag.2024.108759
+Romeo, J., Pajares, G., Montalvo, M., Guerrero, J. M., Guijarro, M., & Ribeiro, A. (2012). Crop
+row detection in maize fields inspired on the human visual perception. The Scientific
+World Journal, 2012. https://doi.org/10.1100/2012/484390
+Shen, C., Zhang, Y., Guo, X., Chen, X., Cao, H., Tang, J., Li, J., & Liu, J. (2021). Seamless
+GPS/inertial navigation system based on self-learning square-root cubature Kalman filter.
+IEEE Transactions on Industrial Electronics, 68(1), 499–508.
+https://doi.org/10.1109/TIE.2020.2967671
+Sivakumar, A., Modi, S., Gasparino, M., Ellis, C., Baquero Velasquez, A., Chowdhary, G., &
+Gupta, S. (2021). Learned visual navigation for under-canopy agricultural robots.
+Robotics: Science and Systems 2021. https://doi.org/10.15607/rss.2021.xvii.019
+Snecdecor, G. W., & Cochran, W. G. (1991). Statistical Methods. Wiley.
+Song, P., Li, Z., Yang, M., Shao, Y., Pu, Z., Yang, W., & Zhai, R. (2023). Dynamic detection of
+three-dimensional crop phenotypes based on a consumer-grade RGB-D camera. Frontiers
+in Plant Science, 14. https://www.frontiersin.org/articles/10.3389/fpls.2023.1097725
+Tenhunen, H., Pahikkala, T., Nevalainen, O., Teuhola, J., Mattila, H., & Tyystjärvi, E. (2019).
+Automatic detection of cereal rows by means of pattern recognition techniques.
+Computers and Electronics in Agriculture, 162, 677–688.
+https://doi.org/10.1016/j.compag.2019.05.002
+Vioix, J. B., Douzals, J. P., Truchetet, F., Assémat, L., & Guillemin, J. P. (2002). Spatial and
+spectral methods for weed detection and localization. Eurasip Journal on Applied Signal
+Processing, 2002(7), 679–685. https://doi.org/10.1155/S1110865702204072
+26
+
+664
+665
+666
+667
+668
+669
+670
+671
+672
+673
+674
+675
+676
+677
+678
+679
+680
+681
+682
+683
+684
+685
+686
+687
+688
+689
+690
+691
+692
+693
+694
+695
+696
+697
+698
+699
+
+Wang, T., Chen, B., Zhang, Z., Li, H., & Zhang, M. (2022). Applications of machine vision in
+agricultural robot navigation: A review. Computers and Electronics in Agriculture, 198,
+107085. https://doi.org/10.1016/j.compag.2022.107085
+Weichert, S., Smeltzer, B. K., & Ellingsen, S. Å. (2023). Biases from spectral leakage in remote
+sensing of near-surface currents. IEEE Transactions on Geoscience and Remote Sensing,
+61, 1–15. https://doi.org/10.1109/TGRS.2023.3321305
+Winterhalter, W., Fleckenstein, F., Dornhege, C., & Burgard, W. (2021). Localization for
+precision navigation in agricultural fields—Beyond crop row following. Journal of Field
+Robotics, 38(3), 429–451. https://doi.org/10.1002/rob.21995
+Winterhalter, W., Fleckenstein, F. V., Dornhege, C., & Burgard, W. (2018). Crop row detection
+on tiny plants with the pattern hough transform. IEEE Robotics and Automation Letters,
+3(4), 3394–3401. https://doi.org/10.1109/LRA.2018.2852841
+Xiang, L., Tang, L., Gai, J., & Wang, L. (2021). Measuring stem diameter of sorghum plants in
+the field using a high-throughput stereo vision system. Transactions of the ASABE, 64(6),
+1999–2010. https://doi.org/10.13031/trans.14156
+Yang, W., Wang, S., Zhao, X., Zhang, J., & Feng, J. (2015). Greenness identification based on
+HSV decision tree. Information Processing in Agriculture, 2(3–4), 149–160.
+https://doi.org/10.1016/j.inpa.2015.07.003
+Yang, Y., Zhou, Y., Yue, X., Zhang, G., Wen, X., Ma, B., Xu, L., & Chen, L. (2023). Real-time
+detection of crop rows in maize fields based on autonomous extraction of ROI. Expert
+Systems with Applications, 213, 118826. https://doi.org/10.1016/j.eswa.2022.118826
+Zhai, Z., Zhu, Z., Du, Y., Song, Z., & Mao, E. (2016). Multi-crop-row detection algorithm based
+on binocular vision. Biosystems Engineering, 150, 89–103.
+https://doi.org/10.1016/j.biosystemseng.2016.07.009
+Zhang, S., Liu, Y., Xiong, K., Tian, Y., Du, Y., Zhu, Z., Du, M., & Zhai, Z. (2024). A review of
+vision-based crop row detection method: Focusing on field ground autonomous
+navigation operations. Computers and Electronics in Agriculture, 222, 109086.
+https://doi.org/10.1016/j.compag.2024.109086
+Zhang, X., Wang, Q., Wang, X., Li, H., He, J., Lu, C., Yang, Y., & Jiang, S. (2023). Automated
+detection of Crop-Row lines and measurement of maize width for boom spraying.
+Computers and Electronics in Agriculture, 215, 108406.
+https://doi.org/10.1016/j.compag.2023.108406
+Zhang, Z. (2000). A flexible new technique for camera calibration. IEEE Transactions on
+Pattern Analysis and Machine Intelligence, 22(11), 1330–1334.
+https://doi.org/10.1109/34.888718
+
+27
+
+

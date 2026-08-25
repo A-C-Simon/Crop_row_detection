@@ -1,0 +1,24 @@
+name,cfg,our_angle_deg,n_lines,runtime_s,status
+bev,BEV,-2.69,0,3.23,SystemExit: end index out of bounds.
+bev2,BEV,-2.49,0,0.13,SystemExit: end index out of bounds.
+bev4,BEV,-3.30,0,0.04,SystemExit: end index out of bounds.
+bev5,BEV,-89.55,0,0.54,ok
+bev6,BEV,-89.99,0,30.32,SystemExit: end index out of bounds.
+bev7,BEV,89.74,0,5.87,ok
+photo_10_2026-08-18_17-17-57,pitch45+yaw75,-79.80,0,6.02,SystemExit: end index out of bounds.
+photo_11_2026-08-18_17-17-57,pitch45+yaw75,83.43,0,9.13,ok
+photo_12_2026-08-18_17-17-57,pitch40+yaw60,86.73,0,4.02,ok
+photo_13_2026-08-18_17-17-57,pitch45+yaw95,-86.32,0,5.09,SystemExit: end index out of bounds.
+photo_14_2026-08-18_17-17-57,pitch45+yaw120,89.10,0,20.62,ok
+photo_15_2026-08-18_17-17-57,pitch40+yaw75,84.59,8,7.36,ok
+photo_16_2026-08-18_17-17-57,pitch35,89.09,0,1.94,ok
+photo_17_2026-08-18_17-17-57,pitch40+yaw60,86.82,20,7.92,ok
+photo_1_2026-08-18_17-17-57,pitch40,-89.94,0,1.37,ok
+photo_2_2026-08-18_17-17-57,pitch35,81.01,0,1.28,ok
+photo_3_2026-08-18_17-17-57,pitch35+yaw45,87.85,0,4.13,ok
+photo_4_2026-08-18_17-17-57,pitch45+yaw75,-84.04,0,7.23,SystemExit: end index out of bounds.
+photo_5_2026-08-18_17-17-57,pitch35,-88.34,0,0.43,SystemExit: end index out of bounds.
+photo_6_2026-08-18_17-17-57,pitch40+yaw95,-85.70,0,5.73,SystemExit: end index out of bounds.
+photo_7_2026-08-18_17-17-57,pitch35,87.76,0,1.23,ok
+photo_8_2026-08-18_17-17-57,pitch45+yaw15,-50.19,0,8.52,SystemExit: end index out of bounds.
+photo_9_2026-08-18_17-17-57,pitch40+yaw60,87.15,22,7.78,ok
