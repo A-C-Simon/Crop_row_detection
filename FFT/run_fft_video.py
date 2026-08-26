@@ -53,7 +53,7 @@ def calibrate(gray, args):
     for pitch in np.arange(args.scan[0], args.scan[1] + 1e-9, args.scan[2]):
         for yaw in yaws:
             try:
-                rect, gsd = rectify_forward(gray, float(pitch), args.height,
+                rect, gsd, _ = rectify_forward(gray, float(pitch), args.height,
                                             args.fov, args.gsd,
                                             yaw_deg=float(yaw),
                                             range_m=args.range_m)
@@ -197,7 +197,7 @@ def main(argv=None):
         status = "OK"
         res = None
         try:
-            roi, gsd = rectify_forward(gray, pitch, args.height, args.fov,
+            roi, gsd, _ = rectify_forward(gray, pitch, args.height, args.fov,
                                        args.gsd, yaw_deg=yaw,
                                        range_m=args.range_m)
             lo, hi, prior = spacing_band_px(gsd, args)
@@ -215,7 +215,7 @@ def main(argv=None):
             roi, gsd = None, None
         if roi is None:
             try:
-                roi, gsd = rectify_forward(gray, pitch, args.height,
+                roi, gsd, _ = rectify_forward(gray, pitch, args.height,
                                            args.fov, args.gsd, yaw_deg=yaw,
                                            range_m=args.range_m)
             except Exception:

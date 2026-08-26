@@ -26,8 +26,8 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from PIL import Image
 
-from dft_crop_row_detector import (DFTRowDetector, Detection, exg_gray,
-                                   rectify_forward)
+from dft_crop_row_detector import (DFTRowDetector, Detection, corridor_in_image,
+                                   exg_gray, rectify_forward)
 
 METRIC_FIELDS = ["image", "mode", "pitch_deg", "yaw_deg", "gsd_m_per_px",
                  "roi_w", "roi_h", "row_spacing_px", "row_spacing_m",
@@ -69,7 +69,8 @@ def process_bev(rgb: np.ndarray, args):
     gsd = args.bev_width_m / w
     roi = gray
     _, res, ms = detect_roi(roi, gsd, (w / 2.0, h - 1.0), args)
-    info = {"mode": "BEV", "pitch": None, "yaw": None, "gsd": gsd}
+    info = {"mode": "BEV", "pitch": None, "yaw": None, "gsd": gsd,
+            "map": {"minv": np.eye(3), "offset": (0, 0), "grid": (w, h)}}
     return rgb, roi, res, ms, info
 
 
@@ -82,10 +83,10 @@ def process_forward(rgb: np.ndarray, args):
     for pitch in np.arange(args.scan[0], args.scan[1] + 1e-9, args.scan[2]):
         for yaw in yaws:
             try:
-                rect, r_gsd = rectify_forward(gray, float(pitch), args.height,
-                                              args.fov, args.gsd,
-                                              yaw_deg=float(yaw),
-                                              range_m=args.range_m)
+                rect, r_gsd, _ = rectify_forward(gray, float(pitch),
+                                                 args.height, args.fov,
+                                                 args.gsd, yaw_deg=float(yaw),
+                                                 range_m=args.range_m)
                 lo, hi, prior = spacing_band_px(r_gsd, args)
                 d = DFTRowDetector(min_period_px=lo, max_period_px=hi,
                                    spacing_prior_px=prior)
@@ -112,11 +113,13 @@ def process_forward(rgb: np.ndarray, args):
     else:
         chosen = best_vert
     _, _, pitch, yaw = chosen
-    roi, gsd = rectify_forward(gray, pitch, args.height, args.fov, args.gsd,
-                               yaw_deg=yaw, range_m=args.range_m)
+    roi, gsd, map_info = rectify_forward(gray, pitch, args.height, args.fov,
+                                         args.gsd, yaw_deg=yaw,
+                                         range_m=args.range_m)
     _, res, ms = detect_roi(roi, gsd, (roi.shape[1] / 2.0,
                                        roi.shape[0] - 1.0), args)
-    info = {"mode": "FORWARD", "pitch": pitch, "yaw": yaw, "gsd": gsd}
+    info = {"mode": "FORWARD", "pitch": pitch, "yaw": yaw, "gsd": gsd,
+            "map": map_info}
     return rgb, roi, res, ms, info
 
 
@@ -185,13 +188,52 @@ def summary_text(name, info, res: Detection, ms: float, gsd: float | None):
     return "\n".join(lines)
 
 
+def draw_photo_overlay(ax, rgb, cor, gsd, res, title):
+    ax.imshow(rgb)
+    if cor is not None:
+        ax.fill(cor["corridor"][:, 0], cor["corridor"][:, 1],
+                color="deepskyblue", alpha=0.18, zorder=2,
+                label="navigation corridor")
+        for p in cor["rows"]:
+            ax.plot(p[:, 0], p[:, 1], color="red", lw=1.0, alpha=0.6,
+                    zorder=3)
+        for p in cor["borders"]:
+            ax.plot(p[:, 0], p[:, 1], color="darkorange", lw=2.6, zorder=4,
+                    label="bordering rows")
+        cl = cor["centerline"]
+        if cl is not None:
+            ax.plot(cl[:, 0], cl[:, 1], color="cyan", lw=2.8, zorder=5,
+                    label="navigation line")
+        rx, ry = cor["ref"]
+        ax.plot(rx, ry, marker="*", color="yellow", ms=15, mec="black",
+                mew=1.2, zorder=6, ls="none")
+        parts = [f"corridor {res.corridor_px * gsd:.2f} m"
+                 if gsd and np.isfinite(res.corridor_px) else None,
+                 f"e_y {res.ey_px * gsd * 100:.1f} cm"
+                 if gsd and np.isfinite(res.ey_px) else None,
+                 f"e_t {res.e_theta_deg:.2f} deg"]
+        label = "\n".join(p for p in parts if p)
+        ax.text(0.02, 0.98, label, transform=ax.transAxes, va="top",
+                ha="left", color="white", fontsize=8, family="monospace",
+                bbox=dict(facecolor="black", alpha=0.55, pad=3), zorder=7)
+        handles, labels = ax.get_legend_handles_labels()
+        uniq = dict(zip(labels, handles))
+        ax.legend(uniq.values(), uniq.keys(), loc="lower right", fontsize=7,
+                  framealpha=0.55)
+    h_img, w_img = rgb.shape[:2]
+    ax.set_xlim(-0.5, w_img - 0.5)
+    ax.set_ylim(h_img - 0.5, -0.5)
+    ax.set_title(title, fontsize=10)
+    ax.set_xticks([])
+    ax.set_yticks([])
+
+
 def save_figure(path, name, rgb, roi, res, ms, info, status="OK"):
     gsd = info.get("gsd")
+    cor = corridor_in_image(res, info.get("map"))
     fig, axes = plt.subplots(2, 2, figsize=(13, 10), constrained_layout=True)
-    axes[0, 0].imshow(rgb)
-    axes[0, 0].set_title(f"{name}  [{info['mode']}]", fontsize=10)
-    axes[0, 0].set_xticks([])
-    axes[0, 0].set_yticks([])
+    draw_photo_overlay(axes[0, 0], rgb, cor, gsd, res,
+                       f"{name}  [{info['mode']}]")
     title = (f"rectified BEV ROI: {res.n_rows} rows, "
              f"spacing "
              + (f"{res.spacing_px * gsd * 100:.0f} cm, " if gsd else "")

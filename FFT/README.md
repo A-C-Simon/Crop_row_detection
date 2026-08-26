@@ -206,12 +206,16 @@ Outputs per video, written to `--out`:
 
 For every photo, `results_fft/<name>_result.png` contains four panels:
 
-1. the input photo,
+1. the input photo with the navigation corridor overlaid: the two
+   bordering rows in orange, the navigation line (corridor center) in
+   cyan, the corridor area shaded, all other detected rows in thin red,
+   the reference point as a yellow star, and a box with corridor width,
+   `e_y` and `e_theta`,
 2. the rectified bird's eye ROI with all detected row lines in red, the
-   navigation centerline (center of the two rows flanking the reference
-   point) in cyan, and the reference point as a yellow star,
-3. the log magnitude spectrum with the bandpass annulus and the locked peak
-   with its mirror marked,
+   navigation centerline in cyan, and the reference point as a yellow
+   star,
+3. the log magnitude spectrum with the bandpass annulus and the locked
+   peak with its mirror marked,
 4. a text summary of all numbers.
 
 `results_fft/metrics.csv` has one row per photo: mode, chosen pitch and yaw,

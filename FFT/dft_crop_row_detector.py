@@ -104,9 +104,11 @@ def rectify_forward(gray: np.ndarray, pitch_deg: float, height_m: float,
     """Inverse perspective mapping of a forward-looking image to a metric
     bird's-eye grid, MAAIR-cropped to fully sampled pixels.
 
-    Returns (roi_gray, gsd_used_in_m_per_px). gsd=None auto-matches the grid
-    to the source image sampling density. range_m limits how far ahead of the
-    camera ground is kept.
+    Returns (roi_gray, gsd_used_in_m_per_px, map_info). map_info carries the
+    rect-to-image homography, the ROI crop offset and the full grid size so
+    detections can be drawn back onto the original image. gsd=None
+    auto-matches the grid to the source image sampling density. range_m
+    limits how far ahead of the camera ground is kept.
     """
     if cv2 is None:
         raise RuntimeError("OpenCV required for rectification")
@@ -158,7 +160,10 @@ def rectify_forward(gray: np.ndarray, pitch_deg: float, height_m: float,
     r0, c0, hh, ww = maair(cv2.erode(valid, k) > 0)
     if hh == 0 or ww == 0:
         raise ValueError("rectification produced no valid ground pixels")
-    return full[r0:r0 + hh, c0:c0 + ww].astype(np.float64), float(gsd)
+    map_info = {"minv": np.linalg.inv(M), "offset": (int(r0), int(c0)),
+                "grid": (int(W), int(Ht))}
+    return (full[r0:r0 + hh, c0:c0 + ww].astype(np.float64), float(gsd),
+            map_info)
 
 
 # ---------------------------------------------------------------------------
@@ -374,3 +379,60 @@ class DFTRowDetector:
         e = ((rx - points[:, 0]) * direction[1]
              - (ry - points[:, 1]) * direction[0])
         return pos, e
+
+
+def corridor_in_image(res: Detection, map_info: Optional[dict]):
+    """Back-project the navigation corridor onto the original image.
+
+    Returns a dict with polylines in image pixel coordinates for every
+    detected row, the two corridor bordering rows, the navigation centerline,
+    the corridor fill polygon and the reference point, or None when the
+    detection cannot be mapped (no map info or no flanking row pair).
+    """
+    if map_info is None:
+        return None
+    minv = map_info["minv"]
+    r0, c0 = map_info["offset"]
+    gw, gh = map_info["grid"]
+    t = res.direction
+
+    def to_image(pts):
+        ph = np.column_stack([pts[:, 0] + c0, pts[:, 1] + r0,
+                              np.ones(len(pts))])
+        q = ph @ minv.T
+        return np.column_stack([q[:, 0] / q[:, 2], q[:, 1] / q[:, 2]])
+
+    def polyline(x_at_y0):
+        s = np.linspace(-2.0 * (gw + gh), 2.0 * (gw + gh), 8001)
+        xs = x_at_y0 + s * t[0]
+        ys = s * t[1]
+        ok = ((xs >= -c0) & (xs <= gw - 1.0 - c0)
+              & (ys >= -r0) & (ys <= gh - 1.0 - r0))
+        if not ok.any():
+            return None
+        i0 = int(np.argmax(ok))
+        i1 = len(ok) - int(np.argmax(ok[::-1]))
+        return to_image(np.column_stack([xs[i0:i1], ys[i0:i1]]))
+
+    e = res.e_indices
+    if len(e) < 2:
+        return None
+    order = np.argsort(np.abs(e))
+    i, j = int(order[0]), int(order[1])
+    rows = [p for p in (polyline(xi) for xi in res.intersections)
+            if p is not None]
+    b1, b2 = polyline(res.intersections[i]), polyline(res.intersections[j])
+    if b1 is None or b2 is None:
+        return None
+    if len(b1) > len(b2):
+        b2 = b2[np.linspace(0, len(b2) - 1, len(b1)).round().astype(int)]
+    else:
+        b1 = b1[np.linspace(0, len(b1) - 1, len(b2)).round().astype(int)]
+    return {
+        "rows": rows,
+        "borders": [b1, b2],
+        "centerline": polyline(0.5 * (res.intersections[i]
+                                      + res.intersections[j])),
+        "corridor": np.vstack([b1, b2[::-1]]),
+        "ref": to_image(np.asarray([res.ref_point], dtype=float))[0],
+    }
