@@ -48,6 +48,14 @@ except ImportError:                     # sklearn >= 1.3 fallback
     from sklearn.cluster import HDBSCAN
 
 
+# Paper Eq.3 in MultiROI — 4x4 anti-diagonal structuring element
+KERNEL_K = np.array([
+    [0, 0, 0, 1],
+    [0, 0, 1, 0],
+    [0, 1, 0, 0],
+    [1, 0, 0, 0],
+], dtype=np.uint8)
+
 # ----------------------------------------------------------------------------
 # Configuration
 # ----------------------------------------------------------------------------
@@ -59,17 +67,27 @@ class CarolifConfig:
     dst_width_scale: float = 1.35     # width of virtual top-view plane
     vp_fallback_xy: Tuple[float, float] = (0.5, -0.75)   # in ROI units (x*w, y*h)
     vp_bottom_span: Tuple[float, float] = (0.04, 0.96)   # bottom edge of source quad
-    # segmentation / noise reduction
+    # segmentation / noise reduction — "struct" = preclean embedded (default),
+    # "paper" = original ExG+Otsu + ellipse open/close (Khan et al.)
+    morph: str = "struct"             # "struct" | "paper"
     morph_kernel: int = 3
     morph_open_iters: int = 1
     morph_close_iters: int = 2
+    # preclean band-support filter (MultiROI test_multi_roi.py: pre_corridor_clean)
+    # Applied INSIDE morphology when morph="struct": every blob not overlapping a
+    # per-strip row-candidate band (Eq.5-8) is erased before any corridor exists.
+    pre_clean_n_strips: int = 10
+    pre_clean_l_frac: float = 0.05
+    pre_clean_pad_px: int = 6
+    pre_clean_min_area: int = 12
+    pre_clean_max_blob_frac: float = 0.05
     # ---- Step 2: clustering -------------------------------------------------
     pool_keep_frac: float = 0.12      # pooled cell counts as occupied above
-    min_cluster_size: int = 30        # the paper's main tuning parameter (floor)
-    min_cluster_size_frac: float = 0.008    # ...but at least this share of pts
-    min_samples: int = 5
+    min_cluster_size: int = 60        # aggressive: kill weak / weed clusters
+    min_cluster_size_frac: float = 0.012    # ...but at least this share of pts
+    min_samples: int = 10             # stricter density requirement
     max_cluster_points: int = 60000   # subsample cap for speed (fixed seed)
-    expected_min_rows: int = 3        # fewer clusters => merged rows assumption
+    expected_min_rows: int = 2        # fewer clusters => merged rows assumption
     refine_iters: int = 8             # iterative outlier deletion budget
     refine_keep_frac: float = 0.85    # fraction kept per refinement iteration
     merge_ratio: float = 2.5          # oversized if > ratio * median cluster size
@@ -83,7 +101,12 @@ class CarolifConfig:
     ransac_thresh: float = 3.0        # inlier perpendicular distance (px)
     ransac_iters: int = 600
     ransac_confidence: float = 0.99
-    slope_range: Tuple[float, float] = (70.0, 110.0)  # degrees, from horizontal
+    slope_range: Tuple[float, float] = (5.0, 175.0)   # effectively disabled — all angles pass
+    vertical_stretch: float = 2.0     # stretch y before clustering to favor vertical groups
+    merge_col_thresh: float = 0.06    # clusters within this fraction of width are same column
+    merge_y_gap_frac: float = 0.12    # vertical gap < frac of view_h → merge stacked clusters
+    diverge_angle_max: float = 75.0   # lines > this angle from horizon-center direction → delete
+    spline_smoothing: float = 0.003   # smoothing factor for UnivariateSpline (0=interpolate)
     seed: int = 42
 
     timings: Dict[str, float] = field(default_factory=dict, repr=False)
@@ -103,27 +126,153 @@ def normalize_exg(bgr: np.ndarray):
     return exg, scaled
 
 
+def column_projection(strip: np.ndarray, x_lo: int, x_hi: int) -> np.ndarray:
+    """MultiROI Eq.5-6: vertical projection filtered by T=M+E (Eq.7-8).
+
+    Dense-canopy guard: on saturated scenes M+E can exceed max(Z) and wipe
+    out the entire profile — then fall back to P90 so strongest columns survive.
+    Direct copy of test_multi_roi.py:column_projection.
+    """
+    window = strip[:, x_lo:x_hi]
+    z = (window == 255).sum(axis=0).astype(np.float64)  # Eq.5
+    t = z.mean() + z.std()                               # Eq.7-8
+    if t > 0 and not np.any(z >= t):
+        t = float(np.quantile(z, 0.9))
+    z[z < t] = 0.0                                       # Eq.6
+    return z
+
+
+def cluster_feature_columns(z: np.ndarray, x_lo: int, l_thresh: int):
+    """MultiROI Sec 2.3.2: group feature columns whose gap < L."""
+    cols = np.nonzero(z > 0)[0]
+    if cols.size == 0:
+        return []
+    clusters = []
+    start = prev = cols[0]
+    for c in cols[1:]:
+        if c - prev < l_thresh:
+            prev = c
+        else:
+            clusters.append((start + x_lo, prev + x_lo))
+            start = prev = c
+    clusters.append((start + x_lo, prev + x_lo))
+    return clusters
+
+
+def pre_corridor_clean(binary: np.ndarray, cfg: CarolifConfig):
+    """EXPERIMENTAL preclean embedded in morphology (MultiROI struct).
+
+    Per-strip row-candidate bands from Eq.5-8 define which columns carry row
+    structure. Every connected component is judged at blob level: if its
+    horizontal extent overlaps a band in its own or adjacent strip it survives,
+    otherwise it is erased as off-structure weed. Whole blobs are kept/dropped
+    (never shaved), blobs > max_blob_frac of vegetation are always spared,
+    strips without bands are left untouched. Returns (cleaned, info dict).
+    Direct port of test_multi_roi.py:pre_corridor_clean — validated to prevent
+    wrong-lane capture (photo_9/photo_6 eye tests).
+    """
+    h, w = binary.shape[:2]
+    n_strips = cfg.pre_clean_n_strips
+    l_frac = cfg.pre_clean_l_frac
+    pad_px = cfg.pre_clean_pad_px
+    min_area = cfg.pre_clean_min_area
+    max_blob_frac = cfg.pre_clean_max_blob_frac
+
+    dh = h // n_strips if n_strips > 0 else h
+    l_thresh = max(2, int(l_frac * w))
+
+    # per-strip row-candidate bands
+    bands = {}
+    for mu in range(1, n_strips + 1):
+        y1 = h - mu * dh
+        ys, ye = max(0, y1), y1 + dh
+        if ye <= ys:
+            continue
+        z = column_projection(binary[ys:ye, :], 0, w)
+        bands[mu] = cluster_feature_columns(z, 0, l_thresh)
+
+    def strip_of(y):
+        return min(n_strips, max(1, (h - int(y)) // max(1, dh)))
+
+    n_cc, labels, stats, centroids = cv2.connectedComponentsWithStats(
+        binary.astype(np.uint8), connectivity=8)
+    total = int(np.count_nonzero(binary))
+    big_px = max_blob_frac * max(1, total)
+
+    cleaned = binary.copy()
+    removed = removed_area = 0
+    for i in range(1, n_cc):
+        x0, _, bw_, _, area = stats[i]
+        cy = centroids[i][1]
+        if area < min_area:
+            continue  # speckle: opening's job
+        mu = strip_of(cy)
+        tol = []
+        for m_u in (mu - 1, mu, mu + 1):
+            tol += [(a - pad_px, b + 1 + pad_px)
+                    for a, b in bands.get(m_u, [])]
+        if not tol:
+            continue  # no structure known here: keep
+        if area > big_px:
+            continue  # giant cap: too big to condemn
+        hi_x = x0 + bw_ + pad_px
+        lo_x = x0 - pad_px
+        if any(hi_x > lo and lo_x < hi for lo, hi in tol):
+            continue  # touches row structure
+        cleaned[labels == i] = 0
+        removed += 1
+        removed_area += area
+    return cleaned, {
+        "applied": removed > 0,
+        "n_removed": removed,
+        "removed_px": removed_area,
+        "removed_frac": removed_area / max(1, total),
+    }
+
+
 def segment_green(roi_bgr: np.ndarray, cfg: CarolifConfig) -> np.ndarray:
     """
-    ExG + Otsu thresholding followed by morphological opening/closing.
-    Otsu is computed over vegetation candidates only (ExG > 0) so that in
-    fully-covered canopies it still separates lit rows from shaded ones
-    rather than slicing highlight noise out of a uniform green scene.
+    ExG + Otsu thresholding followed by morphological filtering.
+
+    Two modes (cfg.morph):
+      paper  — original CAROLIF: normalized RGB ExG + ellipse open + close
+               (Khan et al. Eqs. 7-9, Sec. 3.1.1.3)
+      struct — DEFAULT, matches test_multi_roi.py morphology exactly:
+               raw ExG = 2G - R - B, Otsu on full image, KERNEL_K (4×4
+               anti-diagonal) opening, then pre_corridor_clean band-support
+               weed filter. No safety valve — preclean output is final.
     """
-    exg, scaled = normalize_exg(roi_bgr)
-    cand = exg > 0.05                              # vegetation candidates only
-    if cand.sum() < 50:                            # essentially no vegetation
-        return np.zeros(roi_bgr.shape[:2], np.uint8)
-    thr, _ = cv2.threshold(scaled[cand], 0, 255,
-                           cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-    mask = ((scaled >= thr) & cand).astype(np.uint8) * 255
-    kernel = cv2.getStructuringElement(
-        cv2.MORPH_ELLIPSE, (cfg.morph_kernel, cfg.morph_kernel))
-    mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel,
-                            iterations=cfg.morph_open_iters)
-    mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel,
-                            iterations=cfg.morph_close_iters)
-    return mask
+    h, w = roi_bgr.shape[:2]
+    b, g, r = cv2.split(roi_bgr.astype(np.float32))
+
+    if cfg.morph == "struct":
+        # Raw ExG (test_multi_roi.py preprocess, index="raw"): 2G - R - B,
+        # clipped to [0, 255].  Matches the MultiROI pipeline exactly.
+        exg = 2.0 * g - r - b
+        exg8 = np.clip(exg, 0.0, 255.0).astype(np.uint8)
+        _, binary = cv2.threshold(exg8, 0, 255,
+                                  cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+        # KERNEL_K opening (Eq.3 of Zhou et al. 2021)
+        binary = cv2.morphologyEx(binary, cv2.MORPH_OPEN, KERNEL_K)
+        # Band-support weed filter (pre_corridor_clean, no safety valve)
+        binary, _ = pre_corridor_clean(binary, cfg)
+        return binary
+    else:
+        # Paper mode: normalized RGB ExG (Khan et al. Eqs. 7-9)
+        exg, scaled = normalize_exg(roi_bgr)
+        cand = exg > 0.05
+        if cand.sum() < 50:
+            return np.zeros((h, w), np.uint8)
+        thr, _ = cv2.threshold(scaled[cand], 0, 255,
+                               cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+        mask = ((scaled >= thr) & cand).astype(np.uint8) * 255
+        kernel = cv2.getStructuringElement(
+            cv2.MORPH_ELLIPSE, (cfg.morph_kernel, cfg.morph_kernel))
+        mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel,
+                                iterations=cfg.morph_open_iters)
+        mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel,
+                                iterations=cfg.morph_close_iters)
+        return mask
 
 
 def estimate_vanishing_point(mask: np.ndarray,
@@ -255,59 +404,197 @@ def pool_mask_points(mask: np.ndarray,
 
 
 def run_hdbscan(points: np.ndarray, cfg: CarolifConfig,
-                min_cluster_size: Optional[int] = None) -> HDBSCAN:
+               min_cluster_size: Optional[int] = None,
+               vertical_stretch: Optional[float] = None) -> HDBSCAN:
+    """HDBSCAN with optional vertical stretch to favor column-like clusters.
+
+    When vertical_stretch > 1 the y-coordinates are scaled up before clustering
+    so that two points stacked vertically are treated as closer than two points
+    at the same horizontal separation.  This biases HDBSCAN toward tall, narrow
+    (column-shaped) clusters — exactly what crop rows look like in the top view.
+    The stretch is applied *only* for clustering; the original un-stretched
+    coordinates are used everywhere else (RANSAC, rendering, etc.).
+    """
+    vs = vertical_stretch if vertical_stretch is not None else 1.0
+    if vs != 1.0 and len(points) > 0:
+        stretched = points.copy()
+        stretched[:, 1] *= vs   # emphasise vertical proximity
+    else:
+        stretched = points
     return HDBSCAN(min_cluster_size=min_cluster_size or cfg.min_cluster_size,
                    min_samples=cfg.min_samples,
                    metric="euclidean",
-                   cluster_selection_method="eom").fit(points)
+                   cluster_selection_method="eom").fit(stretched)
 
 # ----------------------------------------------------------------------------
 # Helpers - Step 3
 # ----------------------------------------------------------------------------
-def ransac_line(points: np.ndarray, cfg: CarolifConfig
-                ) -> Optional[Tuple[np.ndarray, np.ndarray, float]]:
-    """RANSAC straight-line fit; returns two far-apart on-line points."""
+def spline_fit(points: np.ndarray, cfg: CarolifConfig
+               ) -> Optional[Tuple[np.ndarray, np.ndarray, float]]:
+    """Fit a smoothing spline through the cluster points (curvilinear).
+
+    Sorts points by y, fits a UnivariateSpline x = f(y) with light
+    smoothing, then samples the curve at the top and bottom of the cluster
+    to get two endpoint coordinates.  The 'inlier ratio' is estimated as
+    the fraction of points within ransac_thresh of the spline.
+
+    Returns (p1, p2, inlier_ratio) or None if fitting fails.
+    """
+    from scipy.interpolate import UnivariateSpline
+
     n = len(points)
     if n < 2:
         return None
-    rng = np.random.default_rng(cfg.seed)
-    best_inliers, best_count = None, 0
-    thresh2 = cfg.ransac_thresh ** 2
-    for _ in range(cfg.ransac_iters):
-        i, j = rng.choice(n, size=2, replace=False)
-        p, q = points[i], points[j]
-        d = q - p
-        norm2 = d[0] * d[0] + d[1] * d[1]
-        if norm2 < 1e-9:
-            continue
-        # squared perpendicular distance of all points from line(p, q)
-        diff = points - p
-        cross2 = (diff[:, 0] * d[1] - diff[:, 1] * d[0]) ** 2
-        inliers = cross2 / norm2 <= thresh2
-        cnt = int(inliers.sum())
-        if cnt > best_count:
-            best_count, best_inliers = cnt, inliers
-            # early exit per RANSAC confidence bound
-            e = max(1e-9, 1.0 - best_count / n)
-            if e ** cfg.ransac_iters < 1.0 - cfg.ransac_confidence:
-                break
-    if best_inliers is None or best_count < 2:
+    if n < 4:
+        # too few for a spline — fall back to a straight line via SVD
+        c = points.mean(axis=0)
+        u, s, vt = np.linalg.svd(points - c, full_matrices=False)
+        direction = vt[0]
+        normal = np.array([-direction[1], direction[0]])
+        c = c + normal * float(np.median((points - c) @ normal))
+        t = (points - c) @ direction
+        p1, p2 = c + t.min() * direction, c + t.max() * direction
+        return p1, p2, 1.0
+
+    # sort by y so spline is single-valued
+    order = np.argsort(points[:, 1])
+    ys = points[order, 1].astype(np.float64)
+    xs = points[order, 0].astype(np.float64)
+
+    # deduplicate y values (UnivariateSpline requires strictly increasing x)
+    # if there are ties, average the corresponding x values
+    unique_y, inverse = np.unique(ys, return_inverse=True)
+    if len(unique_y) < 4:
+        # not enough unique y values — fall back to straight line
+        c = points.mean(axis=0)
+        u, s, vt = np.linalg.svd(points - c, full_matrices=False)
+        direction = vt[0]
+        normal = np.array([-direction[1], direction[0]])
+        c = c + normal * float(np.median((points - c) @ normal))
+        t = (points - c) @ direction
+        p1, p2 = c + t.min() * direction, c + t.max() * direction
+        return p1, p2, 1.0
+    unique_x = np.array([xs[inverse == k].mean() for k in range(len(unique_y))])
+
+    # fit x = f(y) with smoothing
+    try:
+        spline = UnivariateSpline(unique_y, unique_x, k=min(3, len(unique_y) - 1),
+                                  s=cfg.spline_smoothing * n)
+    except Exception:
+        # fallback to straight line
+        c = points.mean(axis=0)
+        u, s, vt = np.linalg.svd(points - c, full_matrices=False)
+        direction = vt[0]
+        normal = np.array([-direction[1], direction[0]])
+        c = c + normal * float(np.median((points - c) @ normal))
+        t = (points - c) @ direction
+        p1, p2 = c + t.min() * direction, c + t.max() * direction
+        return p1, p2, 1.0
+
+    y_lo, y_hi = float(ys.min()), float(ys.max())
+    x_lo_val = float(spline(y_lo))
+    x_hi_val = float(spline(y_hi))
+    # guard against NaN from spline extrapolation
+    if not (np.isfinite(x_lo_val) and np.isfinite(x_hi_val)):
+        c = points.mean(axis=0)
+        u, s, vt = np.linalg.svd(points - c, full_matrices=False)
+        direction = vt[0]
+        t = (points - c) @ direction
+        p1, p2 = c + t.min() * direction, c + t.max() * direction
+        return p1, p2, 1.0
+    p1 = np.array([x_lo_val, y_lo], dtype=np.float32)
+    p2 = np.array([x_hi_val, y_hi], dtype=np.float32)
+
+    # estimate inlier ratio: how many points are close to the spline curve
+    x_eval = spline(ys)
+    dists = np.abs(xs - x_eval)
+    inlier_ratio = float((dists <= cfg.ransac_thresh).sum()) / n
+    return p1, p2, inlier_ratio
+
+
+# keep a reference to the raw SVD fallback for the "too few points" case
+def _svd_line_fallback(points: np.ndarray, cfg: CarolifConfig
+                       ) -> Optional[Tuple[np.ndarray, np.ndarray, float]]:
+    n = len(points)
+    if n < 2:
         return None
-
-    pts = points[best_inliers]
-    c = pts.mean(axis=0)
-    u, s, vt = np.linalg.svd(pts - c, full_matrices=False)
+    c = points.mean(axis=0)
+    u, s, vt = np.linalg.svd(points - c, full_matrices=False)
     direction = vt[0]
-
-    # Wide canopy bands give RANSAC an arbitrarily-placed thin inlier slab;
-    # keep its orientation but recenter the line on the cluster's median so
-    # the fitted line runs along the band centre (robust against outliers).
     normal = np.array([-direction[1], direction[0]])
     c = c + normal * float(np.median((points - c) @ normal))
-
     t = (points - c) @ direction
     p1, p2 = c + t.min() * direction, c + t.max() * direction
-    return p1, p2, best_count / n
+    return p1, p2, 1.0
+
+
+def _merge_stacked_clusters(subset_points, labels, pidx, cfg, view_h, view_w):
+    """Merge clusters that are stacked vertically in the same column direction.
+
+    After HDBSCAN + geometry filter, two crop-row clusters may sit one above
+    the other in the same column.  This function detects such pairs and merges
+    them into a single cluster.
+
+    Two clusters are merged when:
+      - their horizontal centres are within merge_col_thresh * view_w
+      - their vertical gap is < merge_y_gap_frac * view_h
+
+    subset_points: the points array aligned with labels (i.e. points[pidx]).
+    """
+    if labels.size == 0:
+        return labels, pidx
+
+    unique_labels = sorted(set(labels) - {-1})
+    if len(unique_labels) < 2:
+        return labels, pidx
+
+    # compute cluster stats using subset_points (aligned with labels)
+    stats = {}
+    for c in unique_labels:
+        sel = np.nonzero(labels == c)[0]
+        xc = float(subset_points[sel][:, 0].mean())
+        y_lo = float(subset_points[sel][:, 1].min())
+        y_hi = float(subset_points[sel][:, 1].max())
+        stats[c] = {'sel': sel, 'xc': xc, 'y_lo': y_lo, 'y_hi': y_hi}
+
+    # find merge pairs: same column, small vertical gap
+    merge_map = {}  # child → parent
+    sorted_clusters = sorted(stats.keys(), key=lambda c: stats[c]['y_lo'])
+    col_thresh = cfg.merge_col_thresh * view_w
+    y_gap_max = cfg.merge_y_gap_frac * view_h
+
+    for i in range(len(sorted_clusters)):
+        ci = sorted_clusters[i]
+        if ci in merge_map:
+            continue
+        for j in range(i + 1, len(sorted_clusters)):
+            cj = sorted_clusters[j]
+            if cj in merge_map:
+                continue
+            dx = abs(stats[ci]['xc'] - stats[cj]['xc'])
+            # vertical gap: bottom of upper cluster to top of lower cluster
+            gap = stats[ci]['y_lo'] - stats[cj]['y_hi']  # negative = overlap
+            if dx < col_thresh and gap < y_gap_max:
+                # same column, vertically adjacent → merge cj into ci
+                # (ci is the upper one — keep as parent)
+                merge_map[cj] = ci
+
+    if not merge_map:
+        return labels, pidx
+
+    # apply merge map (chain resolution)
+    def resolve(c):
+        while c in merge_map:
+            c = merge_map[c]
+        return c
+
+    new_labels = labels.copy()
+    for c in unique_labels:
+        parent = resolve(c)
+        if parent != c:
+            new_labels[labels == c] = parent
+
+    return new_labels, pidx
 
 
 def htransform(pts: np.ndarray, H: np.ndarray) -> np.ndarray:
@@ -348,6 +635,29 @@ def line_angle_deg(p1: np.ndarray, p2: np.ndarray) -> float:
     """Angle of the line vs horizontal, folded into [0, 180)."""
     ang = np.degrees(np.arctan2(float(p2[1] - p1[1]), float(p2[0] - p1[0])))
     return abs(ang) % 180.0
+
+
+def line_intersection(p1a, p2a, p1b, p2b):
+    """Find the intersection of two line segments (extended to infinite lines).
+    Returns (x, y) or None if parallel."""
+    da = np.array(p2a, dtype=float) - np.array(p1a, dtype=float)
+    db = np.array(p2b, dtype=float) - np.array(p1b, dtype=float)
+    det = da[0] * db[1] - da[1] * db[0]
+    if abs(det) < 1e-9:
+        return None
+    t = (((np.array(p1b, dtype=float)[0] - p1a[0]) * db[1] -
+          (np.array(p1b, dtype=float)[1] - p1a[1]) * db[0]) / det)
+    ix = p1a[0] + t * da[0]
+    iy = p1a[1] + t * da[1]
+    return (ix, iy)
+
+
+def angle_between_lines(p1a, p2a, p1b, p2b) -> float:
+    """Angle in degrees between the directions of two lines."""
+    da = np.array(p2a, dtype=float) - np.array(p1a, dtype=float)
+    db = np.array(p2b, dtype=float) - np.array(p1b, dtype=float)
+    cos_a = np.dot(da, db) / (np.linalg.norm(da) * np.linalg.norm(db) + 1e-9)
+    return float(np.degrees(np.arccos(np.clip(abs(cos_a), 0, 1))))
 
 
 # ----------------------------------------------------------------------------
@@ -416,7 +726,7 @@ class CAROLIF:
                         best_vp, best_s = vp_n, s
         return best_vp if best_vp is not None else (vx_c, -1.0 * h)
 
-    def detect(self, bgr: np.ndarray) -> Dict:
+    def detect(self, bgr: np.ndarray, debug: bool = False) -> Dict:
         """
         Run the full pipeline on a BGR image.
 
@@ -426,6 +736,11 @@ class CAROLIF:
           lines_view   : fitted segments inside the transformed (top) view
           intermediates: visualisation frames (original/roi/mask/view/clusters)
           timings      : ms spent per step
+
+        When debug=True, intermediates also contains before/after images for
+        every decision point (mask_before_open, mask_after_open, raw_clusters,
+        refined_clusters, geo_before, geo_after, ransac_before, ransac_after,
+        rejection_log).
         """
         cfg = self.cfg
         cfg.timings = {}
@@ -450,15 +765,39 @@ class CAROLIF:
         # -- Step 1.3/1.4: segmentation + morphology -------------------------
         t0 = time.perf_counter()
         b, g, r = cv2.split(roi.astype(np.float32))
-        eps = 1e-6
-        s = r + g + b + eps
-        exg_raw = 2.0 * (g / s) - (r / s) - (b / s)
-        if float((exg_raw > 0.05).sum()) < 0.06 * roi.shape[0] * roi.shape[1]:
+        # Quick vegetation guard — raw ExG for struct mode, normalized for paper
+        if cfg.morph == "struct":
+            exg_guard = 2.0 * g - r - b
+        else:
+            eps = 1e-6
+            s = r + g + b + eps
+            exg_guard = 2.0 * (g / s) - (r / s) - (b / s)
+        if float((exg_guard > 0.05).sum()) < 0.06 * roi.shape[0] * roi.shape[1]:
             # no meaningful vegetation (e.g. bare soil) -> nothing to detect
             mask = np.zeros(roi.shape[:2], np.uint8)
             return self._empty_result(bgr, roi, mask, T)
         mask = segment_green(roi, cfg)
         T["segment"] = (time.perf_counter() - t0) * 1000
+
+        # -- Debug: capture intermediate masks for every decision point ------
+        dbg = {}
+        if debug:
+            # 1) ExG + Otsu only (before any morphology)
+            b_ch, g_ch, r_ch = cv2.split(roi.astype(np.float32))
+            if cfg.morph == "struct":
+                exg_dbg = 2.0 * g_ch - r_ch - b_ch
+                exg8_dbg = np.clip(exg_dbg, 0.0, 255.0).astype(np.uint8)
+            else:
+                exg_dbg, exg8_dbg_norm = normalize_exg(roi)
+                exg8_dbg = exg8_dbg_norm
+            _, mask_otsu = cv2.threshold(exg8_dbg, 0, 255,
+                                         cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+            dbg["mask_otsu"] = mask_otsu.copy()
+            # 2) After KERNEL_K opening (before preclean)
+            mask_opened = cv2.morphologyEx(mask_otsu, cv2.MORPH_OPEN, KERNEL_K)
+            dbg["mask_opened"] = mask_opened.copy()
+            # 3) After preclean = final mask
+            dbg["mask_preclean"] = mask.copy()
 
         # -- Step 1.2: projective transformation ------------------------------
         t0 = time.perf_counter()
@@ -476,7 +815,26 @@ class CAROLIF:
         # -- Step 2: clustering -----------------------------------------------
         t0 = time.perf_counter()
         points, cell = pool_mask_points(mask_t, cfg)
+
+        # Debug: capture raw HDBSCAN labels before refinement
+        if debug and len(points) > 0:
+            mcs_dbg = max(cfg.min_cluster_size,
+                          int(cfg.min_cluster_size_frac * len(points)))
+            model_dbg = run_hdbscan(points, cfg, mcs_dbg,
+                                    vertical_stretch=cfg.vertical_stretch)
+            dbg["raw_labels"] = model_dbg.labels_.astype(int).copy()
+            dbg["raw_points"] = points.copy()
+        else:
+            dbg["raw_labels"] = np.zeros(0, dtype=int)
+            dbg["raw_points"] = np.zeros((0, 2), np.float32)
+
         labels, strengths, pidx = self._cluster_with_refinements(points, rng)
+
+        # Debug: capture labels after refinement
+        if debug:
+            dbg["refined_labels"] = labels.copy()
+            dbg["refined_points"] = points[pidx].copy() if pidx.size else np.zeros((0, 2), np.float32)
+            dbg["pidx"] = pidx.copy()
 
         # polish calibration using the found clusters (rows -> vertical), then
         # re-project all working data through the refined homography
@@ -494,43 +852,141 @@ class CAROLIF:
                 mask_t = cv2.warpPerspective(mask, Hm, view_size,
                                              flags=cv2.INTER_NEAREST)
                 points = htransform(roi_all, Hm)        # same length as before
+
+        # -- Step 2.5: merge vertically stacked clusters in same column -------
+        labels, pidx = _merge_stacked_clusters(
+            points[pidx] if pidx.size else points, labels, pidx, cfg,
+            float(mask_t.shape[0]), float(mask_t.shape[1]))
+
+        if debug:
+            dbg["merged_labels"] = labels.copy()
+            dbg["merged_points"] = points[pidx].copy() if pidx.size else np.zeros((0, 2), np.float32)
+
+        # Debug: capture geometry filter before-state (all clusters passing
+        # min_points + min_height, before the gap-based weed deletion)
+        if debug:
+            view_h_dbg = float(mask_t.shape[0])
+            min_height_dbg = cfg.min_height_frac * view_h_dbg
+            geo_before = {}
+            rejection_log = []
+            for c in range(int(labels.max()) + 1) if labels.size else range(0):
+                sel = np.nonzero(labels == c)[0]
+                if len(sel) < cfg.min_cluster_points:
+                    rejection_log.append((c, f"too few pts ({len(sel)}<{cfg.min_cluster_points})"))
+                    continue
+                if points[sel][:, 1].ptp() < min_height_dbg:
+                    rejection_log.append((c, f"too short ({points[sel][:,1].ptp():.0f}<{min_height_dbg:.0f}px)"))
+                    continue
+                geo_before[c] = sel
+            dbg["geo_before"] = geo_before
+            dbg["rejection_log"] = rejection_log
+
         clusters = self._geometry_filter(points[pidx], labels, pidx, rng,
                                          float(mask_t.shape[0]))
+
+        # Debug: capture geometry filter after-state + gap deletions
+        if debug:
+            dbg["geo_after"] = clusters
+            # record which clusters were deleted by gap check
+            gap_deleted = set(geo_before.keys()) - set(clusters.keys())
+            for c in gap_deleted:
+                dbg["rejection_log"].append((c, "gap too narrow (weed neighbor)"))
+
         T["cluster"] = (time.perf_counter() - t0) * 1000
 
-        # -- Step 3: RANSAC line fitting + slope check ------------------------
+        # -- Step 2.6: select the 2 center clusters (Zhou flanking style) ----
+        selected_clusters, forfeited_clusters = self._select_center_2(
+            clusters, points, mask_t)
+
+        # -- Step 3: Spline line fitting + intersection voting ---------------
         t0 = time.perf_counter()
         lines_view, lines_roi, lines_orig, kept_clusters = [], [], [], []
-        for cid, idx in clusters.items():
-            fit = ransac_line(points[idx], cfg)
+        ransac_all = []   # debug: all fits
+        ransac_reject = []  # debug: rejected lines
+        rejected_spline_curves = []  # for red vis: voted-out lines
+        rejected_line_segs = []      # for red vis: voted-out extended lines
+        view_w = float(mask_t.shape[1])
+        view_h = float(mask_t.shape[0])
+        horizon_center = np.array([view_w / 2.0, 0.0], dtype=np.float32)
+
+        # Phase 1: fit a spline to the 2 center clusters only
+        raw_fits = []  # (cid, p1, p2, inlier_ratio)
+        raw_spline_curves = {}  # cid → sorted cluster points (for vis)
+        for cid, idx in selected_clusters.items():
+            fit = spline_fit(points[idx], cfg)
             if fit is None:
+                if debug:
+                    ransac_reject.append((cid, "spline fit failed (<4 pts)"))
                 continue
             p1, p2, inlier_ratio = fit
+            p1e, p2e = extend_line_full_height(p1, p2, view_w, view_h)
+            raw_fits.append((cid, p1e, p2e, inlier_ratio))
+            cl_pts = points[idx]
+            if len(cl_pts) >= 2:
+                order = np.argsort(cl_pts[:, 1])
+                raw_spline_curves[cid] = cl_pts[order].astype(np.int32)
+
+        # Phase 2: assemble — keep ALL fitted splines (no voting/rejection)
+        spline_curves = []
+        for i in range(len(raw_fits)):
+            cid, p1, p2, inlier_ratio = raw_fits[i]
             ang = line_angle_deg(p1, p2)
-            lo, hi = cfg.slope_range
-            if not (lo <= ang <= hi):
-                continue
-            p1, p2 = extend_line_full_height(p1, p2, float(mask_t.shape[1]),
-                                             float(mask_t.shape[0]))
-            seg_v = (tuple(p1), tuple(p2))
-            lines_view.append(seg_v + (inlier_ratio,))
+            curve = raw_spline_curves.get(cid)
+            p1_safe = tuple(int(float(x)) for x in p1)
+            p2_safe = tuple(int(float(x)) for x in p2)
+            lines_view.append((p1_safe, p2_safe, inlier_ratio))
             seg_r = tuple(self._to_roi(pt, Hinv) for pt in (p1, p2))
             lines_roi.append(seg_r)
             seg_o = tuple(self._to_original(pt, Hinv, y0, scale)
                           for pt in (p1, p2))
             lines_orig.append(seg_o)
             kept_clusters.append(cid)
+            if debug:
+                ransac_all.append((p1_safe, p2_safe, cid, inlier_ratio, ang, True))
+            if curve is not None:
+                spline_curves.append(curve)
         T["fit_lines"] = (time.perf_counter() - t0) * 1000
+
+        # Full-image binary mask for composite display (panel 03)
+        mask_full = segment_green(bgr, cfg)
+
+        try:
+            clusters_img = self._render_clusters(mask_t, points[pidx], labels,
+                                                  kept_clusters, cell,
+                                                  forfeited_ids=set(
+                                                      forfeited_clusters.keys()))
+        except Exception:
+            clusters_img = cv2.cvtColor(mask_t, cv2.COLOR_GRAY2BGR)
+        try:
+            det_view = self._draw(view, lines_view, spline_curves,
+                                  rejected_lines=rejected_line_segs,
+                                  rejected_splines=rejected_spline_curves)
+        except Exception:
+            det_view = view.copy()
 
         intermediates = {
             "roi": roi.copy(),
             "mask": mask.copy(),
+            "mask_full": mask_full.copy(),
             "view": view.copy(),
-            "clusters": self._render_clusters(mask_t, points[pidx], labels,
-                                              kept_clusters, cell),
-            "detection_view": self._draw(view, lines_view),
+            "clusters": clusters_img,
+            "detection_view": det_view,
+            "spline_curves": spline_curves,
+            "rejected_spline_curves": rejected_spline_curves,
+            "rejected_line_segs": rejected_line_segs,
+            "forfeited_clusters": forfeited_clusters,
             "vp": vp,
         }
+        if debug:
+            intermediates.update(dbg)
+            intermediates["ransac_all"] = ransac_all
+            intermediates["ransac_reject"] = ransac_reject
+            intermediates["kept_clusters"] = kept_clusters
+            intermediates["lines_view"] = lines_view
+            intermediates["mask_t"] = mask_t.copy()
+            intermediates["points"] = points[pidx].copy() if pidx.size else np.zeros((0, 2), np.float32)
+            intermediates["labels"] = labels.copy() if labels.size else np.zeros(0, dtype=int)
+            intermediates["cell"] = cell
         return {
             "lines": lines_orig,
             "lines_roi": lines_roi,
@@ -631,7 +1087,8 @@ class CAROLIF:
         mcs = max(cfg.min_cluster_size,
                   int(cfg.min_cluster_size_frac * len(points)))
         idx_all = np.arange(len(points))
-        model = run_hdbscan(points, cfg, mcs)
+        model = run_hdbscan(points, cfg, mcs,
+                            vertical_stretch=cfg.vertical_stretch)
         labels = model.labels_.astype(int)
         strengths = model.probabilities_.copy()
 
@@ -648,7 +1105,8 @@ class CAROLIF:
                 break
             points, strengths = points[keep], strengths[keep]
             idx_all = idx_all[keep]
-            model = run_hdbscan(points, cfg, mcs)
+            model = run_hdbscan(points, cfg, mcs,
+                                vertical_stretch=cfg.vertical_stretch)
             labels = model.labels_.astype(int)
             strengths = model.probabilities_
         return labels, strengths, idx_all
@@ -707,12 +1165,102 @@ class CAROLIF:
                     break
         return {c: pidx[sel] for c, sel in local.items()}
 
+    def _select_center_2(self, clusters, points, mask_t):
+        """Select the 2 clusters closest to the horizontal center.
+
+        Follows the Zhou et al. (2021) flanking-cluster style: use column
+        projection on the top-view mask to find the 2 row-candidate bands
+        closest to the image centre, then match HDBSCAN clusters to those
+        bands.  Outer clusters are forfeited — in imperfect BEV views they
+        frequently merge into one unreliable blob.
+
+        Returns (selected_clusters, forfeited_clusters).
+        """
+        if len(clusters) <= 2:
+            return clusters, {}
+
+        view_h, view_w = mask_t.shape[:2]
+        center_x = view_w / 2.0
+
+        # --- column projection (Zhou Eq.5-6) ---
+        z = (mask_t == 255).sum(axis=0).astype(np.float64)
+        t = z.mean() + z.std()                   # T = M + E (Eq.7-8)
+        z_filt = z.copy()
+        z_filt[z_filt < t] = 0.0
+
+        # contiguous feature-column bands (Sec.2.3.2, gap < L)
+        cols = np.nonzero(z_filt > 0)[0]
+        l_thresh = max(2, int(0.05 * view_w))
+        bands = []
+        if len(cols) > 0:
+            start = prev = cols[0]
+            for c in cols[1:]:
+                if c - prev < l_thresh:
+                    prev = c
+                else:
+                    bands.append((start, prev))
+                    start = prev = c
+            bands.append((start, prev))
+
+        # --- find the 2 target bands (Zhou flanking_clusters) ---
+        target_bands = None
+        if len(bands) >= 2:
+            band_centers = [(a + b) / 2.0 for a, b in bands]
+            left_bands = [(i, bc) for i, bc in enumerate(band_centers)
+                          if bc < center_x]
+            right_bands = [(i, bc) for i, bc in enumerate(band_centers)
+                           if bc >= center_x]
+            if left_bands and right_bands:
+                c_left_i = max(left_bands, key=lambda x: x[1])[0]
+                c_right_i = min(right_bands, key=lambda x: x[1])[0]
+                target_bands = [bands[c_left_i], bands[c_right_i]]
+            else:
+                # all on one side — pick 2 closest to center
+                si = sorted(range(len(bands)),
+                            key=lambda i: abs(band_centers[i] - center_x))
+                target_bands = [bands[si[0]], bands[si[1]]]
+
+        # --- match HDBSCAN clusters to target bands ---
+        if target_bands is not None:
+            selected, forfeited = {}, {}
+            for cid, idx in clusters.items():
+                cx = float(points[idx][:, 0].mean())
+                matched = any(lo - 30 <= cx <= hi + 30
+                             for lo, hi in target_bands)
+                (selected if matched else forfeited)[cid] = idx
+            if len(selected) >= 1:
+                # if we got 1 by projection match but there are >2 total,
+                # fill the other slot with the next-closest-to-center
+                if len(selected) == 1 and len(clusters) > 1:
+                    remaining = {c: idx for c, idx in clusters.items()
+                                 if c not in selected}
+                    closest = min(remaining,
+                                  key=lambda c: abs(
+                                      float(points[remaining[c]][:, 0].mean())
+                                      - center_x))
+                    selected[closest] = remaining[closest]
+                    forfeited.pop(closest, None)
+                if len(selected) == 2:
+                    return selected, forfeited
+
+        # --- fallback: simply 2 closest to horizontal center ---
+        info = []
+        for cid, idx in clusters.items():
+            cx = float(points[idx][:, 0].mean())
+            info.append((cid, idx, abs(cx - center_x)))
+        info.sort(key=lambda x: x[2])
+        selected = {c[0]: c[1] for c in info[:2]}
+        forfeited = {c[0]: c[1] for c in info[2:]}
+        return selected, forfeited
+
     @staticmethod
-    def _render_clusters(mask_t, points, labels, kept_ids, cell: int = 2):
+    def _render_clusters(mask_t, points, labels, kept_ids, cell: int = 2,
+                         forfeited_ids=None):
         vis = cv2.cvtColor(mask_t, cv2.COLOR_GRAY2BGR)
         if labels.size == 0:
             return vis
         kept = set(kept_ids)
+        forfeited = set(forfeited_ids) if forfeited_ids else set()
         rng = np.random.default_rng(0)
         half = max(1, cell // 2)
         for c in np.unique(labels):
@@ -722,6 +1270,8 @@ class CAROLIF:
             elif c in kept:
                 col = (int(rng.integers(60, 255)), int(rng.integers(60, 255)),
                        int(rng.integers(60, 255)))
+            elif c in forfeited:
+                col = (0, 165, 255)  # orange — forfeited by center-2 selector
             else:
                 col = (128, 128, 128)
             for x, y in sel:
@@ -730,10 +1280,40 @@ class CAROLIF:
         return vis
 
     @staticmethod
-    def _draw(img, lines):
+    def _draw(img, lines, spline_points=None, rejected_lines=None,
+              rejected_splines=None):
+        """Draw detection lines on image.
+        - Green: surviving spline curves + extended lines
+        - Red: voted-out / rejected lines (shown for debugging)
+        """
         out = img.copy()
-        for p1, p2, *_ in lines:
-            cv2.line(out, (int(round(p1[0])), int(round(p1[1]))),
-                     (int(round(p2[0])), int(round(p2[1]))),
-                     (0, 0, 255), 3, cv2.LINE_AA)
+        # rejected lines in red first (so green draws on top)
+        if rejected_splines is not None:
+            for pts in rejected_splines:
+                if len(pts) >= 2:
+                    cv2.polylines(out, [pts.astype(np.int32)], False,
+                                  (0, 0, 220), 1, cv2.LINE_AA)
+        if rejected_lines is not None:
+            for item in rejected_lines:
+                try:
+                    p1, p2 = item[0], item[1]
+                    pt1 = (int(float(p1[0])), int(float(p1[1])))
+                    pt2 = (int(float(p2[0])), int(float(p2[1])))
+                    cv2.line(out, pt1, pt2, (0, 0, 255), 2, cv2.LINE_AA)
+                except Exception:
+                    pass
+        # surviving lines in green
+        if spline_points is not None and len(spline_points) > 0:
+            for pts in spline_points:
+                if len(pts) >= 2:
+                    cv2.polylines(out, [pts.astype(np.int32)], False,
+                                  (0, 220, 0), 2, cv2.LINE_AA)
+        for item in lines:
+            try:
+                p1, p2 = item[0], item[1]
+                pt1 = (int(float(p1[0])), int(float(p1[1])))
+                pt2 = (int(float(p2[0])), int(float(p2[1])))
+                cv2.line(out, pt1, pt2, (0, 220, 0), 2, cv2.LINE_AA)
+            except Exception:
+                pass
         return out
