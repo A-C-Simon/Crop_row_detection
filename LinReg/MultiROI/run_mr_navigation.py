@@ -89,6 +89,53 @@ def process_image(bgr, detector, vs, draw=True):
     }
 
 
+def make_side_by_side(nav_bgr, comp_bgr, border=8, max_width=1200):
+    """Create a single window with nav overlay (top) and MultiROI composite (bottom) stacked vertically.
+
+    Both images are scaled to the same width (the wider one, capped to max_width)
+    while preserving aspect ratio, then concatenated vertically with a white
+    border and labels. This keeps the combined image at a reasonable size and
+    avoids having to memorize two separate windows per frame. For video, the
+    size is fixed after the first frame.
+    """
+    # Ensure both are 3-channel BGR
+    if len(nav_bgr.shape) == 2:
+        nav_bgr = cv2.cvtColor(nav_bgr, cv2.COLOR_GRAY2BGR)
+    if len(comp_bgr.shape) == 2:
+        comp_bgr = cv2.cvtColor(comp_bgr, cv2.COLOR_GRAY2BGR)
+
+    h1, w1 = nav_bgr.shape[:2]
+    h2, w2 = comp_bgr.shape[:2]
+    # Target width is max of the two, capped
+    target_w = min(max(w1, w2), max_width)
+    # Scale both to target_w
+    def scale_to_w(img, tw):
+        h, w = img.shape[:2]
+        if w == tw:
+            return img
+        scale = tw / w
+        new_h = int(round(h * scale))
+        return cv2.resize(img, (tw, new_h), interpolation=cv2.INTER_AREA)
+    nav_s = scale_to_w(nav_bgr, target_w)
+    comp_s = scale_to_w(comp_bgr, target_w)
+
+    # Add labels on top
+    label_h = 28
+    def add_label(img, text):
+        w = img.shape[1]
+        bar = np.full((label_h, w, 3), (32, 32, 32), dtype=np.uint8)
+        cv2.putText(bar, text, (10, 20), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 1, cv2.LINE_AA)
+        return np.vstack([bar, img])
+
+    nav_l = add_label(nav_s, "Navigation (vs overlay) - red furrow line, star is rover nose")
+    comp_l = add_label(comp_s, "MultiROI Composite - binary / mask+ROIs / overlay")
+
+    # White horizontal border between
+    border_img = np.full((border, target_w, 3), (255, 255, 255), dtype=np.uint8)
+    combined = np.vstack([nav_l, border_img, comp_l])
+    return combined
+
+
 def run_folder(input_path, output_dir, detector, vs, show=False):
     """Process a folder of images."""
     if os.path.isdir(input_path):
@@ -117,13 +164,17 @@ def run_folder(input_path, output_dir, detector, vs, show=False):
                 print(f"[WARN] cannot read {p}")
                 continue
             out = process_image(bgr, detector, vs, draw=True)
-            # Save overlay
-            if out["overlay"] is not None:
-                cv2.imwrite(os.path.join(output_dir, f"{name}_nav.png"), out["overlay"])
-            # Also save the original MultiROI composite for comparison
+            # Create single-window combined view: nav + composite side-by-side
             from test_multi_roi import make_composite
             comp = make_composite(bgr, out["res"])
-            cv2.imwrite(os.path.join(output_dir, f"{name}_composite.png"), comp)
+            if out["overlay"] is not None:
+                combined = make_side_by_side(out["overlay"], comp)
+                cv2.imwrite(os.path.join(output_dir, f"{name}_combined.png"), combined)
+                # Also keep individual for debugging if needed
+                cv2.imwrite(os.path.join(output_dir, f"{name}_nav.png"), out["overlay"])
+                cv2.imwrite(os.path.join(output_dir, f"{name}_composite.png"), comp)
+            else:
+                cv2.imwrite(os.path.join(output_dir, f"{name}_composite.png"), comp)
 
             has_line = out["res"]["nav_line"] is not None
             nav_w, nav_b = out["res"]["nav_line"] if has_line else (float("nan"), float("nan"))
@@ -159,15 +210,9 @@ def run_video(input_path, output_dir, detector, vs, show=False):
 
     os.makedirs(output_dir, exist_ok=True)
     csv_path = os.path.join(output_dir, f"{name}_nav.csv")
-    # Video writer (if not camera)
+    # Video writer (if not camera) - will be initialized after first frame to know combined size
     writer = None
-    if not is_camera:
-        fps = cap.get(cv2.CAP_PROP_FPS) or 20.0
-        w = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-        h = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-        fourcc = cv2.VideoWriter_fourcc(*"mp4v")
-        out_path = os.path.join(output_dir, f"{name}_nav.mp4")
-        writer = cv2.VideoWriter(out_path, fourcc, fps, (w, h))
+    first_frame = True
 
     with open(csv_path, "w", newline="") as f:
         csvw = csv.writer(f)
@@ -183,10 +228,33 @@ def run_video(input_path, output_dir, detector, vs, show=False):
                            f"{out['v']:.4f}", f"{out['w']:.4f}",
                            f"{out['info'].get('err_x',0):.1f}", f"{out['info'].get('err_theta_deg',0):.1f}",
                            int(out["res"]["nav_line"] is not None)])
-            if writer is not None and out["overlay"] is not None:
-                writer.write(out["overlay"])
-            if show and out["overlay"] is not None:
-                cv2.imshow("MultiROI Navigation", out["overlay"])
+            # Create combined view for video/show
+            from test_multi_roi import make_composite
+            comp = make_composite(bgr, out["res"])
+            combined = make_side_by_side(out["overlay"] if out["overlay"] is not None else bgr, comp) if out["overlay"] is not None else comp
+
+            if writer is None and not is_camera and out["overlay"] is not None:
+                fps = cap.get(cv2.CAP_PROP_FPS) or 20.0
+                h_c, w_c = combined.shape[:2]
+                fourcc = cv2.VideoWriter_fourcc(*"mp4v")
+                out_path = os.path.join(output_dir, f"{name}_nav.mp4")
+                writer = cv2.VideoWriter(out_path, fourcc, fps, (w_c, h_c))
+
+            if writer is not None:
+                # Ensure writer size matches combined
+                if writer.isOpened():
+                    # If size mismatch, re-create writer
+                    w_wr = int(writer.get(cv2.CAP_PROP_FRAME_WIDTH)) if hasattr(writer, 'get') else combined.shape[1]
+                    h_wr = int(writer.get(cv2.CAP_PROP_FRAME_HEIGHT)) if hasattr(writer, 'get') else combined.shape[0]
+                    if w_wr != combined.shape[1] or h_wr != combined.shape[0]:
+                        writer.release()
+                        fps = cap.get(cv2.CAP_PROP_FPS) or 20.0
+                        fourcc = cv2.VideoWriter_fourcc(*"mp4v")
+                        out_path = os.path.join(output_dir, f"{name}_nav.mp4")
+                        writer = cv2.VideoWriter(out_path, fourcc, fps, (combined.shape[1], combined.shape[0]))
+                writer.write(combined)
+            if show:
+                cv2.imshow("MultiROI Navigation - Combined (nav | composite)", combined)
                 if cv2.waitKey(1) & 0xFF == ord('q'):
                     break
             frame_idx += 1
