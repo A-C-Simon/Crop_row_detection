@@ -149,3 +149,126 @@ Key flags: `--n_strips --l_frac --min_flank_frac --weed_gate --max_bend
 | `result_06_robustmorph_iffence/` | oriented-openings experiment (rejected) |
 
 Each directory has its own README describing exactly how it was produced.
+
+---
+
+## Navigation Stack - Furrow Following Visual Servoing (2026-08)
+
+This directory now includes a complete navigation stack that turns the
+already available navigation line (furrow corridor centre) into actual
+rover motion. The navigation line for MultiROI is along the furrow
+between the two crop rows, while ExG follows the crop row itself, but
+the control principle is identical. We reuse the visual servoing
+formulation from `ExG/visual-crop-row-navigation_ros2/src/agribot_vs.cpp`.
+
+### Stack Overview
+
+```
+Image -> MultiROI Detector (furrow centre nav_line/nav_curve)
+  -> Visual Features (X, Theta) at bottom of image
+  -> Visual Servoing Controller (v, w)
+  -> Rover Kinematics (differential drive)
+  -> /cmd_vel or simulated pose
+```
+
+**Files:**
+
+| File | Role |
+|---|---|
+| `mr_vs.py` | Visual servoing for furrow. Converts `nav_line` `(w,b)` or `nav_curve` `[(x,y)]` to feature `F=[X,Y,Theta]` and computes `v,w` via `w = -(lambda_x * X/width + lambda_theta * Theta)` |
+| `mr_navigation_stack.py` | Full stack `MultiROINavigationStack`: `detector.detect()` -> `vs.nav_line_to_feature()` -> `vs.compute_control()` -> `simulator.update()`. Handles `crop_offset`, curve tangent at base, and draws overlay |
+| `run_mr_navigation.py` | Offline runner for Photos or video. For each frame produces `*_nav.png` overlay and `nav_commands.csv` with `v,w,err_x,err_theta` |
+
+**Visual features** `mr_vs.py:74` `nav_line_to_feature`:
+
+* `nav_curve` preferred if available: bottom two points of the spline give `P` (bottom) and `Q` (top) in full image coords
+* Else `nav_line` `y=w*x+b` in cropped coords converted to full image via `b_full = b + dy - w*dx`, intersections at `y=0` and `y=h-1`
+* `X = P.x - width/2` lateral error at bottom (pixels, negative is left)
+* `Y = P.y - height/2`
+* `Theta = pi/2 - atan2(P.y - Q.y, Q.x - P.x)` deviation from vertical, `wrapToPi`, `0` is vertical
+
+Desired `F_des = [0, _, 0]` - centred and vertical at the bottom. The rover's nose is at `width/2, height-20` (star marker).
+
+**Control law** `mr_vs.py:152` `compute_control`:
+
+```
+err_x = X, err_theta = Theta
+err_x_norm = err_x / width
+w_raw = -(lambda_x * err_x_norm + lambda_theta * err_theta)
+w = clamp(w_raw, -w_max, w_max), zero if |w|<w_min
+v = vf_des (constant 0.20 m/s)
+```
+
+Defaults `MRVSParams:46` `lambda_x=2.0` `lambda_theta=1.0` `vf_des=0.20` `w_max=0.60` `w_min=0.01` tuned so `100px` lateral (`0.156` norm) gives `0.31` rad/s plus `10 deg` heading (`0.17` rad) stays within `0.60`. Same structure as `agribot_vs.cpp:385` `w = -Jw_pinv*(lambda*err + Jv*v)` but simplified.
+
+If no line, `v=w=0` (could search with `w=0.2`).
+
+**Rover kinematics** `mr_navigation_stack.py:58` `RoverSimulator`:
+
+```
+x += v * cos(theta) * dt
+y += v * sin(theta) * dt
+theta = wrapToPi(theta + w*dt)
+dt=0.1
+```
+
+Path is logged and plotted to `rover_path.png`.
+
+### Usage
+
+```bash
+# Offline on Photos - Produces nav_output with overlays and CSV
+python3 run_mr_navigation.py --input ../../Photos --output ./nav_output
+
+# On video file
+python3 run_mr_navigation.py --input /path/to/video.mp4 --output ./nav_output --video
+
+# Live camera 0 with preview, q to quit
+python3 run_mr_navigation.py --input 0 --output ./nav_output --video --show
+
+# Tune gains
+python3 run_mr_navigation.py --input ../../Photos --vf 0.20 --wmax 0.60 --lambdax 2.0 --lambdatheta 1.0
+
+# Different detector settings still work
+python3 run_mr_navigation.py --input ../../Photos --n_strips 10 --l_frac 0.05 --index raw
+```
+
+Outputs per run:
+
+* `nav_output/<name>_nav.png` - BGR with red navigation line, bottom/top points, centre star, and text `v, w, err_x, err_theta`
+* `nav_output/<name>_composite.png` - original MultiROI composite for reference
+* `nav_output/nav_commands.csv` - `filename, v, w, err_x, err_theta, nav_w, nav_b, has_line, time_ms`
+* `nav_output/rover_path.csv` and `rover_path.png` - simulated path when run as sequence (Photos as frames)
+
+For the 23 Photos as a pseudo-sequence, the stack yields `22/23` lines, mean `~10 ms` detector + `~1 ms` control, path `0.46 m` forward with heading `~1.1 deg` final, velocities mostly within limits (e.g. `bev` `err_x -221` `err_theta 4.6` `w 28.6 deg/s` at limit, `photo_8` `err_x -10` `err_theta 5.5` `w 3.1 deg/s`).
+
+### ROS2 Integration
+
+`mr_vs.py` bottom contains a commented `MultiROINavNode` example:
+
+```python
+import rclpy
+from sensor_msgs.msg import Image
+from geometry_msgs.msg import Twist
+from cv_bridge import CvBridge
+
+class MultiROINavNode(Node):
+    def __init__(self):
+        super().__init__('multiroi_nav')
+        self.bridge = CvBridge()
+        self.detector = MultiROIDetector()
+        self.vs = MultiROIVS()
+        self.sub = self.create_subscription(Image, '/front/image_raw', self.cb, 10)
+        self.pub = self.create_publisher(Twist, '/cmd_vel', 10)
+    def cb(self, msg):
+        bgr = self.bridge.imgmsg_to_cv2(msg, 'bgr8')
+        res = self.detector.detect(bgr)
+        F,_ = self.vs.nav_line_to_feature(res["nav_line"], res["nav_curve"], res["crop_offset"], bgr.shape)
+        v,w,_ = self.vs.compute_control(F) if F is not None else (0.0,0.0,{})
+        twist = Twist(); twist.linear.x=float(v); twist.angular.z=float(w)
+        self.pub.publish(twist)
+```
+
+Build as a ROS2 package, `colcon build`, `ros2 launch` similar to `ExG`.
+
+This completes the navigation stack from the already available furrow line to actual rover motion, analogous to `ExG` but for the MultiROI corridor. The same `IsolationForest` and `column-aware` improvements from `ExG` can be ported here if needed, but the current `test_multi_roi.py` already includes embedded struct-clean and TLS robustness.
