@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+<launch>
+
+  <include file="$(find-pkg-share visual_crop_row_navigation_ros2)/launch/camera_umd.launch" />
+
+  <node pkg="visual_crop_row_navigation_ros2" exec="agribot_vs_node" name="agribot_vs" output="screen">
+
+	  <param from="$(find-pkg-share visual_crop_row_navigation_ros2)/params/agribot_vs_run.yaml"/>
+  </node>
+
+</launch>
