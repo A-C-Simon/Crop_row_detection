@@ -1,0 +1,146 @@
+agribot_vs:
+  ros__parameters:
+    #-------------------------------------------------------
+    #--------------------ROS node params--------------------
+    # controlling the  velocity publisher stare (ON: True of OFF: false)
+    publish_cmd_vel: true
+    # controls publishing linear velocity (used fro debug and setting angular PID params)
+    publish_linear_vel: true
+    #-------------------------------------------------------
+    #---------------------Runtime params--------------------
+    # Maxixmum number of rows to follow
+    max_row_num: 20
+    # Frame rate of ROs node = Fps
+    fps: 20
+    #-------------------------------------------------------
+    #-------------------Application modes-------------------
+    # The mode which is used for tuning the mask (no velocity will be published)
+    mask_tune: true
+    # In case of having only one camera set this param to true (the front camera will be used)
+    single_camera_mode: true
+    #-------------------------------------------------------
+    #----------------Image ans Mask params------------------
+    # Camera used for mask tuninig 1: front, 2: rear
+    maskTuneCamera: 1
+    # Scale of the image processed (it resizes the input images before process) between 0.0 ~ 1.0
+    Scale: 0.7
+    # Min and Max of Hue Channel
+    max_Hue: 80
+    min_Hue: 40
+    # Min and Max of Saturation Channel
+    max_Saturation: 255
+    min_Saturation: 50
+    # Min and Max of Value Channel
+    max_Value: 150
+    min_Value: 100
+    #-------------------------------------------------------
+    #------------------Feature space------------------------
+    # min radius of contour which will be detected and contribute on detecting line
+    minContourSize: 2.0
+    # ???
+    LineFitting_method: 1
+    # -------------------------------------------------------
+    #---------------------- Neighbourhood---------------------
+    # Size of input image should be set here
+    width: 640
+    height: 480
+    # default position of tracking windows
+    ex_Xc: 320
+    ex_Yc: 380
+    # default size of tracking windows
+    nh_L: 80
+    nh_H: 180
+    # ???
+    nh_offset: 200
+    # Isolation Forest inside window (anomaly removal before fitLine)
+    iso_enabled: true
+    iso_contamination: 0.15
+    iso_min_points: 12
+    iso_n_estimators: 100
+    # Column-aware window spawning (dynamic Xc/L near chassis)
+    colaware_enabled: true
+    colaware_y0_frac: 0.55
+    # Gap-based multi-row filter inside window (keep central cluster) - DISABLED per user request, stick to Isolation Forest only
+    gap_enabled: false
+    gap_eps: 14
+    gap_min_samples: 6
+    gap_min_points: 12
+    # min point where sate controller will switch the mode inside the tracking windows
+    min_points_switch: 10
+    # min point where sate controller will switch the mode inside image
+    min_frame: 30
+    # ???
+    coef: 55.0
+    #-------------------------------------------------------
+    #--------------------- Velocity Topic ------------------
+    # desired forward linear velocity
+    vf_des: 0.2
+    # desired backward linear velocity
+    vb_des: 0.2
+    # Max angular velocity
+    w_max: 0.1
+    # Min angular velocity
+    w_min: 0.01
+    # ???
+    z_min: 0.01
+    # -------------------------------------------------------
+    #---------------------- Controller ----------------------
+    # position of camera w.r.t local origin
+    ty: 0.6
+    # height of camera from ground
+    tz: 0.7
+    # tilt angle of front camera
+    rho_b: -60.0
+    # tilt angle of rear camera
+    rho_f: -60.0
+    # -------------------------------------------------------
+    #---------------------- Gains ---------------------------
+    # Gains of controll set for husky-clear path platform
+    # gains for mode 1
+    lambda_x_1: 10.0
+    lambda_w_1: 1.0
+    # gains for mode 2
+    lambda_x_2: 0.0
+    lambda_w_2: 5000.0
+    # gains for mode 3
+    lambda_x_3: 10.0
+    lambda_w_3: 1.0
+    # gains for mode 4
+    lambda_x_4: 0.0
+    lambda_w_4: 5000.0
+    # -------------------------------------------------------
+    #---------------------- States to start -----------------
+    # uncomment each of these states and controller will start from that state to drive robot
+    # camera_ID: 1 -> front Camera, camera_ID: 2 -> Rear Camera
+    # drive_forward: true -> moving forward, drive_forward: false -> moving backward
+    # turning_mode: based on the mode (state machine) is the robot is state of turning or not
+    # steering_dir: 1 -> normal, steering_dir: -1 -> inverse (based on robots local coordinate system)
+    # driving_dir: 1 -> moving forward, driving_dir: 2 moving backward
+
+    mode: 1
+    camera_ID: 1
+    drive_forward: true
+    turning_mode: false
+    steering_dir: 1
+    driving_dir: 1
+
+    # mode: 2
+    # camera_ID: 2
+    # drive_forward: false
+    # turning_mode: true
+    # steering_dir: -1
+    # driving_dir: 1
+
+    # mode: 3
+    # camera_ID: 2
+    # drive_forward: true
+    # turning_mode: false
+    # steering_dir: -1
+    # driving_dir: -1
+
+    # mode: 4
+    # camera_ID: 1
+    # drive_forward: false
+    # turning_mode: true
+    # steering_dir: 1
+    # driving_dir: -1
