@@ -89,14 +89,14 @@ def process_image(bgr, detector, vs, draw=True):
     }
 
 
-def make_side_by_side(nav_bgr, comp_bgr, border=8, max_width=1200):
-    """Create a single window with nav overlay (top) and MultiROI composite (bottom) stacked vertically.
+def make_side_by_side(nav_bgr, comp_bgr, border=8, max_height=800):
+    """Create a single window with nav overlay (left) and MultiROI composite (right) side-by-side.
 
-    Both images are scaled to the same width (the wider one, capped to max_width)
-    while preserving aspect ratio, then concatenated vertically with a white
-    border and labels. This keeps the combined image at a reasonable size and
-    avoids having to memorize two separate windows per frame. For video, the
-    size is fixed after the first frame.
+    Both images are scaled to the same height (the taller one, capped to max_height)
+    while preserving aspect ratio, then concatenated horizontally with a white
+    border and labels. This keeps the navigation and the full MultiROI evidence
+    in one glance without memorizing two windows per frame. For video the size
+    is fixed after the first frame.
     """
     # Ensure both are 3-channel BGR
     if len(nav_bgr.shape) == 2:
@@ -106,18 +106,18 @@ def make_side_by_side(nav_bgr, comp_bgr, border=8, max_width=1200):
 
     h1, w1 = nav_bgr.shape[:2]
     h2, w2 = comp_bgr.shape[:2]
-    # Target width is max of the two, capped
-    target_w = min(max(w1, w2), max_width)
-    # Scale both to target_w
-    def scale_to_w(img, tw):
+    # Target height is max of the two, capped to keep width reasonable
+    target_h = min(max(h1, h2), max_height)
+    # Scale both to target_h
+    def scale_to_h(img, th):
         h, w = img.shape[:2]
-        if w == tw:
+        if h == th:
             return img
-        scale = tw / w
-        new_h = int(round(h * scale))
-        return cv2.resize(img, (tw, new_h), interpolation=cv2.INTER_AREA)
-    nav_s = scale_to_w(nav_bgr, target_w)
-    comp_s = scale_to_w(comp_bgr, target_w)
+        scale = th / h
+        new_w = int(round(w * scale))
+        return cv2.resize(img, (new_w, th), interpolation=cv2.INTER_AREA)
+    nav_s = scale_to_h(nav_bgr, target_h)
+    comp_s = scale_to_h(comp_bgr, target_h)
 
     # Add labels on top
     label_h = 28
@@ -130,9 +130,22 @@ def make_side_by_side(nav_bgr, comp_bgr, border=8, max_width=1200):
     nav_l = add_label(nav_s, "Navigation (vs overlay) - red furrow line, star is rover nose")
     comp_l = add_label(comp_s, "MultiROI Composite - binary / mask+ROIs / overlay")
 
-    # White horizontal border between
-    border_img = np.full((border, target_w, 3), (255, 255, 255), dtype=np.uint8)
-    combined = np.vstack([nav_l, border_img, comp_l])
+    # White vertical border between
+    border_h = nav_l.shape[0]  # same height after scaling + label
+    # Ensure same height (labels already make heights equal)
+    # If heights differ due to rounding, pad the shorter
+    h_n, w_n = nav_l.shape[:2]
+    h_c, w_c = comp_l.shape[:2]
+    if h_n != h_c:
+        # Pad the shorter to match
+        if h_n < h_c:
+            pad = np.full((h_c - h_n, w_n, 3), (255, 255, 255), dtype=np.uint8)
+            nav_l = np.vstack([nav_l, pad])
+        else:
+            pad = np.full((h_n - h_c, w_c, 3), (255, 255, 255), dtype=np.uint8)
+            comp_l = np.vstack([comp_l, pad])
+    border_img = np.full((nav_l.shape[0], border, 3), (255, 255, 255), dtype=np.uint8)
+    combined = np.hstack([nav_l, border_img, comp_l])
     return combined
 
 
