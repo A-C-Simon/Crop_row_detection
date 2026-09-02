@@ -223,9 +223,10 @@ def run_video(input_path, output_dir, detector, vs, show=False):
 
     os.makedirs(output_dir, exist_ok=True)
     csv_path = os.path.join(output_dir, f"{name}_nav.csv")
-    # Video writer (if not camera) - will be initialized after first frame to know combined size
+    # Video writer (if not camera) - fixed size after first frame
     writer = None
-    first_frame = True
+    writer_w = writer_h = None
+    out_path = os.path.join(output_dir, f"{name}_nav.mp4") if not is_camera else None
 
     with open(csv_path, "w", newline="") as f:
         csvw = csv.writer(f)
@@ -241,33 +242,34 @@ def run_video(input_path, output_dir, detector, vs, show=False):
                            f"{out['v']:.4f}", f"{out['w']:.4f}",
                            f"{out['info'].get('err_x',0):.1f}", f"{out['info'].get('err_theta_deg',0):.1f}",
                            int(out["res"]["nav_line"] is not None)])
-            # Create combined view for video/show
+            # Create combined view for video/show - side-by-side nav | composite
             from test_multi_roi import make_composite
             comp = make_composite(bgr, out["res"])
             combined = make_side_by_side(out["overlay"] if out["overlay"] is not None else bgr, comp) if out["overlay"] is not None else comp
 
-            if writer is None and not is_camera and out["overlay"] is not None:
+            # Initialize writer on first frame with fixed size, then resize all subsequent frames to that size
+            if writer is None and not is_camera:
                 fps = cap.get(cv2.CAP_PROP_FPS) or 20.0
-                h_c, w_c = combined.shape[:2]
+                if fps < 1 or fps > 120:
+                    fps = 20.0
+                writer_h, writer_w = combined.shape[:2]
                 fourcc = cv2.VideoWriter_fourcc(*"mp4v")
-                out_path = os.path.join(output_dir, f"{name}_nav.mp4")
-                writer = cv2.VideoWriter(out_path, fourcc, fps, (w_c, h_c))
+                writer = cv2.VideoWriter(out_path, fourcc, fps, (writer_w, writer_h))
+                if not writer.isOpened():
+                    print(f"[WARN] VideoWriter failed for {writer_w}x{writer_h} fps {fps}")
 
             if writer is not None:
-                # Ensure writer size matches combined
-                if writer.isOpened():
-                    # If size mismatch, re-create writer
-                    w_wr = int(writer.get(cv2.CAP_PROP_FRAME_WIDTH)) if hasattr(writer, 'get') else combined.shape[1]
-                    h_wr = int(writer.get(cv2.CAP_PROP_FRAME_HEIGHT)) if hasattr(writer, 'get') else combined.shape[0]
-                    if w_wr != combined.shape[1] or h_wr != combined.shape[0]:
-                        writer.release()
-                        fps = cap.get(cv2.CAP_PROP_FPS) or 20.0
-                        fourcc = cv2.VideoWriter_fourcc(*"mp4v")
-                        out_path = os.path.join(output_dir, f"{name}_nav.mp4")
-                        writer = cv2.VideoWriter(out_path, fourcc, fps, (combined.shape[1], combined.shape[0]))
+                # Resize to writer size if needed (keeps video consistent)
+                if combined.shape[1] != writer_w or combined.shape[0] != writer_h:
+                    combined = cv2.resize(combined, (writer_w, writer_h), interpolation=cv2.INTER_AREA)
                 writer.write(combined)
             if show:
-                cv2.imshow("MultiROI Navigation - Combined (nav | composite)", combined)
+                # For preview, scale down if too large
+                preview = combined
+                if preview.shape[1] > 1280:
+                    scale = 1280 / preview.shape[1]
+                    preview = cv2.resize(preview, (1280, int(preview.shape[0]*scale)), interpolation=cv2.INTER_AREA)
+                cv2.imshow("MultiROI Navigation - Combined (nav | composite) - q to quit", preview)
                 if cv2.waitKey(1) & 0xFF == ord('q'):
                     break
             frame_idx += 1
@@ -277,6 +279,7 @@ def run_video(input_path, output_dir, detector, vs, show=False):
     cap.release()
     if writer:
         writer.release()
+        print(f"Video saved to {out_path} ({frame_idx} frames)")
     print(f"Saved to {output_dir}")
 
 
