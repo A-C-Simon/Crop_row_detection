@@ -218,18 +218,47 @@ Path is logged and plotted to `rover_path.png`.
 
 ```bash
 # Offline on Photos - Produces nav_output with overlays and CSV
+#   --input points to the 23 test images, --output creates nav_output/
+#   For each image it runs MultiROI detection to get the furrow centre
+#   nav_line/nav_curve, converts it to visual features X,Theta at the
+#   bottom of the image, then computes v,w with visual servoing.
+#   Output per image is nav_output/<name>_nav.png (red furrow line,
+#   star at rover nose, v,w,err) and nav_commands.csv with all
+#   velocities and line params. Mean time about 10 ms detector plus
+#   1 ms control per image.
 python3 run_mr_navigation.py --input ../../Photos --output ./nav_output
 
-# On video file
+# On video file - Processes a recorded video frame by frame
+#   --video tells the runner to treat input as video, not folder.
+#   It reads each frame, runs the same detection and control, writes
+#   a side-by-side video nav_output/<video>_nav.mp4 (left nav overlay,
+#   right MultiROI composite) and nav_output/<video>_nav.csv per frame.
+#   Use this to test the stack on test_video1.mp4 or test_video2.mp4.
 python3 run_mr_navigation.py --input /path/to/video.mp4 --output ./nav_output --video
 
-# Live camera 0 with preview, q to quit
+# Live camera 0 with preview, q to quit - Runs on a real rover camera
+#   --input 0 selects /dev/video0, --video plus --show opens a live
+#   OpenCV window with the combined nav/composite view. The same v,w
+#   that would be published to /cmd_vel are displayed. Press q to quit.
+#   For ROS2, wrap the same MultiROIVS in MultiROINavNode subscribing
+#   to /front/image_raw.
 python3 run_mr_navigation.py --input 0 --output ./nav_output --video --show
 
-# Tune gains
+# Tune gains - Adjusts the visual servoing response
+#   --vf forward speed m/s, --wmax max angular rad/s, --lambdax lateral
+#   gain on err_x/width, --lambdatheta heading gain on Theta. Higher
+#   lambdax gives stronger correction for off-centre furrow, higher
+#   lambdatheta for tilted furrow. Default 0.20, 0.60, 2.0, 1.0 keeps
+#   100px lateral within 0.60 rad/s limit. Use this to tune for your
+#   rover wheelbase and camera tilt.
 python3 run_mr_navigation.py --input ../../Photos --vf 0.20 --wmax 0.60 --lambdax 2.0 --lambdatheta 1.0
 
-# Different detector settings still work
+# Different detector settings still work - Passes through to MultiROI
+#   --n_strips number of horizontal strips, --l_frac clustering distance
+#   as fraction of width, --index raw or normalized ExG. The navigation
+#   stack will then follow whatever furrow the detector finds, so you
+#   can test robustness to different segmentation or strip settings
+#   without changing the controller.
 python3 run_mr_navigation.py --input ../../Photos --n_strips 10 --l_frac 0.05 --index raw
 ```
 
