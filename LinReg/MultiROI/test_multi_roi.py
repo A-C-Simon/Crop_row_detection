@@ -174,7 +174,12 @@ class MultiROIDetector:
     def __init__(self, n_strips=10, l_frac=0.05, border_frac=0.02,
                  min_points_per_row=2, index="raw", min_flank_frac=0.01,
                  nav_include_first=False, morph="paper", open_len=9,
-                 fence_k=1.5, morph_fence="if", nav_curve=True):
+                 fence_k=1.5, morph_fence="if", nav_curve=True,
+                 prior_center_gate_frac=0.35, prior_width_gate_frac=0.35,
+                 prior_min_conf=0.40, prior_min_center_px=12.0,
+                 ignore_initial: int = 0,
+                 vertical_coverage: float = 0.75,
+                 roi_draw_frac: float = 1.0):
         self.n = n_strips
         self.l_frac = l_frac             # clustering distance L as fraction of W
         self.border_frac = border_frac
@@ -202,17 +207,39 @@ class MultiROIDetector:
         # accepted Q dots (with safety envelope vs the straight TLS line);
         # falls back to the straight line when evidence is thin.
         self.nav_curve = nav_curve
+        # --- lookahead prior gating (inside _run_core) ---
+        self.prior_center_gate_frac = prior_center_gate_frac
+        self.prior_width_gate_frac = prior_width_gate_frac
+        self.prior_min_conf = prior_min_conf
+        self.prior_min_center_px = prior_min_center_px
+        # --- ignore initial bottom strips (approach phase) ---
+        # e.g. ignore_initial=3 means mu=1,2,3 (bottom 3) are not used for nav line
+        # and their midpoints are marked suppressed; robot effectively follows
+        # image center (star) until upper good evidence is available
+        self.ignore_initial = int(ignore_initial)
+        # --- ROI vertical coverage / draw fraction (3/4) ---
+        # vertical_coverage=0.75 means ROIs cover only bottom 75% of image height
+        # roi_draw_frac=0.75 means each white box is 75% of strip height (centered)
+        self.vertical_coverage = float(vertical_coverage)
+        self.roi_draw_frac = float(roi_draw_frac)
 
-    def detect(self, bgr):
-        """Run the full pipeline on one BGR image; returns results dict."""
+    def detect(self, bgr, lookahead_prior=None):
+        """Run the full pipeline on one BGR image; returns results dict.
+
+        lookahead_prior: optional dict from LookaheadCorridorMap.get_prediction()
+            with keys 'pred_bins' (list of MapBin) and optionally gating overrides.
+            When provided and a bin has high confidence, the detector will hold
+            the previous ROI/midpoint instead of expanding to a false three-row
+            capture when the raw bottom strip suggests a sudden large deviation.
+        """
         t0 = time.perf_counter()
         binary, exg8, otsu_t, (dx, dy) = preprocess(bgr, self.border_frac,
-                                                    self.index, self.morph,
-                                                    self.open_len,
-                                                    self.fence_k,
-                                                    self.morph_fence,
-                                                    self.n, self.l_frac)
-        core = self._run_core(binary)
+                                                     self.index, self.morph,
+                                                     self.open_len,
+                                                     self.fence_k,
+                                                     self.morph_fence,
+                                                     self.n, self.l_frac)
+        core = self._run_core(binary, lookahead_prior=lookahead_prior)
         out = dict(core)
         out.update({
             "binary": binary,
@@ -241,20 +268,69 @@ class MultiROIDetector:
         })
         return out
 
-    def _run_core(self, binary):
+    def _run_core(self, binary, lookahead_prior=None):
         """Sections 2.3-2.4 + 3 on an already-segmented binary mask."""
         h, w = binary.shape[:2]
 
-        dh = h // self.n                     # Eq. (4): strip height dh = H/N
+        # vertical coverage: ROIs cover only bottom coverage_frac of image height (3/4 → top 1/4 has no boxes)
+        cov = float(np.clip(self.vertical_coverage, 0.1, 1.0))
+        dh_full = h // self.n
+        dh = int(round((h * cov) // self.n)) if cov < 1.0 else dh_full
+        if dh < 4:
+            dh = 4
+        # y offset so that bottom is still at image bottom, top stops at h*(1-cov)
+        y_offset = 0  # bottom anchored
         l_thresh = max(2, int(self.l_frac * w))
         rois = []            # per-strip (x_lo, x_hi, y_top, y_bot), bottom->top
         q = []               # point set Q of renewed midpoints (Eq. 11)
         q_feed = []          # (mo_x, my, flank span or None) evidence tags
         left_feed = []       # (y, CLeft center, D) candidates, two-sided only
         right_feed = []      # same for the right chain
+        # --- per-strip lookahead evidence (additive, for spatial map) ---
+        strip_left = [None] * self.n
+        strip_right = [None] * self.n
+        strip_width = [None] * self.n
+        strip_two_sided = [False] * self.n
+        strip_suppressed = [False] * self.n  # true when lookahead prior held ROI/midpoint
 
         mo_x = w / 2.0                       # Sec. 2.3.2: initial midpoint MO
         x_lo, x_hi = 0, w                    # initial ROI = full strip width
+        # --- lookahead prior seeding: keep boxes/midpoints steady through gaps ---
+        if lookahead_prior is not None:
+            try:
+                pred_bins = None
+                if isinstance(lookahead_prior, dict):
+                    pred_bins = lookahead_prior.get("pred_bins") or lookahead_prior.get("bins")
+                elif isinstance(lookahead_prior, (list, tuple)):
+                    pred_bins = lookahead_prior
+                if pred_bins is not None and len(pred_bins) > 0:
+                    p0 = pred_bins[0]
+                    if isinstance(p0, dict):
+                        pc = float(p0.get("center_x", 0))
+                        pw = float(p0.get("width", 0))
+                        pconf = float(p0.get("confidence", 0))
+                        pl = float(p0.get("left_x", pc - pw/2))
+                        pr = float(p0.get("right_x", pc + pw/2))
+                    else:
+                        pc = float(getattr(p0, "center_x", w/2.0))
+                        pw = float(getattr(p0, "width", 120))
+                        pconf = float(getattr(p0, "confidence", 0))
+                        pl = float(getattr(p0, "left_x", pc - pw/2))
+                        pr = float(getattr(p0, "right_x", pc + pw/2))
+                    if pconf >= self.prior_min_conf and pw > 5:
+                        # seed ROI from predicted future corridor so bottom strip
+                        # does not start full-width and immediately capture 3 rows
+                        # Use a margin that still allows a true lane shift (60px) but
+                        # blocks a far false row (100px away): center_gate + 20px
+                        center_gate = max(self.prior_min_center_px, self.prior_center_gate_frac * pw)
+                        margin = center_gate + 20.0
+                        nx_lo = int(max(0, (pc - pw/2) - margin))
+                        nx_hi = int(min(w, (pc + pw/2) + margin))
+                        if 4 <= (nx_hi - nx_lo) <= w:
+                            x_lo, x_hi = nx_lo, nx_hi
+                        mo_x = pc
+            except Exception:
+                pass
 
         # Weed-pressure accumulators. Two complementary signals, combined
         # by max():
@@ -293,6 +369,12 @@ class MultiROIDetector:
 
             if clusters:
                 c_left, c_right = flanking_clusters(clusters, mo_x)
+                # stash per-strip two-sided evidence for lookahead map (even mu=1)
+                if c_left is not None and c_right is not None:
+                    strip_left[mu - 1] = (c_left[0] + c_left[1]) / 2.0
+                    strip_right[mu - 1] = (c_right[0] + c_right[1]) / 2.0
+                    strip_width[mu - 1] = c_right[1] - c_left[0]
+                    strip_two_sided[mu - 1] = True
                 # Window + corridor renewal ONLY on a two-sided pick.
                 # A lone cluster is insufficient evidence: sliding mo_x
                 # (or the ROI) onto it collapses the navigation line onto
@@ -303,21 +385,58 @@ class MultiROIDetector:
                 # spirit as Sec. 2.3.3's empty-strip rule. The chain feed
                 # below still records the pick for the detection lines.
                 if c_left is not None and c_right is not None:
-                    # Eq. (9): D = max(CRight) - min(CLeft)
-                    d = c_right[1] - c_left[0]
-                    d_strip = d
-                    if d <= 0:
-                        d = max(4, x_hi - x_lo)
-                    # Fig. 8b: ROI = [min(CLeft) - 0.1D, max(CRight) + 0.1D]
-                    new_lo = int(max(0, c_left[0] - 0.1 * d))
-                    new_hi = int(min(w, c_right[1] + 0.1 * d))
-                    if new_hi - new_lo >= 4:     # keep sane windows only
-                        x_lo, x_hi = new_lo, new_hi
-                    # Eq. (10): renewed Mx = midpoint between the two
-                    # flanking rows (cluster centers, not outer edges, so
-                    # merged clusters cannot yank the corridor sideways)
-                    mo_x = ((c_left[0] + c_left[1]) / 2.0
-                            + (c_right[0] + c_right[1]) / 2.0) / 2.0
+                    # --- lookahead prior gating (ROI hold) ---
+                    # If a high-confidence future corridor is predicted at this strip,
+                    # a sudden raw expansion/shift is treated as missing-plant gap:
+                    # ROI/midpoint are held steady, navigation will ignore this strip.
+                    suppress = False
+                    if lookahead_prior is not None:
+                        pred_bins = lookahead_prior.get("pred_bins") if isinstance(lookahead_prior, dict) else None
+                        # also allow plain list
+                        if pred_bins is None and isinstance(lookahead_prior, (list, tuple)):
+                            pred_bins = lookahead_prior
+                        if pred_bins is not None and (mu - 1) < len(pred_bins):
+                            pred = pred_bins[mu - 1]
+                            try:
+                                if isinstance(pred, dict):
+                                    pred_c = float(pred.get("center_x", 0))
+                                    pred_w = float(pred.get("width", 0))
+                                    pred_conf = float(pred.get("confidence", 0))
+                                else:
+                                    pred_c = float(getattr(pred, "center_x", 0))
+                                    pred_w = float(getattr(pred, "width", 0))
+                                    pred_conf = float(getattr(pred, "confidence", 0))
+                            except Exception:
+                                pred_c = pred_w = None
+                                pred_conf = 0
+                            if pred_c is not None and pred_w is not None and pred_conf >= self.prior_min_conf and pred_w > 1:
+                                raw_c = ((c_left[0] + c_left[1]) / 2.0 + (c_right[0] + c_right[1]) / 2.0) / 2.0
+                                raw_w = c_right[1] - c_left[0]
+                                center_gate = max(self.prior_min_center_px, self.prior_center_gate_frac * pred_w)
+                                width_gate = self.prior_width_gate_frac * pred_w
+                                if abs(raw_c - pred_c) > center_gate or abs(raw_w - pred_w) > width_gate:
+                                    suppress = True
+                    if suppress:
+                        # Hold previous ROI and midpoint; navigation will treat this strip as missing
+                        # (strip_* already stores raw for external map, so visible future still sees raw conflict)
+                        d_strip = None
+                        strip_suppressed[mu - 1] = True
+                    else:
+                        # Eq. (9): D = max(CRight) - min(CLeft)
+                        d = c_right[1] - c_left[0]
+                        d_strip = d
+                        if d <= 0:
+                            d = max(4, x_hi - x_lo)
+                        # Fig. 8b: ROI = [min(CLeft) - 0.1D, max(CRight) + 0.1D]
+                        new_lo = int(max(0, c_left[0] - 0.1 * d))
+                        new_hi = int(min(w, c_right[1] + 0.1 * d))
+                        if new_hi - new_lo >= 4:     # keep sane windows only
+                            x_lo, x_hi = new_lo, new_hi
+                        # Eq. (10): renewed Mx = midpoint between the two
+                        # flanking rows (cluster centers, not outer edges, so
+                        # merged clusters cannot yank the corridor sideways)
+                        mo_x = ((c_left[0] + c_left[1]) / 2.0
+                                + (c_right[0] + c_right[1]) / 2.0) / 2.0
                 # weed pressure: occupancy of the furrow cross-section.
                 # Bare furrow -> clear gap between CLeft/CRight -> low;
                 # scattered weeds inside the gap -> their projection mass
@@ -344,7 +463,16 @@ class MultiROIDetector:
             # else / one-sided: previous ROI window & Mx reused
 
             my = h - mu * dh                 # Eq. (10): My(mu) = My(mu-1) - dh
-            rois.append((x_lo, x_hi, max(0, y1), y1 + dh))
+            # ROI visualization height fraction (3/4 → boxes 3/4 of strip height, centered)
+            box_h = int(round(dh * float(getattr(self, "roi_draw_frac", 1.0))))
+            if box_h != dh:
+                yc = y1 + dh / 2.0
+                y_top_viz = int(max(0, round(yc - box_h/2)))
+                y_bot_viz = int(min(h, round(yc + box_h/2)))
+            else:
+                y_top_viz = int(max(0, y1))
+                y_bot_viz = int(y1 + dh)
+            rois.append((x_lo, x_hi, y_top_viz, y_bot_viz))
             q.append((mo_x, my))             # renewed MO into Q
             q_feed.append((mo_x, my, d_strip))  # with its evidence tag
 
@@ -361,8 +489,8 @@ class MultiROIDetector:
             # tilted entire lines (photo_17 failure mode). Missing
             # evidence is preferred over wrong evidence.
             cy = y1 + dh / 2.0
-            if clusters and mu > 1 and \
-                    c_left is not None and c_right is not None:
+            if clusters and mu > max(1, self.ignore_initial) and \
+                    c_left is not None and c_right is not None and not strip_suppressed[mu - 1]:
                 d_here = c_right[1] - c_left[0]
                 left_feed.append((cy, (c_left[0] + c_left[1]) / 2.0, d_here))
                 right_feed.append((cy, (c_right[0] + c_right[1]) / 2.0,
@@ -380,13 +508,20 @@ class MultiROIDetector:
         # no measured dot survives, fit the priors rather than return no
         # line (all-red visualization makes that explicit).
         nav_pts, q_rejected = [], []
-        measured = [(x, y, d) for x, y, d in q_feed if d is not None]
+        # measured set respects ignore_initial so median is not biased by noisy bottom
+        measured = [(x, y, d) for i, (x, y, d) in enumerate(q_feed) if d is not None and i >= self.ignore_initial]
+        if not measured:
+            # fallback to all if ignoring leaves nothing (e.g. approach phase)
+            measured = [(x, y, d) for x, y, d in q_feed if d is not None]
         if measured:
             med_d = float(np.median([d for _, _, d in measured]))
             max_d = 1.6 * med_d
         else:
             max_d = float("inf")
         for i, (x, y, d) in enumerate(q_feed):
+            if i < self.ignore_initial:
+                q_rejected.append((x, y))
+                continue
             worthy = (d is not None and d <= max_d
                       and (i > 0 or self.nav_include_first))
             if worthy:
@@ -395,8 +530,11 @@ class MultiROIDetector:
                 q_rejected.append((x, y))
         fallback = len(nav_pts) < 2
         if fallback:
-            nav_pts = list(q)
-            q_rejected = []
+            # fallback still respects ignore_initial; if still not enough, use center
+            nav_pts = [q[i] for i in range(len(q)) if i >= self.ignore_initial]
+            if len(nav_pts) < 2:
+                nav_pts = list(q)
+            q_rejected = [q[i] for i in range(len(q)) if q[i] not in nav_pts]
 
         q_accepted = []
         if len(nav_pts) >= 2:
@@ -477,6 +615,55 @@ class MultiROIDetector:
         except Exception:
             pass
 
+        # --- exposed diagnostics for temporal filter ---
+        median_w = float(np.median([d for _, _, d in measured])) if measured else 0.0
+        # bottom width: width from lowest two-sided strip if available else median
+        bottom_w = float(feed_d[0][1]) if feed_d else median_w
+        n_two = len(measured)
+        # estimate raw bottom x from lowest accepted q (or raw q[0] fallback)
+        raw_bottom_x = float(q_accepted[0][0]) if q_accepted else (float(q[0][0]) if q else w/2.0)
+
+        # --- per-strip profile for lookahead map (causal, lightweight) ---
+        q_accepted_set = set((float(x), float(y)) for x, y in q_accepted)
+        # use y-center for acceptance check with tolerance
+        strip_profile = []
+        for idx in range(self.n):
+            mu = idx + 1
+            y_top = max(0, h - mu * dh)
+            y_bot = y_top + dh
+            y_center = y_top + dh / 2.0
+            # center for lookahead map should reflect raw detection (left/right avg)
+            # not the held q midpoint, so that future map sees true raw innovation
+            if strip_two_sided[idx] and strip_left[idx] is not None and strip_right[idx] is not None:
+                center_x = (float(strip_left[idx]) + float(strip_right[idx])) / 2.0
+            else:
+                center_x = float(q[idx][0]) if idx < len(q) else float(w/2.0)
+            width = float(strip_width[idx]) if strip_width[idx] is not None else None
+            left_x = float(strip_left[idx]) if strip_left[idx] is not None else None
+            right_x = float(strip_right[idx]) if strip_right[idx] is not None else None
+            two_sided = bool(strip_two_sided[idx])
+            # accepted_nav: whether this strip's center contributed to q_accepted
+            accepted_nav = False
+            if q_accepted:
+                for ax, ay in q_accepted:
+                    if abs(ax - center_x) < 1e-6 and abs(ay - (h - mu * dh)) < 1e-6:
+                        accepted_nav = True
+                        break
+            strip_profile.append({
+                "mu": mu,
+                "y_top": int(y_top),
+                "y_bot": int(y_bot),
+                "y_center": float(y_center),
+                "center_x": float(center_x),
+                "width": width,  # None if not two-sided
+                "left_x": left_x,
+                "right_x": right_x,
+                "two_sided": two_sided,
+                "accepted_nav": bool(accepted_nav),
+                "suppressed": bool(strip_suppressed[idx]),
+                "roi": tuple(rois[idx]) if idx < len(rois) else (0, w, y_top, y_bot),
+            })
+
         return {
             "rois": rois,
             "q": q,
@@ -488,6 +675,20 @@ class MultiROIDetector:
             "det_lines": det_lines,  # list of (w, b, n_pts)
             "weed_pressure": max(occupancy, fail_rate),
             "nav_bend_deg": bend,
+            # --- temporal diagnostics (additive, non-breaking) ---
+            "median_width": median_w,
+            "bottom_width": bottom_w,
+            "n_two_sided": n_two,
+            "n_q_accepted": len(q_accepted),
+            "n_q_rejected": len(q_rejected),
+            "raw_bottom_x": raw_bottom_x,
+            "n_strips": self.n,
+            # --- lookahead spatial diagnostics ---
+            "strip_profile": strip_profile,
+            "q_feed": q_feed,
+            "left_feed": left_feed,
+            "right_feed": right_feed,
+            "feed_d": feed_d,
         }
 
     def _fit_nav_curve(self, pts, img_h, env_cap):
