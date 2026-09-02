@@ -131,15 +131,15 @@ This work has been supported by the German Research Foundation under Germany’s
 
 This fork adds a **stage-by-stage Python debug visualizer** that replicates the C++ visual-servoing core `src/agribot_vs.cpp:153` `CropRowFeatures` / `203` `getContureCenters` / `673` `is_in_neigbourhood` / `247` `FitLineOnContures` and `src/agribot_vs_nodehandler.cpp:49` `CropRow_Tracking()` outside ROS. It is used to locate failures per stage, mirroring `ClusterAlg/run_carolif.py` `4×4` debug composites.
 
-**Debug visualizer:** `results/run_vcrn_debug.py` + `results/*_debug.png` (`5×4` `28×24` `130dpi`).
+**Debug visualizer:** `results/run_vcrn_debug.py` + `results/*_debug.png` (`5×4` `28×24` `130dpi`) and `results/run_exg_video.py` for video.
 
 Pipeline per image (640×480 `params/agribot_vs_run.yaml:45`):
 
 ```
-01 Original (full res) -> 02 Resized 640×480 (pipeline input) -> 03 Hue Mask H40-80 -> 04 Sat Mask S50-255 -> 05 Val Mask V100-150 -> 06 Combined H&S&V (173) -> 07 Contours findContours N -> 08 All Centers approxPolyDP+minEnclosingCircle -> 09 Column Profile (bottom 45% ROI, Gaussian sigma5, find_peaks distance~28 prominence0.12) -> 10 Window dynamic L×H @Xc,Yc (cyan) -> 11 Inside Window YELLOW nh | before IF (gray outside) -> 12 IsolationForest (YELLOW inliers RED outliers) -> 13 Gap filter central (YELLOW kept MAGENTA removed, DBSCAN eps14) -> 14 Raw fitLine BLUE infinite (fitLine:247) -> 15 Clipped AvgLine RED (is_in_image_point:285) -> 16 Final GREEN all + YEL/MAG + RED -> 17 Rejection / Notes -> 18 Summary
+01 Original (full res) -> 02 Resized 640×480 (pipeline input) -> 03 Hue Mask H40-80 -> 04 Sat Mask S50-255 -> 05 Val Mask V100-150 -> 06 Combined H&S&V (173) -> 07 Contours findContours N -> 08 All Centers approxPolyDP+minEnclosingCircle -> 09 Column Profile (bottom 45% ROI, Gaussian sigma5, find_peaks distance~28 prominence0.12) -> 10 Window dynamic L×H @Xc,Yc (cyan) -> 11 Inside Window YELLOW nh | before IF (gray outside) -> 12 IsolationForest (YELLOW inliers RED outliers) -> 13 Raw fitLine BLUE infinite (fitLine:247) -> 14 Clipped AvgLine RED (is_in_image_point:285) -> 15 Final GREEN all + YEL + RED -> 16 Rejection / Notes -> 17 Summary
 ```
 
-Original `results/README.txt` overlays (`green dots` centres `red` steering line `orange` window) are preserved as `16 Final`; the new composite exposes every decision point.
+Original `results/README.txt` overlays (`green dots` centres `red` steering line `orange` window) are preserved as `15 Final`; the new composite exposes every decision point. `run_exg_video.py` reuses the same pipeline per video frame with fixed 640×480 writer and outputs `*_exg_nav.mp4` and `*_exg_nav.csv`.
 
 ### Improvements over upstream `origin/main`
 
@@ -149,9 +149,9 @@ Original `results/README.txt` overlays (`green dots` centres `red` steering line
 
 **3. Column-aware dynamic spawning - window locks onto a row:** fixed `Xc320` misses rows when robot off-centre (`photo_11` `0` points at `320` vs `5` at `162`) or sits in furrow scraping two rows. New `detect_column_aware_window()` `run_vcrn_debug.py:150` computes `profile[x]=sum(combined[y0:,x])` `y0=0.55*H` bottom `45%`, smooths, `find_peaks distance28`, `median_gap -> L_dyn=clip(median_gap*0.65,60,110)`, chooses `peak closest to image centre 320` weighted by prominence `score=|x-320|-30*prom`. `Xc=clip(chosen, L/2, W-L/2)`. `09` shows white profile, red peaks green chosen, cyan band. `photo_11` now `3 peaks gap266 chosen162 -> 80x180 @162,380` `5` points recovered `YES` vs `0` before; `bev` `12 peaks gap51 chosen304 -> 60x180 @304,380`. Fallback to static `Xc320` if no peaks.
 
-**4. Gap-based multi-row filter inside window - keep central cluster:** when window still contains `2+` rows (curved/non-parallel, `IsolationForest` preserves dense rows), uniform gap `>eps` evident. `filter_gap_clusters()` `run_vcrn_debug.py:226` `DBSCAN eps14 min6` on `x` of `iso_inliers`. If `n_clusters>1`, medians `m_c`, gaps `diff(sorted medians)` `max_gap`, distances `|m_c-Xc|`; keeps `argmin distance` (closest to base centre), removes farther row(s) `gap_removed` magenta. `13 Gap filter` `YELLOW kept MAGENTA removed clusters=N`. Current thin column-aware window yields `1` cluster for all `23` (`gap 1 -> kept all`), safety net proven with fixed `120x250@240` `bev` `3 clusters 44px gap -> kept 127/321 removed 194` central. Params `gap_eps14 gap_min_samples6 gap_min_points12` (`params:63`).
+**4. Gap-based multi-row filter inside window - evaluated and removed:** `KMeans K=2` on `x` with gap significance `gap>thresh` was tested for `photo_3` `2` dense rows `28px` `kept 73/140` vs `DBSCAN eps14`. It correctly split `2` rows when window was wide `120`, but with the tuned thin column-aware `60-80` window it consistently yielded `1` cluster for all `23` images (`gap 8 < thresh 24` `bev`), safety net not needed. Per user request the `KMeans` gap filter was removed and disabled `gap_enabled false:63`, `IsolationForest` remains the sole anomaly filter inside window. The `filter_gap_clusters()` code is retained dormant for future use. Timings now `resize/hsv/contours/centers/win/iso/fit` `gap 0`.
 
-All filters **inside window only** (`gray` outside never scored), `Yc380` base retained, `timings` per stage logged `resize/hsv/contours/centers/win/iso/gap/fit`.
+All filters **inside window only** (`gray` outside never scored), `Yc380` base retained.
 
 ### Params (`params/agribot_vs_run.yaml`)
 
@@ -167,7 +167,7 @@ iso_contamination: 0.15
 iso_min_points: 12
 colaware_enabled: true
 colaware_y0_frac: 0.55
-gap_enabled: true
+gap_enabled: false  # KMeans removed per request, stick to IsolationForest only
 gap_eps: 14
 gap_min_samples: 6
 gap_min_points: 12
@@ -177,14 +177,18 @@ Upstream `filterContures` remains degenerate `center_min_off=0:38` noted in debu
 
 ### Results
 
-`results/*_debug.png` (`23` images `Photos/bev*.png` `photo_*.png`) `5×4` composites, e.g. `bev_debug.png` `12 peaks gap51 Xc304 L60 102->86 IF->86 gap1 ->86 fit`, `photo_3` `7 peaks gap60 Xc326 L60 165->140 IF->140 gap1`. Only `bev6` `0` (`H40-80` empty, `V100-150` typical). Previous fixed window `photo_11` `0 NO` now `5 YES` via column-aware. Average `nh` `272->102` single-row purity, `fitLine` `vx0.02 y1.0` vertical vs diagonal `0.01`.
+`results/*_debug.png` (`23` images `Photos/bev*.png` `photo_*.png`) `5×4` `15+2` composites `09` column profile `12` IsolationForest, gap disabled. e.g. `bev_debug.png` `12 peaks gap51 Xc304 L60 102->86 IF->86` `photo_3` `7 peaks gap60 Xc326 L60 165->140 IF->140` `photo_11` `3 peaks gap266 Xc162 L80 5` recovered. Only `bev6` `0` (`H40-80` empty). Average `nh` `272->102` single-row purity.
+
+`results/run_exg_video.py` on `Photos/test_video1.mp4` `700x370 480` frames and `test_video2.mp4` `960x540 558` frames with same pipeline `640x480` `~150ms` per frame `~30ms` after `IsolationForest` `~20ms` for `bev`, outputs `*_exg_nav.mp4` `640x480` overlay `v,w,err` and `*_exg_nav.csv`.
 
 ### Usage
 
 ```bash
 python3 results/run_vcrn_debug.py --input ../Photos --output ./results --params params/agribot_vs_run.yaml
+python3 results/run_exg_video.py --input ../../Photos/test_video1.mp4 --output ./video_output --show
 # Images: --input Photos --output results --pattern "*.png"
-# Tunable via yaml or CLI params dict
+# Video: --input test_video.mp4 --output video_output --show for live preview
+# Tunable via yaml
 ```
 
 C++ node unchanged; Python replicates `CropRow_Tracking()` for offline analysis. `src/agribot_vs.cpp` / `agribot_vs_nodehandler.cpp` / `agribot_types.h` preserved verbatim.
