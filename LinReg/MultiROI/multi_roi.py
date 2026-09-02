@@ -325,6 +325,50 @@ def draw_results(bgr, res, draw_rois=False):
     return original, binary_vis
 
 
+def make_composite(bgr, res):
+    """Vertical single-window composite: binary (top) / mask (middle) / overlay
+    (bottom) stacked vertically to maximize vertical size on portrait pages and
+    screens.
+
+    All three panels are scaled to the full overlay width so each view remains
+    large when the composite is fitted to page width; stacked vertically the
+    window fills the page height instead of shrinking to an ultra-wide strip.
+    """
+    overlay, mask_vis = draw_results(bgr, res, draw_rois=True)
+    binary_bgr = cv2.cvtColor(res["binary"], cv2.COLOR_GRAY2BGR)
+
+    w_target = overlay.shape[1]
+
+    def resize_to_w(img, w):
+        if img.shape[1] == w:
+            return img
+        scale = w / img.shape[1]
+        new_h = int(round(img.shape[0] * scale))
+        return cv2.resize(img, (w, new_h), interpolation=cv2.INTER_NEAREST)
+
+    mask_resized = resize_to_w(mask_vis, w_target)
+    binary_resized = resize_to_w(binary_bgr, w_target)
+
+    bar_h = 36
+
+    def with_label(img, text):
+        w = img.shape[1]
+        bar = np.full((bar_h, w, 3), (32, 32, 32), dtype=np.uint8)
+        cv2.putText(bar, text, (10, bar_h - 10),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.65, (255, 255, 255), 2,
+                    cv2.LINE_AA)
+        return np.vstack([bar, img])
+
+    binary_labeled = with_label(binary_resized, "Binary (ExG + Otsu)")
+    mask_labeled = with_label(mask_resized, "MultiROI mask + ROIs")
+    overlay_labeled = with_label(overlay, "Overlay (original)")
+
+    sep_h = 4
+    sep = np.full((sep_h, w_target, 3), (255, 255, 255), dtype=np.uint8)
+    composite = np.vstack([binary_labeled, sep, mask_labeled, sep, overlay_labeled])
+    return composite
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="Adaptive multi-ROI crop row detection (Zhou et al. 2021)")
@@ -364,11 +408,7 @@ def main():
         print(f"No images found for input: {args.input}")
         return
 
-    overlays_dir = os.path.join(args.results_dir, "overlays")
-    multiroi_dir = os.path.join(args.results_dir, "multiroi_masks")
-    binary_dir = os.path.join(args.results_dir, "binary")
-    for d in (overlays_dir, multiroi_dir, binary_dir):
-        os.makedirs(d, exist_ok=True)
+    os.makedirs(args.results_dir, exist_ok=True)
     csv_path = os.path.join(args.results_dir, "detection_data.csv")
 
     detector = MultiROIDetector(n_strips=args.n_strips, l_frac=args.l_frac,
@@ -404,10 +444,8 @@ def main():
                                  interpolation=cv2.INTER_AREA)
         try:
             res = detector.detect(bgr)
-            overlay, mask_vis = draw_results(bgr, res, draw_rois=True)
-            cv2.imwrite(os.path.join(overlays_dir, f"{name}_result.png"), overlay)
-            cv2.imwrite(os.path.join(multiroi_dir, f"{name}_multiroi.png"), mask_vis)
-            cv2.imwrite(os.path.join(binary_dir, f"{name}_binary.png"), res["binary"])
+            composite = make_composite(bgr, res)
+            cv2.imwrite(os.path.join(args.results_dir, f"{name}.png"), composite)
 
             if res["nav_line"] is not None:
                 ang = math.degrees(math.atan(abs(1.0 / res["nav_line"][0])))
