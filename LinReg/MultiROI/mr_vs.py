@@ -61,6 +61,14 @@ class MRVSParams:
     rho_deg: float = -60.0   # tilt from horizontal
     ty: float = 0.6
     tz: float = 0.7
+    # --- Command smoothing (temporal robustness) ---
+    # These are applied INSIDE compute_control when smooth=True
+    # Keep small/causal to avoid lag but prevent chatter
+    w_alpha: float = 0.35         # low-pass on w (0=hold, 1=no smoothing)
+    max_w_rate: float = 1.2       # rad/s per second (rate limit)
+    w_deadband: float = 0.02      # rad/s; values below -> 0
+    v_conf_scale: bool = True
+    v_min_scale: float = 0.45     # at confidence 0, v = vf * 0.45
 
 
 class MultiROIVS:
@@ -72,6 +80,15 @@ class MultiROIVS:
         # For logging
         self.last_F = np.zeros(3)
         self.last_err = np.zeros(2)
+        # For command smoothing (rate-limit + low-pass)
+        self._prev_w: float = 0.0
+        self._prev_v: float = float(self.params.vf_des)
+        self._prev_time: Optional[float] = None
+
+    def reset_smoother(self):
+        self._prev_w = 0.0
+        self._prev_v = float(self.params.vf_des)
+        self._prev_time = None
 
     def nav_line_to_feature(self, nav_line, nav_curve, crop_offset, image_shape) -> Tuple[Optional[np.ndarray], Optional[Tuple[float, float]]]:
         """
@@ -153,7 +170,10 @@ class MultiROIVS:
         F = np.array([X, Y, Theta], dtype=float)
         return F, (tuple(P), tuple(Q))
 
-    def compute_control(self, F: np.ndarray) -> Tuple[float, float, Dict]:
+    def compute_control(self, F: np.ndarray,
+                        dt: Optional[float] = None,
+                        confidence: float = 1.0,
+                        smooth: bool = True) -> Tuple[float, float, Dict]:
         """
         Visual servoing control law, simplified from agribot_vs.cpp:Controller
 
@@ -161,58 +181,104 @@ class MultiROIVS:
         we want X=0 (centred) and Theta=0 (vertical) at the bottom.
         Y is not directly controlled (forward motion).
 
+        Smoothing (when smooth=True):
+          - low-pass: w_lpf = (1-alpha)*prev_w + alpha*w_raw
+          - rate limit: |delta|/dt <= max_w_rate
+          - deadband: |w|<w_deadband -> 0
+          - confidence-based v scaling
+
         Returns (v, w, info dict)
         """
         p = self.params
         if F is None:
-            return 0.0, 0.0, {"err_x": 0, "err_theta": 0}
+            # also smooth hold
+            if smooth:
+                # decay w toward 0 with rate limit
+                now = time.perf_counter()
+                if dt is None:
+                    if self._prev_time is None:
+                        dt = 0.05
+                    else:
+                        dt = now - self._prev_time
+                        dt = max(1e-3, min(0.5, dt))
+                self._prev_time = now
+                max_delta = p.max_w_rate * dt
+                # low-pass toward 0
+                target = 0.0
+                w_lpf = (1 - p.w_alpha) * self._prev_w + p.w_alpha * target
+                # rate limit to 0
+                delta = w_lpf - self._prev_w
+                if abs(delta) > max_delta:
+                    w_lpf = self._prev_w + math.copysign(max_delta, delta)
+                if abs(w_lpf) < p.w_deadband:
+                    w_lpf = 0.0
+                self._prev_w = w_lpf
+                v = p.vf_des * (p.v_min_scale + (1 - p.v_min_scale) * float(np.clip(confidence, 0, 1))) if p.v_conf_scale else p.vf_des
+                self._prev_v = v
+                return v, w_lpf, {"err_x": 0, "err_theta": 0, "w_raw": 0.0, "w": float(w_lpf), "v": float(v), "smoothed": True}
+            return 0.0, 0.0, {"err_x": 0, "err_theta": 0, "w_raw": 0.0, "w": 0.0, "v": 0.0}
 
         # Desired feature: centred and vertical at bottom
-        # For ExG, F_des = [0, height/2, 0] where height is image height
-        # For MultiROI furrow, we also want X=0, Theta=0.
-        # Y is not critical, but we keep it for completeness.
         X, Y, Theta = float(F[0]), float(F[1]), float(F[2])
         # Errors
-        err_x = X  # pixels, need to convert to meters? For now keep pixels, gains will handle
+        err_x = X  # pixels
         err_theta = wrapToPi(Theta)
-
-        # Simple proportional control (like agribot but without full Ls)
-        # w = -lambda_x * err_x_norm - lambda_theta * err_theta
-        # Normalize err_x by width to make gain independent of resolution
-        # Use image width to convert pixels to normalized units
-        # For 640 width, 10px error ~ 0.015 normalized
-        # We keep err_x in pixels and let lambda handle it, similar to agribot where lambda_x=10
         err_x_norm = err_x / p.width  # normalize
-
-        # Compute angular velocity
-        # Use same structure as agribot: w = -Jw_pinv*(lambda*err + Jv*v)
-        # Simplified: w = -(lambda_x*err_x_norm + lambda_theta*err_theta)
-        # Scale to be in rad/s
         w_raw = -(p.lambda_x * err_x_norm + p.lambda_theta * err_theta)
 
-        # Clamp
-        w = max(-p.w_max, min(p.w_max, w_raw))
-        if abs(w) < p.w_min:
-            w = 0.0
-        if abs(w) < p.z_min:
-            w = 0.0
+        # Clamp raw before smoothing (keep limits)
+        w_clamped = max(-p.w_max, min(p.w_max, w_raw))
+        if abs(w_clamped) < p.w_min:
+            w_clamped = 0.0
+        if abs(w_clamped) < p.z_min:
+            w_clamped = 0.0
 
-        v = p.vf_des
+        v_raw = p.vf_des
 
-        # If errors are large, reduce linear speed (optional)
-        # For now constant
+        w_out = w_clamped
+        v_out = v_raw
+
+        if smooth:
+            now = time.perf_counter()
+            if dt is None:
+                if self._prev_time is None:
+                    dt = 0.05
+                else:
+                    dt = now - self._prev_time
+                    dt = max(1e-3, min(0.5, dt))
+            self._prev_time = now
+            # low-pass
+            w_lpf = (1 - p.w_alpha) * self._prev_w + p.w_alpha * w_clamped
+            # rate limit
+            max_delta = p.max_w_rate * dt
+            delta = w_lpf - self._prev_w
+            if abs(delta) > max_delta:
+                w_lpf = self._prev_w + math.copysign(max_delta, delta)
+            # re-clamp to max
+            w_lpf = max(-p.w_max, min(p.w_max, w_lpf))
+            if abs(w_lpf) < p.w_deadband:
+                w_lpf = 0.0
+            w_out = w_lpf
+            self._prev_w = w_out
+            # confidence-based v scaling
+            if p.v_conf_scale:
+                scale = p.v_min_scale + (1.0 - p.v_min_scale) * float(np.clip(confidence, 0.0, 1.0))
+                v_out = v_raw * scale
+            self._prev_v = v_out
 
         info = {
             "err_x": float(err_x),
             "err_x_norm": float(err_x_norm),
             "err_theta_deg": float(math.degrees(err_theta)),
             "w_raw": float(w_raw),
-            "w": float(w),
-            "v": float(v),
+            "w_clamped": float(w_clamped),
+            "w": float(w_out),
+            "v": float(v_out),
+            "confidence": float(confidence),
         }
         self.last_F = F.copy()
         self.last_err = np.array([err_x, err_theta])
-        return v, w, info
+        return v_out, w_out, info
 
     def draw_overlay(self, bgr, P, Q, v, w, info):
         """Draw navigation line and velocity info on image."""
