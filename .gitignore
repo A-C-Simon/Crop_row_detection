@@ -7,3 +7,12 @@ __pycache__/
 .vscode/
 LinReg/MultiROI/nav_video_output/*.mp4
 result/*.mp4
+
+# Gazebo sim rig: regenerable colcon outputs and run logs
+LinReg/MultiROI/tests/sim_ros2/build/
+LinReg/MultiROI/tests/sim_ros2/install/
+LinReg/MultiROI/tests/sim_ros2/log/
+
+# Agribot reference clone: only the Gazebo asset subset is versioned
+LinReg/MultiROI/tests/agribot/*
+!LinReg/MultiROI/tests/agribot/agribot_gazebo/
