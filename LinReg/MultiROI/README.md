@@ -92,6 +92,7 @@ Every deviation fixed an observed failure; full evidence in `EXPERIMENT_NOTES.md
 | 13 | Lookahead prior gating inside strip climb | missing-plant gap at bottom would expand ROI to 3 rows and shift midpoint 50px (crops.mp4) |
 | 14 | Lookahead corridor map (visible-future memory) | long gaps persist 10+ frames and would otherwise be accepted after `persist_frames` |
 | 15 | Scalar temporal filter + command smoother | single-frame jumps became violent `w` spikes and lane drift |
+| 16 | Spike guard in the temporal filter (hold + delayed commit) | a stale map-hold/curve-tangent outlier (~20-30 deg for < 1 s) was EMA-followed into a sharp drawn-line spike (crops.mp4 fr49-71) |
 
 Known remaining: strongly curved fields exceed linear det-line model (photo_2); extreme sparse may yield few worthy strips; weed exactly on row line is indistinguishable.
 
@@ -113,7 +114,9 @@ Image -> MultiROI Detector (strip_profile, nav_line/curve, 0.75 coverage, ignore
 - Spatial support: `support_old` = upper bins consistent with old map, `support_new` = upper bins consistent with bottom raw new. Bottom conflict with `support_old>=3` and `support_new<3` → `map_hold` (keep old, `corr=pred`); with `support_new>=3` → `map_pending` → after `accept_frames=4` → `map_switch` (blend `0.35` toward new). Missing bottom → `occlusion_hold` (use `pred`). Effective bottom is `ignore_initial` (e.g. `3 → mu=4`) so approach phase uses higher, cleaner strips.
 
 **TemporalNavigationFilter** (`temporal_filter.py:62`):
-- Filters stable features `bottom_x (=w/2+X)`, `Theta`, `width` (never raw `w,b`). Constant prediction + optional `motion_gain`. Innovation `raw-pred` vs `max(18px, max(0.10*width,0.45*pred_w))`, `12 deg`, `0.30*pred_w`. Large → `pending` (tiny `0.08` nudge, conf drops), same `pending` for `persist_frames=4` within `0.5*thresh` → `pending_accepted` (EMA `0.35` toward pending). Else EMA `0.35/0.35/0.30` and conf EMA `0.40`.
+- Filters stable features `bottom_x (=w/2+X)`, `Theta`, `width` (never raw `w,b`). Constant prediction + optional `motion_gain`. Innovation `raw-pred` vs `max(18px, max(0.10*width,0.45*pred_w))`, `12 deg`, `0.30*pred_w`.
+- **Spike guard**: a LARGE deviation is never followed while unresolved - the state holds exactly at the pre-excursion value (no drift nudge), confidence drops, and it is only committed as a real change (`pending_accepted`, EMA `0.35`) after `persist_frames + spike_confirm_frames` (=4+3) consecutive coherent frames (`0.5*thresh` coherence) AND `n_two_sided >= commit_min_two_sided` (=7, near-full corridor evidence). A brief outlier that snaps back first - a stale map-hold slope, a spline bottom-tangent flicker, a <1 s spike - therefore leaves **no trace** on the drawn line or the control (crops.mp4 fr49-64, previously a sharp -21 deg swing, now holds flat).
+- Low-evidence frames with *small* innovation keep a gentle `0.08` slow-follow (geometry can legitimately drift during occlusions/approach); width-only jumps do not freeze heading. Small innovations → EMA `0.35/0.35/0.30`, conf EMA `0.40`.
 
 **Controller smoothing** (`mr_vs.py:46`):
 - `w_raw = -(lambda_x*X/width + lambda_theta*Theta)`, clamp `w_max 0.60`, `w_min 0.01`
@@ -157,9 +160,9 @@ python test_multi_roi.py --post_scrub --scorer madz
 
 Key flags `run_mr_navigation.py:646`:
 - `--video` / `--loop` / `--line` / `--show` / `--width/height`
-- `--ignore-initial N` (0 default, 3 for noisy entry), `--vertical-coverage 0.75` (bottom fraction), `--roi-draw-frac 1.0`
+- `--ignore-initial N` (0 default, 3 for noisy entry), `--vertical-coverage 0.75` (bottom fraction of ROIs; also clips the drawn red nav line and blue nav/det lines so they stop where ROI coverage ends), `--roi-draw-frac 1.0`
 - `--temporal/--no-temporal` (`video` on), `--lookahead/--no-lookahead` (`video` on)
-- `--persist-frames 4 --max-jump-frac 0.10 --max-jump-width-frac 0.45 --max-heading-jump 12 --max-width-change 0.30 --w-alpha 0.35 --max-w-rate 1.2 --w-deadband 0.02 --alpha-x 0.35 --alpha-theta 0.35`
+- `--persist-frames 4 --spike-confirm-frames 3 --max-jump-frac 0.10 --max-jump-width-frac 0.45 --max-heading-jump 12 --max-width-change 0.30 --w-alpha 0.35 --max-w-rate 1.2 --w-deadband 0.02 --alpha-x 0.35 --alpha-theta 0.35` (`--spike-confirm-frames` = extra coherent frames a large deviation must survive beyond `--persist-frames` before being committed as real; a deviation that snaps back sooner is rejected as a spike and leaves no trace)
 - `--lookahead-shift-px 14 --lookahead-center-gate 0.35 --lookahead-width-gate 0.35 --lookahead-accept-frames 4 --lookahead-accept-bins 3 --lookahead-conf-decay 0.97 --lookahead-overlay`
 - detector: `--n_strips --l_frac --min_flank_frac --index {raw,normalized} --morph {struct,paper,robust}`
 
