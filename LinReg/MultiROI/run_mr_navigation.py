@@ -61,7 +61,7 @@ import cv2
 import numpy as np
 
 from test_multi_roi import MultiROIDetector
-from mr_vs import MultiROIVS, MRVSParams
+from mr_vs import MultiROIVS, MRVSParams, curve_bend
 from temporal_filter import TemporalNavigationFilter, TemporalFilterParams
 from lookahead_corridor_map import LookaheadCorridorMap, LookaheadParams
 
@@ -109,7 +109,8 @@ def _build_raw_dict(res, F, PQ, image_shape):
     }
 
 
-def process_image(bgr, detector, vs, draw=True, t_filter=None, dt=None, last_w=None, lookahead_map=None):
+def process_image(bgr, detector, vs, draw=True, t_filter=None, dt=None, last_w=None, lookahead_map=None,
+                  use_ff=False, ff_gain=0.2, ff_mem=None, ff_max=0.15):
     """Run detection + (optionally lookahead map + temporal filter) + visual servoing.
 
     Pipeline:
@@ -120,6 +121,12 @@ def process_image(bgr, detector, vs, draw=True, t_filter=None, dt=None, last_w=N
     When lookahead_map is supplied the raw strip observations are validated against
     the remembered future corridor before reaching the temporal filter.
     When t_filter is supplied the (corrected) feature is gated temporally.
+
+    Curvature feedforward (use_ff): estimates the within-view bend of the nav
+    spline and adds an anticipatory turn (-ff_gain * vf * bend) to the servo
+    command so the P-terms don't hold a steady-state offset on constant
+    curves (inside-cutting). ff_mem is an optional dict holding the EMA
+    across frames (pipeline passes a persistent one); default off = legacy.
     """
     t0 = time.perf_counter()
     h, w = bgr.shape[:2]
@@ -149,6 +156,31 @@ def process_image(bgr, detector, vs, draw=True, t_filter=None, dt=None, last_w=N
 
     # Build raw dict for filter / fallback control
     raw_dict = _build_raw_dict(res, F_raw, PQ_raw, (h, w))
+
+    # --- curvature feedforward (anticipatory bend turn) ---
+    ff_value = 0.0
+    if use_ff:
+        if ff_mem is None:
+            ff_mem = {}
+        try:
+            n_two = int(res.get("n_two_sided", 0))
+        except Exception:
+            n_two = 0
+        if res.get("nav_curve") and n_two >= 4:
+            bend = curve_bend(res.get("nav_curve"), res.get("q_feed"))
+            prev = float(ff_mem.get("bend_ema", 0.0))
+            ema = 0.75 * prev + 0.25 * float(bend)
+        else:
+            ema = 0.85 * float(ff_mem.get("bend_ema", 0.0))  # fade on dropout
+        if not math.isfinite(ema):
+            ema = 0.0
+        ff_mem["bend_ema"] = ema
+        try:
+            v_ref = float(getattr(vs.params, "vf_des", 0.2))
+            g = float(ff_gain)
+        except Exception:
+            v_ref, g = 0.2, 0.5
+        ff_value = float(np.clip(-g * v_ref * ema, -ff_max, ff_max))
 
     # --- lookahead corridor memory (spatial) ---
     map_out = None
@@ -197,7 +229,8 @@ def process_image(bgr, detector, vs, draw=True, t_filter=None, dt=None, last_w=N
             # also if map is holding/reject, reduce confidence slightly
             if map_out["map_status"] in ("map_hold", "occlusion_hold", "map_reject", "map_pending"):
                 eff_conf = float(min(eff_conf, map_out["map_confidence"] * 0.8 + 0.2))
-        v, w_ang, info = vs.compute_control(F_used, dt=dt, confidence=eff_conf, smooth=True)
+        v, w_ang, info = vs.compute_control(F_used, dt=dt, confidence=eff_conf, smooth=True,
+                                             ff=ff_value)
         # augment info with filtered/raw diagnostics + map
         info = dict(info)
         info.update({
@@ -257,7 +290,8 @@ def process_image(bgr, detector, vs, draw=True, t_filter=None, dt=None, last_w=N
             tan_t = math.tan(float(np.clip(map_out["corrected_theta"], -math.radians(45), math.radians(45))))
             Q_c = np.array([float(map_out["corrected_bottom_x"] + h * tan_t), 0.0], dtype=float)
             eff_conf = float(map_out["map_confidence"])
-            v, w_ang, info = vs.compute_control(F_corr, dt=dt, confidence=eff_conf, smooth=True if lookahead_map is not None else False)
+            v, w_ang, info = vs.compute_control(F_corr, dt=dt, confidence=eff_conf, smooth=True if lookahead_map is not None else False,
+                                                 ff=ff_value)
             info = dict(info)
             info.update({
                 "filt_err_x": float(map_out["corrected_X"]),
@@ -294,7 +328,8 @@ def process_image(bgr, detector, vs, draw=True, t_filter=None, dt=None, last_w=N
             P_raw_np = Q_raw_np = None
             P_raw = Q_raw = None
             if F_raw is not None:
-                v, w_ang, info = vs.compute_control(F_raw, dt=dt, confidence=1.0, smooth=False)
+                v, w_ang, info = vs.compute_control(F_raw, dt=dt, confidence=1.0, smooth=False,
+                                                     ff=ff_value)
                 P, Q = PQ_raw
             else:
                 v, w_ang, info = 0.0, 0.0, {"err_x": 0, "err_theta_deg": 0}

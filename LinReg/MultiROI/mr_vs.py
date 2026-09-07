@@ -75,6 +75,65 @@ class MRVSParams:
     v_min_scale: float = 0.45     # at confidence 0, v = vf * 0.45
 
 
+def curve_bend(nav_curve=None, q_feed=None):
+    """Bend of the corridor within view (radians, + = right).
+
+    Compares the local heading of the lower corridor against the upper
+    corridor. Straight corridor -> ~0; constant bend -> the direction
+    change bottom->top. Used as a curvature-feedforward signal so the
+    P-terms don't have to hold the whole steady-state turn (which is what
+    cuts inside on constant-curvature paths).
+
+    Primary source is the two-sided strip midpoints (q_feed entries with a
+    flank span): raw in-data measurements, bottom-up, so their direction
+    change IS the bend. Strip 1 is skipped (full-width initial view may
+    anchor on other rows). Falls back to the middle section of the nav
+    spline (its tails are linear extensions, not measurements).
+    """
+    def _heading(a, b):
+        # image coords, y down; forward = decreasing y
+        dx = float(b[0]) - float(a[0])
+        dy = float(a[1]) - float(b[1])
+        if abs(dx) < 1e-9 and abs(dy) < 1e-9:
+            return 0.0
+        return math.atan2(dx, dy)
+
+    def _wrap(d):
+        while d > math.pi:
+            d -= 2 * math.pi
+        while d < -math.pi:
+            d += 2 * math.pi
+        return d
+
+    try:
+        if q_feed:
+            dots = [(float(x), float(y)) for x, y, d in q_feed
+                    if d is not None and np.isfinite(x) and np.isfinite(y)]
+            dots = dots[1:]  # skip strip 1 (full-width, may be off-lane)
+            if len(dots) >= 4:
+                mid = len(dots) // 2
+                lo, up = dots[:mid], dots[mid:]
+                if len(lo) >= 2 and len(up) >= 2:
+                    a_lo = _heading(lo[0], lo[-1])
+                    a_up = _heading(up[0], up[-1])
+                    return float(np.clip(_wrap(a_up - a_lo), -0.6, 0.6))
+    except Exception:
+        pass
+    try:
+        pts = list(nav_curve) if nav_curve else []
+    except Exception:
+        return 0.0
+    if len(pts) < 21:
+        return 0.0
+    try:
+        n = len(pts)
+        a_lo = _heading(pts[n // 6], pts[n // 3])
+        a_up = _heading(pts[2 * n // 3], pts[5 * n // 6])
+        return float(np.clip(_wrap(a_up - a_lo), -0.6, 0.6))
+    except Exception:
+        return 0.0
+
+
 def clip_segment_to_coverage_top(P, Q, h, vertical_coverage):
     """Clip segment P->Q so it never goes above the coverage top.
 
@@ -230,13 +289,20 @@ class MultiROIVS:
     def compute_control(self, F: np.ndarray,
                         dt: Optional[float] = None,
                         confidence: float = 1.0,
-                        smooth: bool = True) -> Tuple[float, float, Dict]:
+                        smooth: bool = True,
+                        ff: float = 0.0) -> Tuple[float, float, Dict]:
         """
         Visual servoing control law, simplified from agribot_vs.cpp:Controller
 
         Input F = [X, Y, Theta], F_des = [0, height/2, 0] ??? For furrow,
         we want X=0 (centred) and Theta=0 (vertical) at the bottom.
         Y is not directly controlled (forward motion).
+
+        ff: curvature-feedforward angular rate (rad/s), e.g. from
+        curve_bend(): supplies the steady-state turn on bends so the
+        P-terms stay near zero instead of holding a constant offset
+        (inside-cutting). Default 0 = legacy behavior. It is added to the
+        raw command BEFORE clamping/smoothing, so all limits still apply.
 
         Smoothing (when smooth=True):
           - low-pass: w_lpf = (1-alpha)*prev_w + alpha*w_raw
@@ -281,7 +347,13 @@ class MultiROIVS:
         err_x = X  # pixels
         err_theta = wrapToPi(Theta)
         err_x_norm = err_x / p.width  # normalize
-        w_raw = -(p.lambda_x * err_x_norm + p.lambda_theta * err_theta)
+        try:
+            ff_val = float(ff)
+            if not math.isfinite(ff_val):
+                ff_val = 0.0
+        except Exception:
+            ff_val = 0.0
+        w_raw = -(p.lambda_x * err_x_norm + p.lambda_theta * err_theta) + ff_val
 
         # Clamp raw before smoothing (keep limits)
         w_clamped = max(-p.w_max, min(p.w_max, w_raw))
@@ -332,6 +404,7 @@ class MultiROIVS:
             "w": float(w_out),
             "v": float(v_out),
             "confidence": float(confidence),
+            "ff": float(ff_val),
         }
         self.last_F = F.copy()
         self.last_err = np.array([err_x, err_theta])
