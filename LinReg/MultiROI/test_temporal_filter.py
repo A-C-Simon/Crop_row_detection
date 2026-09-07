@@ -7,6 +7,8 @@ Verifies:
  3. Sudden width double rejected
  4. Straight corridor stable
  5. Curved corridor followed
+ 6. Vertical coverage clips drawn nav lines
+ 7. Brief heading spikes/outliers fully rejected (spike guard)
 """
 import math
 import cv2
@@ -214,6 +216,136 @@ def test_width_expansion():
     assert max(abs(math.degrees(x)) for x in filt_ws[3:5]) < 10, "Width anomaly shouldn't cause steering spike"
     print("PASS width expansion")
 
+def test_vertical_coverage_draw_clip():
+    """Drawn nav lines (blue in composite, red in mr_vs overlay) must stop
+    at the vertical-coverage top instead of extending to image row 0."""
+    print("\n=== Test 6: vertical coverage clips drawn nav lines ===")
+    cov = 0.6
+    h, w = 480, 640
+    detector = MultiROIDetector(vertical_coverage=cov)
+    vs = MultiROIVS(MRVSParams(width=w, height=h, vertical_coverage=cov))
+    bgr = make_synthetic_bgr(h=h, w=w, rows_x=(250, 390))
+    res = detector.detect(bgr)
+    assert abs(float(res["vertical_coverage"]) - cov) < 1e-6, \
+        "detector result must expose the vertical coverage used"
+
+    from test_multi_roi import draw_results
+    orig, _bin = draw_results(bgr, res)
+    dx, dy = res["crop_offset"]
+    bh = res["binary"].shape[0]
+    # blue/dark-blue drawn lines must not appear above coverage top
+    top_full = dy + int(round(bh * (1.0 - cov)))
+    blue = (orig[:, :, 0] > 220) & (orig[:, :, 2] < 120)  # nav/det lines are blue-ish
+    ys = np.where(blue.any(axis=1))[0]
+    assert len(ys) > 0, "synthetic frame should produce a nav line"
+    assert ys.min() >= top_full - 4, \
+        f"blue line drawn above coverage top: min y {ys.min()} vs coverage top {top_full}"
+    # and the line should still reach the bottom of the ROI region (cropped bottom)
+    bottom_full = dy + bh - 1
+    assert ys.max() >= bottom_full - 6, \
+        f"blue line should reach bottom of ROI region: max y {ys.max()} vs {bottom_full}"
+
+    # red line from mr_vs.draw_overlay also clipped to coverage top
+    F, PQ = vs.nav_line_to_feature(res.get("nav_line"), res.get("nav_curve"),
+                                   res["crop_offset"], (h, w), vertical_coverage=cov)
+    if PQ is not None:
+        P, Q = PQ
+        overlay = vs.draw_overlay(bgr, tuple(P), tuple(Q), 0.2, 0.0,
+                                  {"err_x": 0, "err_theta_deg": 0}, vertical_coverage=cov)
+        red = (overlay[:, :, 2] > 180) & (overlay[:, :, 1] < 100) & (overlay[:, :, 0] < 100)
+        ys_r = np.where(red.any(axis=1))[0]
+        assert len(ys_r) > 0, "red nav line should be drawn"
+        assert ys_r.min() >= int(h * (1.0 - cov)) - 4, \
+            f"red line drawn above coverage top: min y {ys_r.min()}"
+    print(f"PASS vertical coverage clip (cov={cov}, coverage top y={top_full})")
+
+
+def _feed_raw(t_filter, vs, bottom_x, theta_deg, width=120.0, n_two=9, w_deg=None):
+    """Feed one frame into the filter; returns filt_out dict. theta in degrees."""
+    raw_dict = {
+        "raw_bottom_x": float(bottom_x),
+        "raw_theta": float(math.radians(theta_deg)),
+        "raw_width": float(width),
+        "raw_X": float(bottom_x - 320.0),
+        "raw_err_x": float(bottom_x - 320.0),
+        "raw_err_theta_deg": float(theta_deg),
+        "has_line": True,
+        "n_two_sided": int(n_two),
+        "n_q_accepted": int(n_two),
+        "n_q_rejected": 0,
+        "weed_pressure": 0.0,
+        "median_width": float(width),
+        "bottom_width": float(width),
+    }
+    out = t_filter.update(raw_dict, dt=0.05, last_w=0.0)
+    if w_deg is not None:
+        F = out["filt_F"]
+        vs.compute_control(F, dt=0.05, confidence=out["confidence"], smooth=True)
+    return out
+
+
+def test_heading_spike_rejected():
+    """A sharp sub-second heading outlier (like a lookahead/map hold emitting a
+    stale -20..-30 deg remembered slope for < 1 s) must leave NO trace on the
+    filtered state: no drift toward it and no commit.
+
+    Reproduces the real crops.mp4 event: baseline ~0 deg, then a ~20-frame
+    excursion to ~-25 deg while two-sided corridor evidence is weak (only
+    2-6 of 9 strips see both rows - the detector's trustworthy signal is
+    degraded even though the stale memory/input keeps emitting the bogus
+    slope), then the evidence returns and the input snaps back to ~0.
+    """
+    print("\n=== Test 7: brief heading spike fully rejected ===")
+    tp = TemporalFilterParams(image_width=640, image_height=480, n_strips=10,
+                              persist_frames=4, spike_confirm_frames=3,
+                              max_heading_jump_deg=12.0)
+    t_filter = TemporalNavigationFilter(tp)
+
+    # like the real event: jump to -20..-31 deg and wander; n_two stays 2-6
+    # (below commit_min_two_sided=7) so the spike-guard never commits it
+    excursion = [-20.0, -24.0, -28.0, -31.0, -29.0, -22.0, -25.0, -20.5,
+                 -24.0, -27.0, -22.0, -21.5, -21.0, -13.5, -12.5, -13.0]
+    series = [0.0]*6 + excursion + [0.0]*12
+    n2_series = [9]*6 + [6, 2, 4, 1, 2, 3, 4, 4, 6, 2, 3, 5, 4, 6, 3, 2] + [9]*12
+
+    max_dev = 0.0
+    any_commit = False
+    out_last = None
+    for i, th in enumerate(series):
+        out = _feed_raw(t_filter, None, 320.0, th, n_two=n2_series[i])
+        out_last = out
+        fth = float(out["filt_theta_deg"])
+        max_dev = max(max_dev, abs(fth))
+        if out["status"] == "pending_accepted":
+            any_commit = True
+        if 5 <= i <= 40 and (i < 8 or i % 3 == 0):
+            print(f"  fr{i}: raw={th:+6.1f} filt={fth:+6.1f} status={out['status']:>16} n2={n2_series[i]}")
+    # the outlier must not move the line meaningfully nor be committed
+    assert not any_commit, "sustained low-evidence outlier must never be committed"
+    assert max_dev < 1.5, f"filtered heading swung {max_dev:.2f} deg toward the outlier"
+    # and it must settle back on the true course
+    final = float(out_last["filt_theta_deg"])
+    assert abs(final) < 0.5, f"should return to baseline, got {final:.2f} deg"
+    print(f"PASS spike rejected (max |filt| during excursion = {max_dev:.2f} deg, final {final:.2f} deg)")
+
+
+def test_short_pulse_rejected():
+    """A short (3-frame) clean square pulse - far below the guard window, even
+    with full evidence - must not move the state at all."""
+    print("\n=== Test 8: short square pulse fully rejected ===")
+    tp = TemporalFilterParams(image_width=640, image_height=480, n_strips=10,
+                              persist_frames=4, spike_confirm_frames=3,
+                              max_heading_jump_deg=12.0)
+    t_filter = TemporalNavigationFilter(tp)
+    degs = [0.0]*5 + [-20.0]*3 + [0.0]*8
+    max_dev = 0.0
+    for th in degs:
+        out = _feed_raw(t_filter, None, 320.0, th, n_two=9)
+        max_dev = max(max_dev, abs(float(out["filt_theta_deg"])))
+    assert max_dev < 0.5, f"3-frame pulse moved the filtered line {max_dev:.2f} deg"
+    print(f"PASS short pulse rejected (max deviation {max_dev:.3f} deg)")
+
+
 def test_straight_stable():
     print("\n=== Test 4: Straight corridor stable ===")
     detector = MultiROIDetector()
@@ -257,4 +389,7 @@ if __name__ == "__main__":
     test_width_expansion()
     test_straight_stable()
     test_curved()
+    test_vertical_coverage_draw_clip()
+    test_heading_spike_rejected()
+    test_short_pulse_rejected()
     print("\nAll synthetic tests passed")

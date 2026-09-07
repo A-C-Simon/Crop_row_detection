@@ -121,6 +121,8 @@ class MultiROINavigationStack:
             detector.ignore_initial = self.ignore_initial
         self.detector = detector
         self.vs = vs or MultiROIVS()
+        # keep the drawn nav line clipping consistent with the detector's ROIs
+        self.vs.params.vertical_coverage = float(getattr(self.detector, "vertical_coverage", 0.75))
         self.simulator = simulator or RoverSimulator()
         self.step_count = 0
         self.last_cmd = RoverCommand(0, 0, 0, 0, False)
@@ -176,7 +178,9 @@ class MultiROINavigationStack:
         nav_curve = res.get("nav_curve")
 
         # Visual features - raw
-        F_raw, PQ_raw = self.vs.nav_line_to_feature(nav_line, nav_curve, crop_offset, (h, w))
+        vcov = float(res.get("vertical_coverage",
+                             float(getattr(self.detector, "vertical_coverage", 0.75))))
+        F_raw, PQ_raw = self.vs.nav_line_to_feature(nav_line, nav_curve, crop_offset, (h, w), vertical_coverage=vcov)
 
         # timing for dt / rate-limit prediction
         now = _time.perf_counter()
@@ -353,7 +357,7 @@ class MultiROINavigationStack:
         if draw:
             # Draw filtered line (red) via vs overlay
             if P is not None and Q is not None:
-                overlay = self.vs.draw_overlay(bgr, tuple(P), tuple(Q), v, w_ang, info)
+                overlay = self.vs.draw_overlay(bgr, tuple(P), tuple(Q), v, w_ang, info, vertical_coverage=vcov)
             else:
                 overlay = bgr.copy()
                 cv2.putText(overlay, f"v={v:.2f} w={math.degrees(w_ang):.1f}deg/s no line", (10, 30),

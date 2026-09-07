@@ -689,6 +689,7 @@ class MultiROIDetector:
             "left_feed": left_feed,
             "right_feed": right_feed,
             "feed_d": feed_d,
+            "vertical_coverage": float(np.clip(self.vertical_coverage, 0.1, 1.0)),
         }
 
     def _fit_nav_curve(self, pts, img_h, env_cap):
@@ -1149,6 +1150,20 @@ def draw_results(bgr, res, draw_rois=False):
     bh, bw = res["binary"].shape[:2]
     binary_vis = cv2.cvtColor(res["binary"], cv2.COLOR_GRAY2BGR)
 
+    # --- vertical-coverage clipping for nav/det lines ---
+    # ROIs cover only the bottom `cov` fraction of the (cropped) image, so the
+    # blue navigation + detection lines must end where coverage ends instead
+    # of extending to the top of the image (y=0).
+    try:
+        _cov = float(res.get("vertical_coverage", 1.0))
+    except Exception:
+        _cov = 1.0
+    if not math.isfinite(_cov):
+        _cov = 1.0
+    _cov = float(min(1.0, max(0.1, _cov)))
+    _y_top_c = int(round(bh * (1.0 - _cov))) if _cov < 1.0 else 0
+    _y_bot_c = bh - 1
+
     if draw_rois:
         for i, (x_lo, x_hi, y1, y2) in enumerate(res["rois"], start=1):
             cv2.rectangle(binary_vis, (int(x_lo), int(y1)),
@@ -1163,14 +1178,17 @@ def draw_results(bgr, res, draw_rois=False):
             cv2.circle(binary_vis, (int(qx), int(qy)), 3, (0, 255, 0), -1)
 
     def draw_line(img, w_slope, b, color, thickness=2):
-        h = img.shape[0]
         # fit is y = w*x + b  ->  x = (y - b) / w
+        # clipped to vertical coverage: y in [_y_top_c, _y_bot_c] (cropped coords)
         if abs(w_slope) < 1e-6:  # degenerate horizontal fit
-            cv2.line(img, (0, int(b) + dy), (img.shape[1], int(b) + dy),
+            yb = int(b)
+            if yb < _y_top_c or yb > _y_bot_c:
+                return  # entirely above coverage -> nothing to draw
+            cv2.line(img, (0, yb + dy), (img.shape[1], yb + dy),
                      color, thickness)
             return
-        p1 = (int((0 - b) / w_slope), 0)             # x at y = 0
-        p2 = (int(((h - 1) - b) / w_slope), h - 1)   # x at y = h-1
+        p1 = (int((_y_top_c - b) / w_slope), _y_top_c)   # x at coverage top
+        p2 = (int((_y_bot_c - b) / w_slope), _y_bot_c)   # x at bottom
         cv2.line(img, (p1[0] + dx, p1[1] + dy),
                  (p2[0] + dx, p2[1] + dy), color, thickness)
 
@@ -1178,12 +1196,14 @@ def draw_results(bgr, res, draw_rois=False):
         draw_line(binary_vis, w_slope, b, COLOR_DET_LINE, 2)
         draw_line(original, w_slope, b, COLOR_DET_LINE, 2)
     if res.get("nav_curve"):
-        poly = np.array([(int(x) + dx, int(y) + dy)
-                          for x, y in res["nav_curve"]], dtype=np.int32)
-        cv2.polylines(binary_vis, [poly], False, COLOR_NAV_LINE, 2,
-                      cv2.LINE_AA)
-        cv2.polylines(original, [poly], False, COLOR_NAV_LINE, 2,
-                      cv2.LINE_AA)
+        _pts = [(int(x) + dx, int(y) + dy)
+                for x, y in res["nav_curve"] if float(y) >= _y_top_c]
+        if len(_pts) >= 2:
+            poly = np.array(_pts, dtype=np.int32)
+            cv2.polylines(binary_vis, [poly], False, COLOR_NAV_LINE, 2,
+                          cv2.LINE_AA)
+            cv2.polylines(original, [poly], False, COLOR_NAV_LINE, 2,
+                          cv2.LINE_AA)
     elif res["nav_line"] is not None:
         w_slope, b = res["nav_line"]
         draw_line(binary_vis, w_slope, b, COLOR_NAV_LINE, 2)

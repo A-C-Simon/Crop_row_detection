@@ -11,10 +11,12 @@ movement: converts the image line into v,w velocities.
 
 Temporal robustness:
   A TemporalNavigationFilter sits between the raw detector and the
-  controller.  It filters X / Theta / width with innovation gating
-  and persistence, so transient missing-plant jumps do not cause
-  violent steering.  The controller's w is additionally low-pass /
-  rate-limited.  Raw and filtered states are both logged / drawn.
+  controller.  It filters X / Theta / width with innovation gating,
+  persistence and a spike guard, so transient missing-plant jumps and
+  brief (< 1 s) heading outliers (stale map holds / curve-tangent
+  flickers) do not cause violent steering or sharp drawn-line spikes.
+  The controller's w is additionally low-pass / rate-limited.  Raw and
+  filtered states are both logged / drawn.
 
 Usage:
   # On Photos (offline, for analysis)
@@ -112,8 +114,8 @@ def process_image(bgr, detector, vs, draw=True, t_filter=None, dt=None, last_w=N
 
     Pipeline:
       detector -> lookahead_map (corrects local bottom false expansion using visible future)
-               -> temporal_filter (innovation gating, persistence, EMA)
-               -> controller (low-pass/rate-limited w)
+                -> temporal_filter (innovation gating, persistence, EMA)
+                -> controller (low-pass/rate-limited w)
 
     When lookahead_map is supplied the raw strip observations are validated against
     the remembered future corridor before reaching the temporal filter.
@@ -137,7 +139,13 @@ def process_image(bgr, detector, vs, draw=True, t_filter=None, dt=None, last_w=N
     nav_line = res.get("nav_line")
     nav_curve = res.get("nav_curve")
 
-    F_raw, PQ_raw = vs.nav_line_to_feature(nav_line, nav_curve, crop_offset, (h, w))
+    # Vertical coverage drives where the drawn nav lines stop (same value the
+    # detector used for its ROIs); the VS must clip with this value too, not
+    # its own default.
+    vcov = float(res.get("vertical_coverage",
+                         float(getattr(vs.params, "vertical_coverage", 0.75))))
+
+    F_raw, PQ_raw = vs.nav_line_to_feature(nav_line, nav_curve, crop_offset, (h, w), vertical_coverage=vcov)
 
     # Build raw dict for filter / fallback control
     raw_dict = _build_raw_dict(res, F_raw, PQ_raw, (h, w))
@@ -319,7 +327,7 @@ def process_image(bgr, detector, vs, draw=True, t_filter=None, dt=None, last_w=N
 
     overlay = None
     if draw:
-        overlay = vs.draw_overlay(bgr, P, Q, v, w_ang, info)
+        overlay = vs.draw_overlay(bgr, P, Q, v, w_ang, info, vertical_coverage=vcov)
         # when filtered, also draw raw line faintly (yellow) and annotation
         if P_raw_np is not None and Q_raw_np is not None and (filt_out is not None or map_out is not None):
             # draw raw line in cyan dashed style (thin)
@@ -684,6 +692,7 @@ def main():
     parser.add_argument("--temporal", action="store_true", help="Enable temporal filtering for folder mode (video enables by default)")
     parser.add_argument("--no-temporal", action="store_true", help="Disable temporal filtering (even for video)")
     parser.add_argument("--persist-frames", type=int, default=4, help="Frames of persistent large innovation before accepting (default 4)")
+    parser.add_argument("--spike-confirm-frames", type=int, default=3, help="Extra coherent frames a large deviation must survive beyond --persist-frames before being committed as real; deviations that snap back sooner are rejected as spikes/outliers and leave no trace on the drawn line (default 3)")
     parser.add_argument("--max-jump-frac", type=float, default=0.10, help="Max bottom jump as fraction of image width before gating (default 0.10)")
     parser.add_argument("--max-jump-width-frac", type=float, default=0.45, help="Max bottom jump as fraction of corridor width (default 0.45)")
     parser.add_argument("--max-heading-jump", type=float, default=12.0, help="Max heading jump deg per frame (default 12)")
@@ -727,6 +736,7 @@ def main():
         vf_des=args.vf, w_max=args.wmax,
         lambda_x=args.lambdax, lambda_theta=args.lambdatheta,
         w_alpha=args.w_alpha, max_w_rate=args.max_w_rate, w_deadband=args.w_deadband,
+        vertical_coverage=args.vertical_coverage,
     )
     vs = MultiROIVS(vs_params)
 
@@ -749,6 +759,7 @@ def main():
             max_heading_jump_deg=args.max_heading_jump,
             max_width_change_frac=args.max_width_change,
             persist_frames=args.persist_frames,
+            spike_confirm_frames=args.spike_confirm_frames,
             alpha_x=args.alpha_x, alpha_theta=args.alpha_theta,
             n_strips=args.n_strips,
         )

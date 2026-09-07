@@ -47,6 +47,10 @@ class MRVSParams:
     # Image geometry (after border crop, before any resize)
     width: int = 640
     height: int = 480
+    # Vertical coverage: navigation line is drawn only over the bottom
+    # `vertical_coverage` fraction of the image (same as detector ROIs).
+    # 0.6 means the red line ends at y = h*(1-0.6), where ROI coverage ends.
+    vertical_coverage: float = 0.75
     # Control gains - tuned for 0.2 m/s forward
     # err_x is normalized by width (err_x/width), so lambda_x=2 means 100px error -> 0.31 rad/s
     # Theta is in radians, lambda_theta=1 means 10deg error -> 0.17 rad/s
@@ -71,6 +75,43 @@ class MRVSParams:
     v_min_scale: float = 0.45     # at confidence 0, v = vf * 0.45
 
 
+def clip_segment_to_coverage_top(P, Q, h, vertical_coverage):
+    """Clip segment P->Q so it never goes above the coverage top.
+
+    Coverage is bottom-anchored: visible y must satisfy y >= h*(1-cov).
+    Returns (P_clipped, Q_clipped) as float arrays, or (None, None) if the
+    whole segment lies above coverage.
+    """
+    try:
+        cov = float(vertical_coverage)
+    except Exception:
+        cov = 1.0
+    if not math.isfinite(cov):
+        cov = 1.0
+    cov = min(1.0, max(0.1, cov))
+    if cov >= 1.0:
+        return np.array(P, dtype=float), np.array(Q, dtype=float)
+    y_top = float(h * (1.0 - cov))
+    Pp = np.array(P, dtype=float).copy()
+    Qq = np.array(Q, dtype=float).copy()
+    p_above = Pp[1] < y_top
+    q_above = Qq[1] < y_top
+    if p_above and q_above:
+        return None, None
+    if p_above or q_above:
+        # interpolate the above endpoint to y=y_top along P->Q
+        denom = (Qq[1] - Pp[1])
+        if abs(denom) < 1e-9:
+            return None, None
+        t = (y_top - Pp[1]) / denom  # t=0 at P, t=1 at Q
+        Xt = Pp[0] + t * (Qq[0] - Pp[0])
+        if p_above:
+            Pp = np.array([Xt, y_top], dtype=float)
+        else:
+            Qq = np.array([Xt, y_top], dtype=float)
+    return Pp, Qq
+
+
 class MultiROIVS:
     """Visual servoing for MultiROI furrow centre line."""
 
@@ -90,16 +131,31 @@ class MultiROIVS:
         self._prev_v = float(self.params.vf_des)
         self._prev_time = None
 
-    def nav_line_to_feature(self, nav_line, nav_curve, crop_offset, image_shape) -> Tuple[Optional[np.ndarray], Optional[Tuple[float, float]]]:
+    def nav_line_to_feature(self, nav_line, nav_curve, crop_offset, image_shape, vertical_coverage=None) -> Tuple[Optional[np.ndarray], Optional[Tuple[float, float]]]:
         """
         Convert navigation line/curve to visual features.
 
         Returns:
             F = [X, Y, Theta] in image-centred coords (like agribot_vs)
             P,Q = bottom/top points of the line in full image coords (for drawing)
+
+        The top point Q stops where vertical coverage ends (bottom-anchored
+        `vertical_coverage` fraction), so the drawn line never extends above
+        the ROI region. Control features (X at bottom, Theta) are unaffected
+        since they depend on the bottom point and line direction only.
         """
         h, w = image_shape[:2]
         dx, dy = crop_offset if crop_offset else (0, 0)
+        cov = vertical_coverage
+        if cov is None:
+            cov = float(getattr(self.params, "vertical_coverage", 0.75))
+        try:
+            cov = float(cov)
+        except Exception:
+            cov = 0.75
+        if not math.isfinite(cov):
+            cov = 0.75
+        cov = min(1.0, max(0.1, cov))
         # Prefer curve tangent at base if available (more accurate for curving furrows)
         if nav_curve is not None and len(nav_curve) >= 2:
             # nav_curve is list of (x,y) in cropped coords, y=0 top
@@ -134,8 +190,9 @@ class MultiROIVS:
             # Top point y=0 maps to y_full=dy
             h_cropped = h - 2*dy if dy else h
             # Use the line in cropped coords to get x at bottom/top
+            # Top stops where vertical coverage ends (bottom-anchored).
             y_bottom_c = h_cropped - 1
-            y_top_c = 0
+            y_top_c = int(round(h_cropped * (1.0 - cov))) if cov < 1.0 else 0
             if abs(w_slope) < 1e-6:
                 # Horizontal (should not happen for vertical furrow)
                 x_bottom_c = w / 2
@@ -280,16 +337,26 @@ class MultiROIVS:
         self.last_err = np.array([err_x, err_theta])
         return v_out, w_out, info
 
-    def draw_overlay(self, bgr, P, Q, v, w, info):
-        """Draw navigation line and velocity info on image."""
+    def draw_overlay(self, bgr, P, Q, v, w, info, vertical_coverage=None):
+        """Draw navigation line and velocity info on image.
+
+        The red navigation line is clipped to the vertical-coverage top
+        (bottom-anchored `vertical_coverage` fraction), so it ends where
+        the ROI coverage ends.
+        """
         out = bgr.copy()
         h, w_img = out.shape[:2]
         if P is not None and Q is not None:
-            # Draw navigation line red (like agribot) and window
-            cv2.line(out, (int(P[0]), int(P[1])), (int(Q[0]), int(Q[1])), (0, 0, 255), 2, cv2.LINE_AA)
-            # Draw bottom point
-            cv2.circle(out, (int(P[0]), int(P[1])), 8, (0, 0, 255), -1)
-            cv2.circle(out, (int(Q[0]), int(Q[1])), 5, (0, 255, 255), -1)
+            cov = vertical_coverage
+            if cov is None:
+                cov = float(getattr(self.params, "vertical_coverage", 0.75))
+            Pc, Qc = clip_segment_to_coverage_top(P, Q, h, cov)
+            if Pc is not None and Qc is not None:
+                # Draw navigation line red (like agribot) and window
+                cv2.line(out, (int(Pc[0]), int(Pc[1])), (int(Qc[0]), int(Qc[1])), (0, 0, 255), 2, cv2.LINE_AA)
+                # Draw bottom point (P may have been clipped if it was above; still show)
+                cv2.circle(out, (int(Pc[0]), int(Pc[1])), 8, (0, 0, 255), -1)
+                cv2.circle(out, (int(Qc[0]), int(Qc[1])), 5, (0, 255, 255), -1)
             # Draw image centre
             cv2.circle(out, (w_img//2, h//2), 4, (255, 255, 0), -1)
             cv2.drawMarker(out, (w_img//2, h-20), (255, 255, 0), cv2.MARKER_STAR, 20, 2)

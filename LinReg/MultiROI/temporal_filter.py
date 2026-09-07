@@ -27,11 +27,25 @@ Innovation gating:
   innovation = raw - predicted
   thresholds are relative to image width / corridor width / degrees.
 
-Persistence:
-  Large innovations are marked suspicious.  They are NOT applied.
-  Instead they are stored as a pending candidate.  If the same
-  deviation persists for `persist_frames` consecutive frames within a
-  coherence window, it is accepted (gradual EMA towards it).
+Persistence + spike guard:
+  Large innovations are marked suspicious.  They are NOT applied and the
+  state HOLDS exactly at the pre-excursion value while they are unresolved
+  (no drift nudge - drift let a bogus input walk under the per-frame gate
+  and get EMA-followed into a sharp <1 s drawn-line spike).
+
+  The deviation is stored as a pending candidate.  Only if the SAME
+  deviation survives `persist_frames + spike_confirm_frames` consecutive
+  coherent frames (coherence window = 0.5 * thresholds) AND the current
+  frame still shows near-full two-sided corridor evidence
+  (`n_two_sided >= commit_min_two_sided`) is it committed as a genuine
+  sustained change (gradual EMA 0.35 towards it).  A brief outlier that
+  snaps back first leaves NO trace.
+
+  Low-evidence frames whose innovation is SMALL are not frozen: they keep
+  a gentle `pending_alpha` (0.08) slow-follow, because geometry can
+  legitimately drift during occlusions/approach while few strips are
+  two-sided.  Width-only jumps (`is_large_w`) likewise do not freeze the
+  heading track.
 
 Confidence:
   Combines: n_two_sided, n_q_accepted, weed_pressure / fail rate,
@@ -77,9 +91,37 @@ class TemporalFilterParams:
     min_width_px: float = 10.0
 
     # --- persistence ---
-    persist_frames: int = 4                   # same large jump for N frames -> accept
+    persist_frames: int = 4                   # same large jump for N frames -> begin acceptance
     pending_coherence_frac: float = 0.5       # two pending raws within 50% of thresh count as same
-    pending_alpha: float = 0.08               # tiny nudge while pending (hold vs slow drift)
+    pending_alpha: float = 0.08               # gentle slow-follow gain for low-evidence frames
+                                              # with SMALL innovation (geometry can drift during
+                                              # occlusions).  Large deviations no longer use it:
+                                              # the spike guard holds them strictly instead.
+
+    # --- spike guard (outlier / brief-spike elimination) ---
+    # A large deviation is only committed (followed) after it has survived
+    # persist_frames + spike_confirm_frames consecutive coherent frames.
+    # While it is unresolved the filtered state holds exactly (no drift toward
+    # the anomaly), so an excursion that snaps back within that window - a
+    # sub-second outlier - leaves NO trace on the drawn line or the control.
+    # Without this, the old per-frame pending nudges (0.08) slowly drifted the
+    # state toward a sustained bogus input until each frame's innovation fell
+    # under the per-frame gate and the filter "accepted" and followed it,
+    # producing a sharp <1 s angle spike (e.g. map_hold emitting a stale
+    # -20..-30 deg remembered slope). Genuine persistent changes (lane shifts,
+    # sustained map switches) exceed the combined window and are still tracked.
+    spike_confirm_frames: int = 3             # extra coherent frames beyond persist_frames
+                                              # that a large deviation must survive before commit
+
+    # A large deviation is only COMMITTED (followed) when the current frame
+    # carries genuine two-sided corridor evidence: at least this many strips
+    # saw BOTH flanking rows.  A stale/held geometry (e.g. the lookahead map
+    # emitting a remembered slope through an occlusion, or a spline bottom
+    # tangent flicker) can persist for dozens of coherent frames while the
+    # detector sees only a few two-sided strips - without this floor such a
+    # bogus sustained input would be committed and drag the drawn line off
+    # course for ~1 s.  (n_strips=10 -> max two-sided is 9; 7 = near-full.)
+    commit_min_two_sided: int = 7
 
     # --- EMA smoothing when accepted ---
     alpha_x: float = 0.35       # how fast bottom_x follows accepted raw
@@ -308,7 +350,21 @@ class TemporalNavigationFilter:
         # but we already handle via innovation; still drop confidence when raw_conf very low
         low_evidence = raw_conf < 0.35
 
-        if is_large or low_evidence:
+        # The spike-guard pending path (strict hold) engages on large
+        # POSITION/HEADING deviations.  A width-only jump (is_large_w) does
+        # not freeze X/theta - corridor-width flicker through occlusions is
+        # common and the heading can stay perfectly sane - so width-only
+        # anomalies take the gentle low-evidence path instead.
+        heading_large = is_large_x or is_large_theta
+
+        if heading_large:
+            # --- large deviation: spike-guard pending path ---
+            # Strictly hold the pre-excursion state (no drift) while the
+            # deviation is unresolved; commit it as a real change only after
+            # persist_frames + spike_confirm_frames coherent frames WITH
+            # genuine two-sided evidence.  A brief/spurious outlier therefore
+            # leaves NO trace on the drawn line or the control.
+
             # check persistence – is this same large jump as pending?
             same_as_pending = False
             if self._pending_raw is not None:
@@ -337,8 +393,14 @@ class TemporalNavigationFilter:
                 pr["raw_width"] = (1 - a) * pr["raw_width"] + a * raw_width
                 self._pending_count += 1
 
-            if self._pending_count >= p.persist_frames:
-                # persistent coherent large deviation -> accept gradually
+            # ... unless the current frame's evidence is only weak/flaky
+            # two-sided (a held/stale geometry through an occlusion) - then
+            # keep holding so the drawn line is not dragged toward it.
+            n_two = int(raw.get("n_two_sided", p.n_strips))
+            enough_evidence = n_two >= p.commit_min_two_sided
+            if self._pending_count >= p.persist_frames + p.spike_confirm_frames and enough_evidence:
+                # persistent coherent large deviation that has SURVIVED the spike
+                # guard window with full corridor evidence -> accept gradually.
                 # EMA towards pending average
                 ax = 0.35  # slightly faster to catch up
                 self.state.filt_bottom_x = (1 - ax) * pred_x + ax * self._pending_raw["raw_bottom_x"]
@@ -356,17 +418,36 @@ class TemporalNavigationFilter:
                 self._pending_raw = None
                 self._pending_count = 0
             else:
-                # hold / tiny nudge
-                ap = p.pending_alpha
-                self.state.filt_bottom_x = (1 - ap) * pred_x + ap * raw_bottom_x
-                self.state.filt_theta = wrapToPi((1 - ap) * pred_theta + ap * wrapToPi(raw_theta))
-                self.state.filt_width = (1 - 0.05) * pred_w + 0.05 * raw_width
+                # SPIKE GUARD: hold strictly at the predicted (pre-excursion) state.
+                # The anomaly is NOT followed while it is unresolved (no drift
+                # nudge): if it snaps back within the guard window, nothing ever
+                # moved and the outlier leaves no trace.  Confidence still drops
+                # so the user can see the filter is unsure.
+                self.state.filt_bottom_x = pred_x
+                self.state.filt_theta = pred_theta
+                self.state.filt_width = pred_w
                 self.state.filt_X = self.state.filt_bottom_x - p.image_width / 2.0
                 # confidence drops
                 new_conf = float(np.clip(raw_conf * 0.5 + self.state.confidence * 0.5 * 0.7, 0.0, 1.0))
                 self.state.confidence = float(np.clip((1 - p.alpha_conf) * self.state.confidence + p.alpha_conf * new_conf * 0.7, 0.05, 1.0))
                 self.state.status = "pending"
                 status = "pending"
+        elif is_large_w or low_evidence:
+            # --- low evidence but SMALL innovation: gentle slow-follow ---
+            # Trust the past, but do not freeze: geometry can legitimately
+            # drift while few strips are two-sided (approach/occlusion), so
+            # nudge slowly toward the measurement (old pending_alpha hold-vs-
+            # drift compromise) instead of tracking it at full EMA speed.
+            ap = p.pending_alpha
+            self.state.filt_bottom_x = (1 - ap) * pred_x + ap * raw_bottom_x
+            self.state.filt_theta = wrapToPi((1 - ap) * pred_theta + ap * wrapToPi(raw_theta))
+            self.state.filt_width = (1 - 0.05) * pred_w + 0.05 * raw_width
+            self.state.filt_X = self.state.filt_bottom_x - p.image_width / 2.0
+            # confidence drops
+            new_conf = float(np.clip(raw_conf * 0.5 + self.state.confidence * 0.5 * 0.7, 0.0, 1.0))
+            self.state.confidence = float(np.clip((1 - p.alpha_conf) * self.state.confidence + p.alpha_conf * new_conf * 0.7, 0.05, 1.0))
+            self.state.status = "pending"
+            status = "pending"
         else:
             # normal small innovation – accept with EMA
             self.state.filt_bottom_x = (1 - p.alpha_x) * pred_x + p.alpha_x * raw_bottom_x
