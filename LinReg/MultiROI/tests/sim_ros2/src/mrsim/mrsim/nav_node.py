@@ -122,7 +122,7 @@ class MultiROINavNode(Node):
             self.csv_w = csv.writer(self.csv_f)
             self.csv_w.writerow(["sim_t", "odom_x", "odom_y", "cross_track",
                                  "err_x_px", "raw_th_deg", "filt_th_deg",
-                                 "conf", "status", "v", "w", "n_two"])
+                                 "conf", "status", "v", "w", "n_two", "ff"])
             self.get_logger().info(f"logging to {self.log_dir}")
 
         # --- algorithm pipeline (selection seam; default: multiroi) ---
@@ -252,7 +252,7 @@ class MultiROINavNode(Node):
                 f"{info.get('filt_err_theta_deg', 0):.2f}",
                 f"{info.get('confidence', 0):.2f}", str(info.get("status", "")),
                 f"{out['v']:.3f}", f"{out['w']:.3f}",
-                int(info.get("n_two_sided", 0))])
+                int(info.get("n_two_sided", 0)), f"{info.get('ff', 0):.4f}"])
             self.csv_f.flush()
             if ovl is not None and self.frame_idx % self.save_every == 0:
                 cv2.imwrite(str(self.log_dir / f"frame_{self.frame_idx:05d}.png"), ovl)

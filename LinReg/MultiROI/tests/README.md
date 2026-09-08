@@ -115,7 +115,7 @@ Each nav frame appends a row to `<log_dir>/nav_run.csv`:
 
 ```
 sim_t, odom_x, odom_y, cross_track, err_x_px, raw_th_deg, filt_th_deg,
-conf, status, v, w, n_two
+conf, status, v, w, n_two, ff
 ```
 
 - `cross_track` = distance from the furrow centerline (goal: near 0). On a

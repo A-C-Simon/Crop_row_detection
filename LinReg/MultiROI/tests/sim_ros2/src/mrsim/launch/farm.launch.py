@@ -173,7 +173,7 @@ def generate_launch_description():
                                           "halves; <=0 disables)"),
         DeclareLaunchArgument("ff_gain", default_value="0.0",
                               description="curvature-feedforward gain (experiment, "
-                                          "default off; try 0.15-0.25 on rings)"),
+                                          "default off)"),
         DeclareLaunchArgument("max_seconds", default_value="0"),
         DeclareLaunchArgument("log_dir", default_value="/tmp/mrsim_log"),
 

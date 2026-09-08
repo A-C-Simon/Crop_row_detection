@@ -171,7 +171,10 @@ def process_image(bgr, detector, vs, draw=True, t_filter=None, dt=None, last_w=N
             prev = float(ff_mem.get("bend_ema", 0.0))
             ema = 0.75 * prev + 0.25 * float(bend)
         else:
-            ema = 0.85 * float(ff_mem.get("bend_ema", 0.0))  # fade on dropout
+            # slow fade on dropout: on constant curvature the last-known
+            # bend stays valid for seconds, so keep turning through flicker
+            # patches instead of straightening out of the lane
+            ema = 0.985 * float(ff_mem.get("bend_ema", 0.0))
         if not math.isfinite(ema):
             ema = 0.0
         ff_mem["bend_ema"] = ema
