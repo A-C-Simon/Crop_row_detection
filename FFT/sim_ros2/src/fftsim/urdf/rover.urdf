@@ -1,0 +1,248 @@
+<?xml version="1.0"?>
+<!--
+  fftsim rover: compact 4-wheel diff-drive rover used to test the MultiROI
+  crop-row navigation algorithm inside Gazebo Classic (ROS 2 Humble).
+
+  - 4 driven wheels, libgazebo_ros_diff_drive  (/cmd_vel -> wheels, /odom, tf)
+  - front RGB camera, libgazebo_ros_camera (640x480), pitched downward via
+    camera_mount; camera_optical gives the standard upright optical frame.
+  - base_footprint sits on the ground plane at z=0.
+-->
+<robot name="fftsim_rover">
+  <material name="grey"><color rgba="0.62 0.62 0.62 1"/></material>
+  <material name="dark"><color rgba="0.25 0.25 0.28 1"/></material>
+  <material name="green"><color rgba="0.1 0.5 0.15 1"/></material>
+
+  <!-- ============ BASE ============ -->
+  <link name="base_footprint"/>
+  <joint name="footprint_joint" type="fixed">
+    <parent link="base_footprint"/><child link="base_link"/>
+    <origin xyz="0 0 0.16" rpy="0 0 0"/>
+  </joint>
+
+  <link name="base_link">
+    <inertial>
+      <mass value="10.0"/>
+      <inertia ixx="0.30" ixy="0" ixz="0" iyy="0.50" iyz="0" izz="0.30"/>
+      <origin xyz="0 0 0"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0.05" rpy="0 0 0"/>
+      <geometry><box size="0.55 0.44 0.10"/></geometry>
+      <material name="grey"/>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0.05" rpy="0 0 0"/>
+      <geometry><box size="0.55 0.44 0.10"/></geometry>
+    </collision>
+  </link>
+
+  <!-- chassis: vertical camera mast visual -->
+  <link name="mast">
+    <visual>
+      <origin xyz="0 0 0.18" rpy="0 0 0"/>
+      <geometry><box size="0.05 0.05 0.36"/></geometry>
+      <material name="dark"/>
+    </visual>
+  </link>
+  <joint name="mast_joint" type="fixed">
+    <parent link="base_link"/><child link="mast"/>
+    <origin xyz="0.05 0 0.05" rpy="0 0 0"/>
+  </joint>
+
+  <!-- ============ WHEELS (r=0.16, track=0.62, wheelbase=0.5) ============ -->
+  <!-- helper macro-less: four links + four continuous joints -->
+  <link name="wheel_fl">
+    <inertial>
+      <mass value="0.6"/>
+      <inertia ixx="0.004" ixy="0" ixz="0" iyy="0.009" iyz="0" izz="0.004"/>
+      <origin xyz="0 0 0"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.57079632679 0 0"/>
+      <geometry><cylinder radius="0.16" length="0.07"/></geometry>
+      <material name="dark"/>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="1.57079632679 0 0"/>
+      <geometry><cylinder radius="0.16" length="0.07"/></geometry>
+    </collision>
+  </link>
+  <joint name="wheel_fl_joint" type="continuous">
+    <parent link="base_link"/><child link="wheel_fl"/>
+    <origin xyz="0.24  0.31 0" rpy="0 0 0"/>
+    <axis xyz="0 1 0"/>
+  </joint>
+
+  <link name="wheel_fr">
+    <inertial>
+      <mass value="0.6"/>
+      <inertia ixx="0.004" ixy="0" ixz="0" iyy="0.009" iyz="0" izz="0.004"/>
+      <origin xyz="0 0 0"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.57079632679 0 0"/>
+      <geometry><cylinder radius="0.16" length="0.07"/></geometry>
+      <material name="dark"/>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="1.57079632679 0 0"/>
+      <geometry><cylinder radius="0.16" length="0.07"/></geometry>
+    </collision>
+  </link>
+  <joint name="wheel_fr_joint" type="continuous">
+    <parent link="base_link"/><child link="wheel_fr"/>
+    <origin xyz="0.24 -0.31 0" rpy="0 0 0"/>
+    <axis xyz="0 1 0"/>
+  </joint>
+
+  <link name="wheel_bl">
+    <inertial>
+      <mass value="0.6"/>
+      <inertia ixx="0.004" ixy="0" ixz="0" iyy="0.009" iyz="0" izz="0.004"/>
+      <origin xyz="0 0 0"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.57079632679 0 0"/>
+      <geometry><cylinder radius="0.16" length="0.07"/></geometry>
+      <material name="dark"/>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="1.57079632679 0 0"/>
+      <geometry><cylinder radius="0.16" length="0.07"/></geometry>
+    </collision>
+  </link>
+  <joint name="wheel_bl_joint" type="continuous">
+    <parent link="base_link"/><child link="wheel_bl"/>
+    <origin xyz="-0.24  0.31 0" rpy="0 0 0"/>
+    <axis xyz="0 1 0"/>
+  </joint>
+
+  <link name="wheel_br">
+    <inertial>
+      <mass value="0.6"/>
+      <inertia ixx="0.004" ixy="0" ixz="0" iyy="0.009" iyz="0" izz="0.004"/>
+      <origin xyz="0 0 0"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="1.57079632679 0 0"/>
+      <geometry><cylinder radius="0.16" length="0.07"/></geometry>
+      <material name="dark"/>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="1.57079632679 0 0"/>
+      <geometry><cylinder radius="0.16" length="0.07"/></geometry>
+    </collision>
+  </link>
+  <joint name="wheel_br_joint" type="continuous">
+    <parent link="base_link"/><child link="wheel_br"/>
+    <origin xyz="-0.24 -0.31 0" rpy="0 0 0"/>
+    <axis xyz="0 1 0"/>
+  </joint>
+
+  <!-- ============ CAMERA (pitched downward) ============
+       gazebo camera sensors render along the +X axis of the link the
+       sensor block is attached to (image up = +Z of that link).  So
+       camera_link itself carries the sensor and its joint holds the
+       downward pitch about Y; camera_optical is kept only as the TF
+       frame that gazebo_ros_camera publishes in the image header.
+       rpy="0 0.42 0": +X (view axis) pitched ~24 deg below horizontal. -->
+  <link name="camera_mount">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry><box size="0.10 0.08 0.06"/></geometry>
+      <material name="green"/>
+    </visual>
+  </link>
+  <joint name="camera_mount_joint" type="fixed">
+    <parent link="base_link"/><child link="camera_mount"/>
+    <origin xyz="0.22 0 1.15" rpy="0 0 0"/>
+  </joint>
+
+  <link name="camera_link"/>
+  <joint name="camera_link_joint" type="fixed">
+    <parent link="camera_mount"/><child link="camera_link"/>
+    <origin xyz="0.06 0 0.05" rpy="0 0.42 0"/>
+  </joint>
+
+  <link name="camera_optical"/>
+  <joint name="camera_optical_joint" type="fixed">
+    <parent link="camera_link"/><child link="camera_optical"/>
+    <origin xyz="0 0 0" rpy="-1.57079632679 0 -1.57079632679"/>
+  </joint>
+
+  <!-- ============ GAZEBO PLUGINS ============ -->
+  <gazebo>
+    <plugin name="diff_drive" filename="libgazebo_ros_diff_drive.so">
+      <ros>
+        <namespace>/</namespace>
+        <remapping>cmd_vel:=cmd_vel</remapping>
+        <remapping>odom:=odom</remapping>
+      </ros>
+      <update_rate>50</update_rate>
+      <num_wheel_pairs>2</num_wheel_pairs>
+      <left_joint>wheel_fl_joint</left_joint>
+      <left_joint>wheel_bl_joint</left_joint>
+      <right_joint>wheel_fr_joint</right_joint>
+      <right_joint>wheel_br_joint</right_joint>
+      <wheel_separation>0.62</wheel_separation>
+      <wheel_separation>0.62</wheel_separation>
+      <wheel_diameter>0.32</wheel_diameter>
+      <wheel_diameter>0.32</wheel_diameter>
+      <max_wheel_torque>30.0</max_wheel_torque>
+      <max_wheel_acceleration>8.0</max_wheel_acceleration>
+      <command_topic>cmd_vel</command_topic>
+      <odometry_topic>odom</odometry_topic>
+      <odometry_frame>odom</odometry_frame>
+      <robot_base_frame>base_footprint</robot_base_frame>
+      <publish_odom>true</publish_odom>
+      <publish_wheel_tf>false</publish_wheel_tf>
+      <publish_tf>true</publish_tf>
+    </plugin>
+  </gazebo>
+
+  <gazebo reference="camera_link">
+    <sensor name="front_cam" type="camera">
+      <always_on>1</always_on>
+      <update_rate>20</update_rate>
+      <visualize>false</visualize>
+      <camera name="front_cam_intrinsics">
+        <horizontal_fov>1.13446</horizontal_fov>
+        <image><width>640</width><height>480</height><format>R8G8B8</format></image>
+        <clip><near>0.02</near><far>60</far></clip>
+      </camera>
+      <plugin name="camera_ros" filename="libgazebo_ros_camera.so">
+        <ros>
+          <namespace>/</namespace>
+          <remapping>image_raw:=camera/image_raw</remapping>
+          <remapping>camera_info:=camera/camera_info</remapping>
+        </ros>
+        <camera_name>camera</camera_name>
+        <frame_name>camera_optical</frame_name>
+        <image_rate>20.0</image_rate>
+      </plugin>
+    </sensor>
+  </gazebo>
+
+  <!-- small bumpers on all wheels for traction -->
+  <gazebo reference="wheel_fl">
+    <mu1>1.0</mu1><mu2>1.0</mu2><kp>1e6</kp><kd>100</kd>
+    <material>Gazebo/DarkGrey</material>
+  </gazebo>
+  <gazebo reference="wheel_fr">
+    <mu1>1.0</mu1><mu2>1.0</mu2><kp>1e6</kp><kd>100</kd>
+    <material>Gazebo/DarkGrey</material>
+  </gazebo>
+  <gazebo reference="wheel_bl">
+    <mu1>1.0</mu1><mu2>1.0</mu2><kp>1e6</kp><kd>100</kd>
+    <material>Gazebo/DarkGrey</material>
+  </gazebo>
+  <gazebo reference="wheel_br">
+    <mu1>1.0</mu1><mu2>1.0</mu2><kp>1e6</kp><kd>100</kd>
+    <material>Gazebo/DarkGrey</material>
+  </gazebo>
+
+  <gazebo reference="base_link">
+    <material>Gazebo/Grey</material>
+  </gazebo>
+</robot>
