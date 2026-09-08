@@ -117,6 +117,7 @@ def generate_launch_description():
             "MRSIM_CIRCLE_LAPS": LaunchConfiguration("max_laps"),
             "MRSIM_LAMBDA_X": LaunchConfiguration("lambda_x"),
             "MRSIM_LAMBDA_THETA": LaunchConfiguration("lambda_theta"),
+            "MRSIM_HEADING_GATE": LaunchConfiguration("heading_gate"),
             "MRSIM_FF_GAIN": LaunchConfiguration("ff_gain"),
             "MRSIM_LOG_DIR": LaunchConfiguration("log_dir"),
             "MRSIM_MAX_SECONDS": LaunchConfiguration("max_seconds"),
@@ -166,6 +167,10 @@ def generate_launch_description():
         DeclareLaunchArgument("lambda_theta", default_value="1.0",
                               description="servo heading gain (validated default; "
                                           "try 0.5 to reduce inside-cut on rings)"),
+        DeclareLaunchArgument("heading_gate", default_value="0.1",
+                              description="lateral-priority gate width (normalized "
+                                          "lateral error at which heading authority "
+                                          "halves; <=0 disables)"),
         DeclareLaunchArgument("ff_gain", default_value="0.0",
                               description="curvature-feedforward gain (experiment, "
                                           "default off; try 0.15-0.25 on rings)"),

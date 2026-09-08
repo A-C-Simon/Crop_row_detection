@@ -56,6 +56,12 @@ class MRVSParams:
     # Theta is in radians, lambda_theta=1 means 10deg error -> 0.17 rad/s
     lambda_x: float = 2.0   # lateral error gain (was 10, too aggressive)
     lambda_theta: float = 1.0  # heading error gain
+    # Lateral priority: the heading term is discounted when the lateral
+    # error is large, so getting back to the corridor center always wins
+    # over holding a heading. gate = 1/(1 + (ex_norm/heading_gate)^2):
+    # centred -> 1 (legacy behavior, straights unaffected), far off ->
+    # ~0 (steer to center first, fix heading once there). <=0 disables.
+    heading_gate: float = 0.1
     # Velocity limits
     vf_des: float = 0.20     # desired forward speed m/s
     w_max: float = 0.60      # max angular rad/s (allow up to ~35deg/s)
@@ -348,12 +354,20 @@ class MultiROIVS:
         err_theta = wrapToPi(Theta)
         err_x_norm = err_x / p.width  # normalize
         try:
+            gw = float(getattr(p, "heading_gate", 0.1))
+        except Exception:
+            gw = 0.1
+        if gw > 0:
+            gate = 1.0 / (1.0 + (err_x_norm / gw) ** 2)
+        else:
+            gate = 1.0
+        try:
             ff_val = float(ff)
             if not math.isfinite(ff_val):
                 ff_val = 0.0
         except Exception:
             ff_val = 0.0
-        w_raw = -(p.lambda_x * err_x_norm + p.lambda_theta * err_theta) + ff_val
+        w_raw = -(p.lambda_x * err_x_norm + p.lambda_theta * err_theta * gate) + ff_val
 
         # Clamp raw before smoothing (keep limits)
         w_clamped = max(-p.w_max, min(p.w_max, w_raw))
@@ -405,6 +419,7 @@ class MultiROIVS:
             "v": float(v_out),
             "confidence": float(confidence),
             "ff": float(ff_val),
+            "gate": float(gate),
         }
         self.last_F = F.copy()
         self.last_err = np.array([err_x, err_theta])

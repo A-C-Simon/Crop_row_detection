@@ -30,6 +30,7 @@ while [[ $# -gt 0 ]]; do
     --laps) LAPS_ARG=(max_laps:="$2"); shift 2 ;;
     --lambdax) GAIN_ARGS+=(lambda_x:="$2"); shift 2 ;;
     --lambdat) GAIN_ARGS+=(lambda_theta:="$2"); shift 2 ;;
+    --gate) GAIN_ARGS+=(heading_gate:="$2"); shift 2 ;;
     --ff) GAIN_ARGS+=(ff_gain:="$2"); shift 2 ;;
     *) echo "unknown arg $1"; exit 1 ;;
   esac

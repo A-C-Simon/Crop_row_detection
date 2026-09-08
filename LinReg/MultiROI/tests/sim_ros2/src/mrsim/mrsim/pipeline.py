@@ -172,6 +172,10 @@ def build_pipeline(algorithm: str):
                 except ValueError:
                     lt = 1.0
                 try:
+                    hg = float(os.environ.get("MRSIM_HEADING_GATE", "0.1"))
+                except ValueError:
+                    hg = 0.1
+                try:
                     fg = float(os.environ.get("MRSIM_FF_GAIN", "0.0"))
                 except ValueError:
                     fg = 0.0
@@ -179,7 +183,7 @@ def build_pipeline(algorithm: str):
                 self.ff_mem = {}
                 self.vs = MultiROIVS(MRVSParams(
                     width=640, height=480, vertical_coverage=0.75,
-                    lambda_x=lx, lambda_theta=lt))
+                    lambda_x=lx, lambda_theta=lt, heading_gate=hg))
                 self.t_filter = TemporalNavigationFilter(
                     TemporalFilterParams(image_width=640, image_height=480,
                                          n_strips=self.detector.n))
