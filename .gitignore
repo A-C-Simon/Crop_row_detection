@@ -23,3 +23,6 @@ ExG/sim_ros2/exg_ws/
 # Agribot reference clone: only the Gazebo asset subset is versioned
 LinReg/MultiROI/tests/agribot/*
 !LinReg/MultiROI/tests/agribot/agribot_gazebo/
+
+# Coding-tool state: nested side-git repo used for workspace snapshots
+.seekcode/
