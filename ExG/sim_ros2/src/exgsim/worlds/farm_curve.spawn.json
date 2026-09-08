@@ -1,0 +1,13 @@
+{
+  "world": "farm_curve.world",
+  "shape": "straight",
+  "robot_x": -8.0,
+  "robot_y": 0.0,
+  "robot_yaw": 0.0,
+  "lane_y": 0.0,
+  "lane_end_x": 9.0,
+  "circle_cx": 0.0,
+  "circle_cy": 0.0,
+  "circle_r": 0.0,
+  "max_laps_default": 1
+}
