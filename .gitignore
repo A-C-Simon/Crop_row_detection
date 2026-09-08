@@ -12,6 +12,13 @@ result/*.mp4
 LinReg/MultiROI/tests/sim_ros2/build/
 LinReg/MultiROI/tests/sim_ros2/install/
 LinReg/MultiROI/tests/sim_ros2/log/
+FFT/sim_ros2/build/
+FFT/sim_ros2/install/
+FFT/sim_ros2/log/
+ExG/sim_ros2/build/
+ExG/sim_ros2/install/
+ExG/sim_ros2/log/
+ExG/sim_ros2/exg_ws/
 
 # Agribot reference clone: only the Gazebo asset subset is versioned
 LinReg/MultiROI/tests/agribot/*
