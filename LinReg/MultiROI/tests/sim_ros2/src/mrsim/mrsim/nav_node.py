@@ -90,6 +90,32 @@ class MultiROINavNode(Node):
                                                _p("lane_end_x", 9.0)))
         self.max_seconds = float(os.environ.get("MRSIM_MAX_SECONDS",
                                                 _p("max_seconds", 0.0)))
+        # row changing (ExG-style headland turns, straight fields only):
+        # at each lane end, bulb-turn into the adjacent furrow and drive it
+        # back the other way. lane_index tracks the current furrow in the
+        # sidecar furrow list; turn_dir walks it, flipping at the edges.
+        self.row_change = str(os.environ.get("MRSIM_ROW_CHANGE",
+                                             _p("row_change", ""))).lower() \
+            in ("1", "true", "yes")
+        self.max_lanes = int(float(os.environ.get("MRSIM_MAX_LANES",
+                                                  _p("max_lanes", 2))))
+        self.lane_start_x = float(os.environ.get("MRSIM_LANE_START_X",
+                                                 _p("lane_start_x", -8.0)))
+        self.lane_index = int(float(os.environ.get("MRSIM_LANE_INDEX",
+                                                   _p("lane_index", 0))))
+        try:
+            self.furrows = [float(c) for c in
+                            str(os.environ.get("MRSIM_FURROWS", "0.0")).split(",")]
+        except Exception:
+            self.furrows = [0.0]
+        self.turn_dir = 1
+        self.lanes_done = 0
+        self.drive_dir = 1
+        self.phase = "follow"
+        self.phase_t0 = 0.0
+        self.phase_x0 = self.phase_y0 = self.phase_yaw0 = 0.0
+        self.phase_target_y = self.lane_y
+        self.phase_target_yaw = 0.0
         # circle-lane mode (concentric ring field): the diff-drive plugin
         # initializes odometry at the spawn (world) pose, so odom doubles as
         # world xy; cross-track becomes radial error and the run ends after
@@ -105,6 +131,24 @@ class MultiROINavNode(Node):
                 f"circle lane: center=({self.circle_cx:.2f},{self.circle_cy:.2f}) "
                 f"R={self.circle_r:.2f} max_laps={self.max_laps:g} "
                 f"(cross_track=radial error)")
+        if self.row_change:
+            if self.circle_r > 0:
+                self.get_logger().warn(
+                    "row_change is for straight fields; ignoring on the ring")
+                self.row_change = False
+            elif len(self.furrows) < 2:
+                self.get_logger().warn(
+                    "row_change needs 2+ furrows; single lane, driving through")
+                self.row_change = False
+            else:
+                self.lane_index = max(0, min(len(self.furrows) - 1,
+                                             self.lane_index))
+                self.lane_y = float(self.furrows[self.lane_index])
+                self.phase_target_y = self.lane_y
+                self.get_logger().info(
+                    f"row change on: {len(self.furrows)} furrows, start lane "
+                    f"{self.lane_index} (y={self.lane_y:+.2f}), "
+                    f"max_lanes={self.max_lanes:g}")
         log_dir = os.environ.get("MRSIM_LOG_DIR", _p("log_dir", ""))
         self.save_every = int(os.environ.get("MRSIM_SAVE_EVERY",
                                              _p("save_every", 20)))
@@ -131,6 +175,8 @@ class MultiROINavNode(Node):
         self.pipeline = build_pipeline(self.algorithm)
         self.get_logger().info(f"algorithm: {self.pipeline.name} "
                                f"(vf_des={self.v_max})")
+        if getattr(self.pipeline, "line_fit", False):
+            self.get_logger().info("nav fit: straight line (no spline)")
         # mr_vs vf_des == v_max: rebuild vs with the rover's speed cap
         if self.pipeline.name == "multiroi" and hasattr(self.pipeline, "vs"):
             self.pipeline.vs.params.vf_des = self.v_max
@@ -145,6 +191,7 @@ class MultiROINavNode(Node):
             Odometry, odom_topic, self._on_odom, 10)
 
         self.odom_x = self.odom_y = 0.0
+        self.odom_yaw = 0.0
         self.last_img_t = None
         self.frame_idx = 0
         self.pub_count = 0
@@ -154,9 +201,28 @@ class MultiROINavNode(Node):
         self._cmd_seq = 0
 
     # --------------------------------------------------------------
+    @staticmethod
+    def _quat_to_yaw(q):
+        siny = 2.0 * (q.w * q.z + q.x * q.y)
+        cosy = 1.0 - 2.0 * (q.y * q.y + q.z * q.z)
+        return math.atan2(siny, cosy)
+
+    @staticmethod
+    def _ang_diff(a, b):
+        d = a - b
+        while d > math.pi:
+            d -= 2.0 * math.pi
+        while d < -math.pi:
+            d += 2.0 * math.pi
+        return d
+
     def _on_odom(self, msg: Odometry):
         self.odom_x = msg.pose.pose.position.x
         self.odom_y = msg.pose.pose.position.y
+        try:
+            self.odom_yaw = self._quat_to_yaw(msg.pose.pose.orientation)
+        except Exception:
+            pass
         if self.circle_r > 0:
             ang = math.atan2(self.odom_y - self.circle_cy,
                              self.odom_x - self.circle_cx)
@@ -174,6 +240,132 @@ class MultiROINavNode(Node):
             return math.hypot(self.odom_x - self.circle_cx,
                               self.odom_y - self.circle_cy) - self.circle_r
         return self.odom_y - self.lane_y
+
+    # --------------------------------------------------------------
+    # Row changing: ExG-style headland turns between adjacent furrows.
+    # At each lane end the rover pushes past the rows, bulb-turns into the
+    # next furrow and drives it back the other way. Detection keeps running
+    # for the overlay the whole time; the scripted phases only borrow the
+    # wheels. Straight fields only.
+    TURN_PUSH_M = 1.3
+    TURN_RATE = 0.5
+    TURN_DRIVE_V = 0.18
+    TURN_TOL_YAW = 0.12
+    TURN_TOL_Y = 0.06
+    TURN_TIMEOUT = 15.0
+
+    def _reset_perception(self):
+        try:
+            self.pipeline.reset()
+        except Exception:
+            pass
+        try:
+            if hasattr(self.pipeline, "t_filter"):
+                self.pipeline.t_filter.reset()
+        except Exception:
+            pass
+        self.last_w = 0.0
+
+    def _lane_end_reached(self):
+        if self.drive_dir > 0:
+            return self.odom_x >= self.lane_end_x
+        return self.odom_x <= self.lane_start_x
+
+    def _enter_turn(self, t_now):
+        nxt = self.lane_index + self.turn_dir
+        if not (0 <= nxt < len(self.furrows)):
+            self.turn_dir *= -1
+            nxt = self.lane_index + self.turn_dir
+        self.phase_target_y = float(self.furrows[nxt])
+        self.phase = "push"
+        self.phase_t0 = t_now
+        self.phase_x0, self.phase_y0 = self.odom_x, self.odom_y
+        self.phase_yaw0 = self.odom_yaw
+        self.phase_slide_yaw = 0.0
+        self.get_logger().info(
+            f"row change: lane {self.lane_index} -> {nxt} "
+            f"(y {self.lane_y:+.2f} -> {self.phase_target_y:+.2f})")
+
+    def _spin_toward(self, target_yaw):
+        d = self._ang_diff(target_yaw, self.odom_yaw)
+        if abs(d) < self.TURN_TOL_YAW:
+            return 0.0, True
+        return math.copysign(self.TURN_RATE, d), False
+
+    def _turn_twist(self, t_now):
+        """Scripted headland maneuver. Returns (twist, done, Tenth-leg info).
+        done True means FOLLOW resumed (lane fields already updated)."""
+        tw = Twist()
+        if t_now - self.phase_t0 > self.TURN_TIMEOUT:
+            return tw, "timeout", f"turn timeout in {self.phase}"
+        if self.phase == "push":
+            tw.linear.x = self.TURN_DRIVE_V
+            tw.angular.z = float(np.clip(
+                -1.5 * self._ang_diff(self.odom_yaw, self.phase_yaw0),
+                -0.4, 0.4))
+            if (self.odom_x - self.phase_x0) * self.drive_dir >= self.TURN_PUSH_M:
+                side = 1.0 if self.phase_target_y >= self.odom_y else -1.0
+                self.phase_target_yaw = side * math.pi / 2.0
+                self.phase, self.phase_t0 = "spin1", t_now
+        elif self.phase == "spin1":
+            w, done = self._spin_toward(self.phase_target_yaw)
+            tw.angular.z = w
+            if done:
+                self.phase_slide_yaw = self.phase_target_yaw
+                self.phase, self.phase_t0 = "slide", t_now
+        elif self.phase == "slide":
+            err = self.phase_target_y - self.odom_y
+            if abs(err) < self.TURN_TOL_Y:
+                self.phase_target_yaw = 0.0 if self.drive_dir < 0 else math.pi
+                self.phase, self.phase_t0 = "spin2", t_now
+            else:
+                tw.linear.x = self.TURN_DRIVE_V
+                tw.angular.z = float(np.clip(
+                    -1.5 * self._ang_diff(self.odom_yaw, self.phase_slide_yaw),
+                    -0.4, 0.4))
+        elif self.phase == "spin2":
+            w, done = self._spin_toward(self.phase_target_yaw)
+            tw.angular.z = w
+            if done:
+                self.lane_index += self.turn_dir
+                self.lane_y = float(self.furrows[self.lane_index])
+                self.drive_dir *= -1
+                self._reset_perception()
+                self.phase = "follow"
+                self.get_logger().info(
+                    f"row change done: lane {self.lane_index} "
+                    f"(y={self.lane_y:+.2f}) dir={self.drive_dir:+d}")
+                return tw, "follow", ""
+        else:
+            return tw, "timeout", f"bad turn phase {self.phase}"
+        return tw, "", ""
+
+    def _step_row_change(self, out, t_now):
+        """One control tick in row-change mode. Returns (twist, stop_reason).
+        stop_reason "" means keep driving."""
+        if self.phase == "follow":
+            if self._lane_end_reached():
+                self.lanes_done += 1
+                if self.max_lanes > 0 and self.lanes_done >= self.max_lanes:
+                    return Twist(), (f"covered {self.lanes_done} lane(s), "
+                                     f"last y={self.lane_y:+.2f}")
+                nxt = self.lane_index + self.turn_dir
+                if not (0 <= nxt < len(self.furrows)):
+                    self.turn_dir *= -1
+                    nxt = self.lane_index + self.turn_dir
+                    if not (0 <= nxt < len(self.furrows)):
+                        return Twist(), "no adjacent furrow to change into"
+                self._enter_turn(t_now)
+                tw = Twist()
+                return tw, ""
+            tw = Twist()
+            tw.linear.x = float(np.clip(out["v"], 0.0, self.v_max))
+            tw.angular.z = float(out["w"])
+            return tw, ""
+        tw, status, reason = self._turn_twist(t_now)
+        if status == "timeout":
+            return Twist(), reason
+        return tw, ""
 
     # --------------------------------------------------------------
     def _stop_robot(self, reason: str):
@@ -225,6 +417,9 @@ class MultiROINavNode(Node):
         twist = Twist()
         twist.linear.x = float(np.clip(out["v"], 0.0, self.v_max))
         twist.angular.z = float(out["w"])
+        stop_reason = ""
+        if self.row_change and self.circle_r <= 0.0 and not self.idle:
+            twist, stop_reason = self._step_row_change(out, t_now)
         if not self.idle:
             self.cmd_pub.publish(twist)
             self._last_cmd = twist
@@ -260,9 +455,12 @@ class MultiROINavNode(Node):
         if self.frame_idx % 60 == 0:
             lap_txt = (f" lap={abs(self._lap_angle) / (2.0 * math.pi):.2f}"
                        if self.circle_r > 0 else "")
+            leg_txt = (f" leg={self.lanes_done + 1} lane={self.lane_index} "
+                       f"ph={self.phase}"
+                       if self.row_change and self.circle_r <= 0.0 else "")
             self.get_logger().info(
                 f"[{self.frame_idx:>4}] t={t_now:6.2f} odom=({self.odom_x:+.2f},"
-                f"{self.odom_y:+.2f}) cross={cross:+.3f}{lap_txt} "
+                f"{self.odom_y:+.2f}) cross={cross:+.3f}{lap_txt}{leg_txt} "
                 f"w={twist.angular.z:+.2f} conf={info.get('confidence', 0):.2f} "
                 f"status={info.get('status', '')}")
 
@@ -273,6 +471,8 @@ class MultiROINavNode(Node):
         # termination conditions
         if self.max_seconds > 0 and (t_now - self.t0) >= self.max_seconds:
             self._stop_robot(f"reached max_seconds={self.max_seconds}")
+        elif stop_reason:
+            self._stop_robot(stop_reason)
         elif self.circle_r > 0:
             if self.max_laps > 0 and abs(self._lap_angle) >= self.max_laps * 2.0 * math.pi:
                 self._stop_robot(
@@ -280,6 +480,10 @@ class MultiROINavNode(Node):
                     f"(radial err {cross:+.2f} m)")
             elif self.frame_idx > 60000:
                 self._stop_robot("frame cap")
+        elif self.row_change:
+            if self.frame_idx > 60000:
+                self._stop_robot("frame cap")
+            # lane ends handled by the row-change machine (legs/lanes bound it)
         elif self.odom_x >= self.lane_end_x:
             self._stop_robot(f"reached end of lane (x={self.odom_x:.2f})")
         elif self.frame_idx > 20000:
