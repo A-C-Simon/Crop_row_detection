@@ -3,6 +3,7 @@ detector (no control). Exits when the probe captured the requested frames.
 
     export FFT_DIR=/abs/path/to/FFT
     ros2 launch fftsim farm_probe.launch.py out_dir:=/tmp/p frames:=5
+    ros2 launch fftsim farm_probe.launch.py field:=zigzag5 out_dir:=/tmp/p
 
 Note: the probe is launched as `python3 nav_node.py` with env vars instead
 of a console script, because colcon (modern setuptools) installs console
@@ -18,13 +19,22 @@ from launch import LaunchDescription
 from launch.actions import (DeclareLaunchArgument, IncludeLaunchDescription,
                             Shutdown, AppendEnvironmentVariable,
                             SetEnvironmentVariable,
-                            RegisterEventHandler, ExecuteProcess)
+                            RegisterEventHandler, ExecuteProcess,
+                            OpaqueFunction)
 from launch.event_handlers import OnProcessExit
 from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
 from launch_ros.actions import Node
 
 PACKAGE = "fftsim"
+
+FIELDS = {
+    "circle": "farm_maize",
+    "curve": "farm_curve",
+    "straight": "farm_straight",
+    "curve5": "farm_curve5",
+    "straight5": "farm_straight5",
+    "zigzag5": "farm_zigzag5",
+}
 
 
 def _resolve_src_dir(env_name, marker, pkg_parents_up):
@@ -56,40 +66,56 @@ _AGRIBOT_MODELS = str(Path(_MULTIROI) / "tests" / "agribot" / "agribot_gazebo" /
 _NAV_PY = Path(_FFT) / "sim_ros2" / "src" / "fftsim" / "fftsim" / "nav_node.py"
 
 
-def generate_launch_description():
-    pkg_share = get_package_share_directory(PACKAGE)
-    gazebo_share = get_package_share_directory("gazebo_ros")
-    # spawn defaults follow the committed world (see farm.launch sidecar)
-    sidecar = {"robot_x": "-8.0", "robot_y": "0.0", "robot_yaw": "0.0"}
+def _field_sidecar(pkg_share, field, world):
+    """World file + spawn defaults for a field preset (same precedence as
+    farm.launch.py)."""
+    worlds = Path(pkg_share) / "worlds"
+    stem = FIELDS.get(field, "farm_maize")
+    world_file = world or str(worlds / (stem + ".world"))
+    chain = []
+    if world:
+        sib = str(Path(world).with_suffix("")) + ".spawn.json"
+        try:
+            p = Path(sib)
+            if p.is_file():
+                chain.append(json.loads(p.read_text()))
+        except Exception:
+            pass
     try:
-        sc = Path(pkg_share) / "worlds" / "farm_maize.spawn.json"
-        if sc.is_file():
-            raw = json.loads(sc.read_text())
-            for k in sidecar:
-                if raw.get(k) is not None:
-                    sidecar[k] = str(raw[k])
+        p = worlds / (stem + ".spawn.json")
+        if p.is_file():
+            chain.append(json.loads(p.read_text()))
     except Exception:
         pass
+    defaults = {"robot_x": "-8.0", "robot_y": "0.0", "robot_yaw": "0.0"}
+    for sc in reversed(chain):
+        for k in defaults:
+            if sc.get(k) is not None:
+                defaults[k] = str(sc[k])
+    return world_file, defaults
+
+
+def _setup(context):
+    cfg = context.launch_configurations
+    pkg_share = get_package_share_directory(PACKAGE)
+    gazebo_share = get_package_share_directory("gazebo_ros")
+    world_file, sidecar = _field_sidecar(
+        pkg_share, cfg.get("field", "circle"), cfg.get("world", ""))
+
+    def val(name, fallback):
+        v = cfg.get(name, "")
+        return v if v != "" else sidecar.get(name, fallback)
 
     probe = ExecuteProcess(
         cmd=[sys.executable, str(_NAV_PY)],
         output="screen",
         additional_env={
             "MRSIM_MODE": "probe",
-            "MRSIM_OUT_DIR": LaunchConfiguration("out_dir"),
-            "MRSIM_FRAMES": LaunchConfiguration("frames"),
+            "MRSIM_OUT_DIR": cfg.get("out_dir", "/tmp"),
+            "MRSIM_FRAMES": cfg.get("frames", "5"),
         })
 
-    return LaunchDescription([
-        DeclareLaunchArgument("world", default_value=PathJoinSubstitution(
-            [pkg_share, "worlds", "farm_maize.world"])),
-        DeclareLaunchArgument("gui", default_value="false"),
-        DeclareLaunchArgument("robot_x", default_value=sidecar["robot_x"]),
-        DeclareLaunchArgument("robot_y", default_value=sidecar["robot_y"]),
-        DeclareLaunchArgument("robot_yaw", default_value=sidecar["robot_yaw"]),
-        DeclareLaunchArgument("out_dir", default_value="/tmp"),
-        DeclareLaunchArgument("frames", default_value="5"),
-
+    return [
         AppendEnvironmentVariable("GAZEBO_MODEL_PATH",
                                   f"{_AGRIBOT_MODELS}:/usr/share/gazebo-11/models"),
         SetEnvironmentVariable("MULTIROI_DIR", _MULTIROI),
@@ -99,8 +125,8 @@ def generate_launch_description():
             PythonLaunchDescriptionSource(
                 os.path.join(gazebo_share, "launch", "gazebo.launch.py")),
             launch_arguments={
-                "world": LaunchConfiguration("world"),
-                "gui": LaunchConfiguration("gui"),
+                "world": world_file,
+                "gui": cfg.get("gui", "false"),
                 "verbose": "false",
             }.items(),
         ),
@@ -111,11 +137,32 @@ def generate_launch_description():
         Node(package="gazebo_ros", executable="spawn_entity.py",
              output="screen",
              arguments=["-topic", "robot_description", "-entity", "rover",
-                        "-x", LaunchConfiguration("robot_x"),
-                        "-y", LaunchConfiguration("robot_y"),
-                        "-z", "0.0", "-Y", LaunchConfiguration("robot_yaw")]),
+                        "-x", val("robot_x", "-8.0"),
+                        "-y", val("robot_y", "0.0"),
+                        "-z", "0.0", "-Y", val("robot_yaw", "0.0")]),
         probe,
         # when the probe exits -> tear the whole sim down
         RegisterEventHandler(OnProcessExit(target_action=probe,
                                            on_exit=[Shutdown(reason="probe done")])),
+    ]
+
+
+def generate_launch_description():
+    return LaunchDescription([
+        DeclareLaunchArgument(
+            "field", default_value="circle", choices=list(FIELDS) + ["custom"],
+            description="field preset (world + spawn defaults travel together)"),
+        DeclareLaunchArgument("world", default_value="",
+                              description="world file override (empty = the "
+                                          "field preset world)"),
+        DeclareLaunchArgument("gui", default_value="false"),
+        DeclareLaunchArgument("robot_x", default_value="",
+                              description="spawn x (empty = field default)"),
+        DeclareLaunchArgument("robot_y", default_value="",
+                              description="spawn y (empty = field default)"),
+        DeclareLaunchArgument("robot_yaw", default_value="",
+                              description="spawn yaw (empty = field default)"),
+        DeclareLaunchArgument("out_dir", default_value="/tmp"),
+        DeclareLaunchArgument("frames", default_value="5"),
+        OpaqueFunction(function=_setup),
     ])
