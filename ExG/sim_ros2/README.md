@@ -17,13 +17,17 @@ once into `exg_ws/` by the run scripts.
 ```bash
 cd ExG/sim_ros2
 ./run_sim.sh --probe --out /tmp/exg_probe
-./run_sim.sh --out /tmp/exg_log --world src/exgsim/worlds/farm_curve.world \
-    --x -8 --y 0 --yaw 0 --seconds 90
+./run_sim.sh --straight 5 --out /tmp/exg_s5 --seconds 90
 ./run_sim_gui.sh --auto                     # GUI + autonomous driving
 ```
 
-Spawn/termination defaults follow `src/exgsim/worlds/farm_maize.spawn.json`
-(ring, R = 12 m). `--world` selects another world file.
+Fields work like the MultiROI rig: `--circle` (default), `--curve[N]`,
+`--straight[N]`, `--zigzag[N]` (bare flag: N=2, N=5 for zigzag; other
+counts generate on demand into a shared fields cache). Explicit
+`--x/--y/--yaw/--laps` always win; `--world` selects a custom file.
+
+Spawn/termination defaults follow the field sidecars (e.g.
+`src/exgsim/worlds/farm_maize.spawn.json`, ring R = 12 m).
 
 ## How it fits together
 
