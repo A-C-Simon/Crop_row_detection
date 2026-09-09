@@ -62,9 +62,10 @@ def main():
                          "bend amplitude ramps 0->full (smoothstep), so the "
                          "rover spawns looking down a straight furrow and the "
                          "bends develop downfield")
-    ap.add_argument("--shape", choices=("straight", "circle"), default="straight",
-                    help="field shape: straight rows along +x, or concentric "
-                         "circular rows around (--circle-cx, --circle-cy)")
+    ap.add_argument("--shape", choices=("straight", "circle", "zigzag"), default="straight",
+                    help="field shape: straight rows along +x (optional S-bend), "
+                         "concentric circular rows around (--circle-cx, --circle-cy), "
+                         "or a gentle two-tone zigzag imitating real planting wobble")
     ap.add_argument("--circle-r", type=float, default=8.0,
                     help="circle shape: furrow-center radius (m)")
     ap.add_argument("--circle-cx", type=float, default=0.0,
@@ -77,6 +78,17 @@ def main():
                     help="added to the circle tangent spawn yaw (rad, + = into "
                          "a CCW turn): look-into-the-corner lead so the initial "
                          "view centers the bending corridor")
+    ap.add_argument("--zigzag-amp1", type=float, default=0.3,
+                    help="zigzag shape: primary lateral amplitude (m)")
+    ap.add_argument("--zigzag-period1", type=float, default=18.0,
+                    help="zigzag shape: primary wavelength along x (m)")
+    ap.add_argument("--zigzag-amp2", type=float, default=0.1,
+                    help="zigzag shape: secondary lateral amplitude (m)")
+    ap.add_argument("--zigzag-period2", type=float, default=8.0,
+                    help="zigzag shape: secondary wavelength along x (m)")
+    ap.add_argument("--lane-y", type=float, default=None,
+                    help="furrow center to drive (m). Default: 0.0 for 2 rows, "
+                         "spacing/2 (first gap right of middle) otherwise")
     ap.add_argument("--out", type=str, default=None)
     args = ap.parse_args()
 
@@ -87,6 +99,8 @@ def main():
     # symmetric row offsets around x axis: central gap of width `spacing`
     n_rows = args.rows
     offsets = [(i - (n_rows - 1) / 2.0) * args.spacing for i in range(n_rows)]
+    lane_y = args.lane_y if args.lane_y is not None else \
+        (0.0 if n_rows == 2 else args.spacing / 2.0)
 
     models_used = {"big_plant": 0, "small_plant": 0}
     plants = []
@@ -94,9 +108,10 @@ def main():
     idx = 0
     two_pi = 2.0 * math.pi
     row_model = "big_plant"   # small_plant (5 cm) is too short for a 0.5 m camera
-    spawn = {"robot_x": args.start_x + 1.0, "robot_y": 0.0, "robot_yaw": 0.0}
+    spawn = {"robot_x": args.start_x + 1.0, "robot_y": lane_y, "robot_yaw": 0.0}
     lane = {"shape": args.shape, "circle_cx": 0.0, "circle_cy": 0.0,
-            "circle_r": 0.0, "max_laps_default": 1}
+            "circle_r": 0.0, "max_laps_default": 1,
+            "vertical_coverage_default": 0.75}
     gui_pose = None
     if args.shape == "circle":
         if n_rows != 2:
@@ -126,7 +141,9 @@ def main():
         # so a full ring is beyond it; 180 deg of continuous bending is the
         # honest demo (pass --laps 0 / max_laps:=0 to loop until lost).
         lane = {"shape": "circle", "circle_cx": cx, "circle_cy": cy,
-                "circle_r": R, "max_laps_default": 0.5}
+                "circle_r": R, "max_laps_default": 0.5,
+                # shorter lookahead cuts inside less on constant curvature
+                "vertical_coverage_default": 0.6}
         # GUI camera behind/above/side of spawn, looking down the tangent
         sdx, sdy = (-2.8, 3.4) if args.direction == "ccw" else (-2.8, -3.4)
         # rotate the straight-world offset pattern by the spawn yaw
@@ -139,21 +156,28 @@ def main():
         for oy in offsets:
             for k in range(n):
                 x = args.start_x + k * args.plant_spacing + random.gauss(0, args.noise * 0.4)
-                # S-bend: both rows shift laterally together so the furrow center
-                # curves as y_c(x) = amp*sin(2*pi*(x-start_x)/period + phase).
-                # Max heading ~= atan(amp*2*pi/period): amp=1, period=18 -> ~19 deg,
-                # well within the servo's capability, but clearly visible.
-                # The amplitude ramps 0->full over --curve-entry meters so the
-                # spawn area stays straight (default spawn x/y/yaw keep working)
-                # and bends develop downfield where the camera can see them coming.
+                # Furrow-center lateral offset at x (S-bend and zigzag shift
+                # all rows together). The amplitude ramps 0->full over
+                # --curve-entry meters so the spawn area stays straight
+                # (default spawn x/y/yaw keep working) and bends develop
+                # downfield where the camera can see them coming.
+                # S-bend: y_c = amp*sin(2*pi*(x-start_x)/period + phase);
+                #   max heading ~= atan(amp*2*pi/period): amp=1, period=18
+                #   -> ~19 deg, clearly visible but drivable.
+                # Zigzag: two incommensurate sines (gentle real-world wobble,
+                #   max slope only a few degrees, no sustained curvature).
                 y_c = 0.0
-                if args.curve_amp and args.curve_period > 0:
-                    dx_e = x - args.start_x
-                    if args.curve_entry > 0 and dx_e < args.curve_entry:
-                        s = max(0.0, min(1.0, dx_e / args.curve_entry))
-                        env = s * s * (3.0 - 2.0 * s)
-                    else:
-                        env = 1.0
+                dx_e = x - args.start_x
+                if args.curve_entry > 0 and dx_e < args.curve_entry:
+                    s = max(0.0, min(1.0, dx_e / args.curve_entry))
+                    env = s * s * (3.0 - 2.0 * s)
+                else:
+                    env = 1.0
+                if args.shape == "zigzag":
+                    y_c = env * (
+                        args.zigzag_amp1 * math.sin(two_pi * dx_e / args.zigzag_period1)
+                        + args.zigzag_amp2 * math.sin(two_pi * dx_e / args.zigzag_period2 + 1.3))
+                elif args.curve_amp and args.curve_period > 0:
                     y_c = env * args.curve_amp * math.sin(
                         two_pi * (x - args.start_x) / args.curve_period + args.curve_phase)
                 y = oy + y_c + random.gauss(0, args.noise)
@@ -225,6 +249,7 @@ def main():
     body.append("    </model>\n")
     body.append("    <model name='start_gate'>\n")
     body.append("      <static>1</static>\n")
+    body.append(f"      <pose>{fmt(spawn['robot_x'])} {fmt(spawn['robot_y'])} 0 0 0 0</pose>\n")
     body.append("      <link name='link'>\n")
     body.append("        <visual name='v'>\n")
     body.append("          <pose>0 0 0.05 0 0 0</pose>\n")
@@ -259,14 +284,22 @@ def main():
 
     out.write_text("".join(body))
     sidecar = out.parent / (out.stem + ".spawn.json")
+    # furrow centers at the field start (entry ramp ~0 there): gap i sits
+    # halfway between rows i and i+1, used for --spawn N lane selection.
+    furrows = sorted([(offsets[i] + offsets[i + 1]) / 2.0
+                      for i in range(len(offsets) - 1)]) \
+        if args.shape != "circle" else [0.0]
     sidecar.write_text(json.dumps(
         {"world": out.name, "shape": lane["shape"],
          "robot_x": spawn["robot_x"], "robot_y": spawn["robot_y"],
          "robot_yaw": spawn["robot_yaw"],
-         "lane_y": 0.0, "lane_end_x": 9.0,
-         "circle_cx": lane["circle_cx"], "circle_cy": lane["circle_cy"],
-         "circle_r": lane["circle_r"],
-         "max_laps_default": lane["max_laps_default"]}, indent=2) + "\n")
+         "lane_y": float(spawn["robot_y"]), "lane_end_x": 9.0,
+         "n_rows": n_rows, "row_spacing": args.spacing,
+         "furrows": [round(float(c), 3) for c in furrows],
+          "circle_cx": lane["circle_cx"], "circle_cy": lane["circle_cy"],
+          "circle_r": lane["circle_r"],
+          "max_laps_default": lane["max_laps_default"],
+          "vertical_coverage_default": lane["vertical_coverage_default"]}, indent=2) + "\n")
     print(f"wrote {out}")
     print(f"wrote {sidecar}")
     print(f"rows: {n_rows} at offsets {[round(o,2) for o in offsets]} m, {len(plants)} plants "
@@ -276,6 +309,10 @@ def main():
         print(f"circle: R={args.circle_r} m around ({args.circle_cx}, {args.circle_cy}), "
               f"{args.direction}; spawn=({spawn['robot_x']:.2f}, {spawn['robot_y']:.2f}, "
               f"yaw={spawn['robot_yaw']:.2f})")
+    elif args.shape == "zigzag":
+        print(f"zigzag: {args.zigzag_amp1} m / {args.zigzag_period1} m + "
+              f"{args.zigzag_amp2} m / {args.zigzag_period2} m; "
+              f"lane_y={lane_y:.2f}")
     elif args.curve_amp:
         print(f"curve: amp {args.curve_amp} m, period {args.curve_period} m, "
               f"phase {args.curve_phase} rad (S-bend furrow, max slope "
