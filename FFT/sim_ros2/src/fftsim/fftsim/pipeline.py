@@ -85,7 +85,9 @@ CAM_PITCH_DEG = float(os.environ.get("FFT_PITCH_DEG", "66.0"))
 CAM_HEIGHT_M = float(os.environ.get("FFT_HEIGHT_M", "1.4"))
 CAM_FOV_Y_DEG = float(os.environ.get("FFT_FOV_Y_DEG", "51.0"))
 CAM_YAW_DEG = float(os.environ.get("FFT_YAW_DEG", "0.0"))
-CAM_RANGE_M = float(os.environ.get("FFT_RANGE_M", "10.0"))
+# Shorter range sees straighter rows (S-bends smear the spectrum at 10 m)
+# and runs faster; 5 m still previews far ahead of a 0.2 m/s rover.
+CAM_RANGE_M = float(os.environ.get("FFT_RANGE_M", "5.0"))
 # Lateral scale for the shared servo (px per meter): picked so a 1.1 m
 # corridor spans ~330 px, the same operating point as the MultiROI overlay.
 PX_PER_M = 330.0 / 1.1
