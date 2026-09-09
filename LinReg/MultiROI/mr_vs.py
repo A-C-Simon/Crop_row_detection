@@ -62,6 +62,15 @@ class MRVSParams:
     # centred -> 1 (legacy behavior, straights unaffected), far off ->
     # ~0 (steer to center first, fix heading once there). <=0 disables.
     heading_gate: float = 0.1
+    # Lateral integral: winds up while a steady lateral error persists so
+    # constant-curvature paths settle centered instead of holding the
+    # P-equilibrium offset (inside-cut). Anti-windup: integrates only when
+    # confidence is high, clamped, and decays whenever gated off, so
+    # alternating bends unwind it and straights (zero residual) see nothing.
+    ki: float = 0.3              # integral gain on normalized lateral error
+    i_max: float = 1.0           # integrator clamp (in pre-gain units)
+    i_min_conf: float = 0.4      # integrate only above this confidence
+    i_decay: float = 0.97        # per-call decay while gated off
     # Velocity limits
     vf_des: float = 0.20     # desired forward speed m/s
     w_max: float = 0.60      # max angular rad/s (allow up to ~35deg/s)
@@ -190,11 +199,14 @@ class MultiROIVS:
         self._prev_w: float = 0.0
         self._prev_v: float = float(self.params.vf_des)
         self._prev_time: Optional[float] = None
+        # Lateral integrator state (anti-windup handled in compute_control)
+        self._i_term: float = 0.0
 
     def reset_smoother(self):
         self._prev_w = 0.0
         self._prev_v = float(self.params.vf_des)
         self._prev_time = None
+        self._i_term = 0.0
 
     def nav_line_to_feature(self, nav_line, nav_curve, crop_offset, image_shape, vertical_coverage=None) -> Tuple[Optional[np.ndarray], Optional[Tuple[float, float]]]:
         """
@@ -367,7 +379,36 @@ class MultiROIVS:
                 ff_val = 0.0
         except Exception:
             ff_val = 0.0
-        w_raw = -(p.lambda_x * err_x_norm + p.lambda_theta * err_theta * gate) + ff_val
+        # Lateral integral (anti-windup): integrate only on confident
+        # frames, clamp, and decay whenever gated off so stale bias cannot
+        # survive dropouts or alternating bends.
+        try:
+            ki = float(getattr(p, "ki", 0.0))
+        except Exception:
+            ki = 0.0
+        i_term = 0.0
+        if ki != 0.0:
+            dt_i = dt
+            if dt_i is None:
+                dt_i = 0.05
+            try:
+                dt_i = max(1e-3, min(0.5, float(dt_i)))
+            except Exception:
+                dt_i = 0.05
+            try:
+                i_max = float(getattr(p, "i_max", 1.0))
+                i_min_conf = float(getattr(p, "i_min_conf", 0.4))
+                i_decay = float(getattr(p, "i_decay", 0.97))
+            except Exception:
+                i_max, i_min_conf, i_decay = 1.0, 0.4, 0.97
+            if confidence >= i_min_conf and math.isfinite(err_x_norm):
+                self._i_term = float(np.clip(
+                    self._i_term + err_x_norm * dt_i, -i_max, i_max))
+            else:
+                self._i_term *= i_decay
+            i_term = ki * self._i_term
+        w_raw = -(p.lambda_x * err_x_norm + p.lambda_theta * err_theta * gate) \
+            - i_term + ff_val
 
         # Clamp raw before smoothing (keep limits)
         w_clamped = max(-p.w_max, min(p.w_max, w_raw))
@@ -420,6 +461,7 @@ class MultiROIVS:
             "confidence": float(confidence),
             "ff": float(ff_val),
             "gate": float(gate),
+            "i_term": float(i_term),
         }
         self.last_F = F.copy()
         self.last_err = np.array([err_x, err_theta])
