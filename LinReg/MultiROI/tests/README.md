@@ -91,23 +91,47 @@ export MULTIROI_DIR=$(pwd)/../..      # .../LinReg/MultiROI (or export beforehan
 #    detector, print n_two / median row width / heading; PNGs in --out.
 ./run_sim.sh --probe --out /tmp/mrsim_probe
 
-# 2) closed-loop run: rover laps the ring (stops after 1 lap by default;
-#    max_laps:=0 loops forever). Results in /tmp/mrsim_log.
+# 2) closed-loop run: rover laps the ring (stops after the sidecar lap
+#    default, 0.5; max_laps:=0 loops forever). Results in /tmp/mrsim_log.
 ./run_sim.sh --out /tmp/mrsim_log
 
+# fields (world + spawn/lane defaults travel together):
+#   --circle (default)  --curve[N]  --straight[N]  --zigzag[N]
+# examples: --straight 5  --straight 2  --curved 8 (bare flag: N=2, N=5
+# for zigzag). Snapshots cover N=2 and N=5; other counts generate on
+# demand into ~/.cache/crop-row-fields (2..10 rows, shared by all rigs).
 # options: --seconds 90  (stop after N s)   --laps 2 (ring laps)
-#          --x/--y/--yaw (spawn override; defaults follow the world sidecar)
+#          --x/--y/--yaw (spawn override; defaults follow the field sidecar)
+#          --line (straight nav fit)  --coverage 0.6  --init-window 0.4
 ```
 
-Or launch manually:
+Or launch manually (field presets work the same way):
 
 ```bash
 source /opt/ros/humble/setup.bash
 export MULTIROI_DIR=/abs/path/to/LinReg/MultiROI
 cd tests/sim_ros2 && colcon build --symlink-install --base-paths src && source install/setup.bash
 ros2 launch mrsim farm.launch.py log_dir:=/tmp/mrsim_log    # closed loop
+ros2 launch mrsim farm.launch.py field:=zigzag5 log_dir:=/tmp/z
 ros2 launch mrsim farm_probe.launch.py out_dir:=/tmp/p frames:=5
+ros2 launch mrsim farm_probe.launch.py field:=curve5 out_dir:=/tmp/p
 ```
+
+Field notes: the 2-row fields track (ring half-lap and S-bend validated).
+Straight 5-row tracks its lane once spawned inside a real furrow (mean
+0.01 m). Two related gotchas, both fixed: the generator used to shift rows
+by the lane offset, parking the spawn on top of a row; and identical
+neighboring furrows can still pull the fit, so `--spawn N` (1-based from
+the left) picks the driven furrow explicitly.
+
+Row changing: `--spawn 2 --row-change --max-lanes 2` drives lane 2 out,
+bulb-turns at the lane end (push, spin, slide, spin on odometry, detection
+keeps drawing throughout) and drives the next lane back, then stops.
+Measured on straight5: leg means 0.027 m and 0.057 m, clean
+`covered 2 lane(s)` stop. Straight fields only; needs 2+ furrows.
+On bending 5-row fields (curve5, zigzag5) the corridor fit can still walk
+or lag: identical competing furrows plus lookahead hold. Lane anchoring
+there is open work.
 
 ## Outputs and metrics
 
@@ -127,25 +151,41 @@ conf, status, v, w, n_two, ff
 - Every 20th frame the drawn overlay (red nav line etc.) is saved as
   `frame_XXXXX.png` in the same log dir.
 
-Reference result from the committed defaults — one continuous half-lap of the
-ring (the `completed 0.5 lap(s)` stop fires at 180° swept):
+Reference result from the committed defaults: one continuous half-lap of the
+ring (the `completed 0.5 lap(s)` stop fires at 180° swept), with lateral
+priority (heading gate) and a shortened 0.6 lookahead on the ring:
 
 | metric | value |
 |---|---|
 | path covered | ~36.7 m of constant bend (R = 12 m) |
-| mean \|radial error\| | 0.362 m (inside-cutting, max 0.499 m) |
-| corridor evidence | `n_two` ≥ 8 in ≥ 80% of frames per 30° sector |
-| steering | `w` active throughout (−0.33…+0.33 rad/s, never saturating) |
+| mean \|radial error\| | 0.06 m (max 0.15 m, centered: no wall contact) |
+| corridor evidence | `n_two` 9–10 throughout, no dropouts |
+| steering | `w` active throughout, never saturating |
 | half-lap stop | fires cleanly at 180.0° |
 
-Known limit: on constant curvature the P-servo slowly cuts inside (a few dm
-per quarter lap — alternating bends self-cancel, so straight/S fields are
-unaffected), and raw heading flicker near dropout patches can exit the ring,
-so full rings are beyond it; the default `max_laps` is 0.5. Experiments so
-far: heading-gain halving (no effect — the tilt state just re-deepens) and a
-spline-bend feedforward (`ff_gain`, default off — exited earlier via a
-flicker patch, kept as plumbing for tuning). Full-ring centering needs deeper
-work (lateral integral with anti-windup, or curve-aware detection).
+Climbing the inner wall on bends was the steady inside-cut of the
+P-servo. Three fixes stack to remove it: lateral priority (heading gate
+0.1, keeps working back to center first), a shorter 0.6 lookahead on the
+ring (the fitted line bends less across a shorter window), and a gated
+lateral integral (`ki` 0.3, integrates only when confident, clamped and
+decaying) that winds away any remaining steady offset. Straights are
+unaffected (mean cross-track 0.02 m with the integral on).
+
+Earlier baselines for comparison: no gate and full 0.75 lookahead cut
+~0.5 m inside by mid-lap. Shortening the lookahead trims the cut because
+the fitted line bends less across a shorter window; the overlay `err_x`
+still reads a few dozen px on bends (tilt projection, not displacement).
+
+Known limit: raw heading flicker near dropout patches can still exit the
+ring, so full rings are beyond the default half-lap; the default
+`max_laps` is 0.5. Tuning history: heading-gain halving (no effect, the
+tilt state just re-deepens), spline-bend feedforward (`ff_gain`, default
+off, exited earlier via a flicker patch, kept as plumbing), shorter
+lookahead (kept: 0.6 on the ring via the world sidecar) and lateral
+priority (kept: heading gate 0.1). Launch args include `line_fit`
+(straight nav line, no spline), `vertical_coverage`, `heading_gate`,
+`lambda_x/theta` and `ff_gain`; `run_sim_gui.sh` takes `--line`,
+`--world`, `--x/--y/--yaw`, `--laps`.
 
 ## Live GUI + keyboard teleop (at the machine's display)
 
