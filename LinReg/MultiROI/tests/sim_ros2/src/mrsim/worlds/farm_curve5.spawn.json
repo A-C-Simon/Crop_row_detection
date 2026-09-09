@@ -1,15 +1,18 @@
 {
-  "world": "farm_curve.world",
+  "world": "farm_curve5.world",
   "shape": "straight",
   "robot_x": -8.0,
-  "robot_y": 0.0,
+  "robot_y": 0.55,
   "robot_yaw": 0.0,
-  "lane_y": 0.0,
+  "lane_y": 0.55,
   "lane_end_x": 9.0,
-  "n_rows": 2,
+  "n_rows": 5,
   "row_spacing": 1.1,
   "furrows": [
-    0.0
+    -1.65,
+    -0.55,
+    0.55,
+    1.65
   ],
   "circle_cx": 0.0,
   "circle_cy": 0.0,
