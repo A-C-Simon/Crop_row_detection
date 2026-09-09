@@ -3,12 +3,17 @@
   "shape": "circle",
   "robot_x": 12.0,
   "robot_y": 0.0,
-  "robot_yaw": 1.5707963267948966,
+  "robot_yaw": 1.8307963267948966,
   "lane_y": 0.0,
   "lane_end_x": 9.0,
+  "n_rows": 2,
+  "row_spacing": 1.1,
+  "furrows": [
+    0.0
+  ],
   "circle_cx": 0.0,
   "circle_cy": 0.0,
   "circle_r": 12.0,
   "max_laps_default": 0.5,
-  "trim_default": 0.0
+  "vertical_coverage_default": 0.6
 }

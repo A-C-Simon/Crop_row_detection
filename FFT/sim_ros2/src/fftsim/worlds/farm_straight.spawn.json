@@ -1,5 +1,5 @@
 {
-  "world": "farm_curve.world",
+  "world": "farm_straight.world",
   "shape": "straight",
   "robot_x": -8.0,
   "robot_y": 0.0,

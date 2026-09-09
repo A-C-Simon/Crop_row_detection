@@ -67,7 +67,7 @@
     </model>
     <model name='pl_1'>
       <static>1</static>
-      <pose>-8.88271 -0.559406 0 0 0 0</pose>
+      <pose>-8.88271 -0.559452 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -82,7 +82,7 @@
     </model>
     <model name='pl_2'>
       <static>1</static>
-      <pose>-8.77116 -0.55606 0 0 0 0</pose>
+      <pose>-8.77116 -0.556399 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -97,7 +97,7 @@
     </model>
     <model name='pl_3'>
       <static>1</static>
-      <pose>-8.62666 -0.535829 0 0 0 0</pose>
+      <pose>-8.62666 -0.537276 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -112,7 +112,7 @@
     </model>
     <model name='pl_4'>
       <static>1</static>
-      <pose>-8.50756 -0.539265 0 0 0 0</pose>
+      <pose>-8.50756 -0.542533 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -127,7 +127,7 @@
     </model>
     <model name='pl_5'>
       <static>1</static>
-      <pose>-8.39526 -0.538484 0 0 0 0</pose>
+      <pose>-8.39526 -0.54444 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -142,7 +142,7 @@
     </model>
     <model name='pl_6'>
       <static>1</static>
-      <pose>-8.29999 -0.515232 0 0 0 0</pose>
+      <pose>-8.29999 -0.524342 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -157,7 +157,7 @@
     </model>
     <model name='pl_7'>
       <static>1</static>
-      <pose>-8.15392 -0.519305 0 0 0 0</pose>
+      <pose>-8.15392 -0.535035 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -172,7 +172,7 @@
     </model>
     <model name='pl_8'>
       <static>1</static>
-      <pose>-8.0603 -0.581085 0 0 0 0</pose>
+      <pose>-8.0603 -0.602317 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -187,7 +187,7 @@
     </model>
     <model name='pl_9'>
       <static>1</static>
-      <pose>-7.93068 -0.533427 0 0 0 0</pose>
+      <pose>-7.93068 -0.564046 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -202,7 +202,7 @@
     </model>
     <model name='pl_10'>
       <static>1</static>
-      <pose>-7.79633 -0.508716 0 0 0 0</pose>
+      <pose>-7.79633 -0.551377 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -217,7 +217,7 @@
     </model>
     <model name='pl_11'>
       <static>1</static>
-      <pose>-7.67375 -0.513453 0 0 0 0</pose>
+      <pose>-7.67375 -0.569267 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -232,7 +232,7 @@
     </model>
     <model name='pl_12'>
       <static>1</static>
-      <pose>-7.5563 -0.467757 0 0 0 0</pose>
+      <pose>-7.5563 -0.538175 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -247,7 +247,7 @@
     </model>
     <model name='pl_13'>
       <static>1</static>
-      <pose>-7.44793 -0.412811 0 0 0 0</pose>
+      <pose>-7.44793 -0.498474 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -262,7 +262,7 @@
     </model>
     <model name='pl_14'>
       <static>1</static>
-      <pose>-7.31332 -0.407108 0 0 0 0</pose>
+      <pose>-7.31332 -0.51409 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -277,7 +277,7 @@
     </model>
     <model name='pl_15'>
       <static>1</static>
-      <pose>-7.20744 -0.446593 0 0 0 0</pose>
+      <pose>-7.20744 -0.572185 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -292,7 +292,7 @@
     </model>
     <model name='pl_16'>
       <static>1</static>
-      <pose>-7.08413 -0.403913 0 0 0 0</pose>
+      <pose>-7.08413 -0.553193 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -307,7 +307,7 @@
     </model>
     <model name='pl_17'>
       <static>1</static>
-      <pose>-6.95242 -0.365652 0 0 0 0</pose>
+      <pose>-6.95242 -0.542547 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -322,7 +322,7 @@
     </model>
     <model name='pl_18'>
       <static>1</static>
-      <pose>-6.84537 -0.37768 0 0 0 0</pose>
+      <pose>-6.84537 -0.578707 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -337,7 +337,7 @@
     </model>
     <model name='pl_19'>
       <static>1</static>
-      <pose>-6.72625 -0.283815 0 0 0 0</pose>
+      <pose>-6.72625 -0.513372 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -352,7 +352,7 @@
     </model>
     <model name='pl_20'>
       <static>1</static>
-      <pose>-6.6097 -0.283592 0 0 0 0</pose>
+      <pose>-6.6097 -0.542657 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -367,7 +367,7 @@
     </model>
     <model name='pl_21'>
       <static>1</static>
-      <pose>-6.47488 -0.299712 0 0 0 0</pose>
+      <pose>-6.47488 -0.594692 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -382,7 +382,7 @@
     </model>
     <model name='pl_22'>
       <static>1</static>
-      <pose>-6.35942 -0.183727 0 0 0 0</pose>
+      <pose>-6.35942 -0.510813 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -397,7 +397,7 @@
     </model>
     <model name='pl_23'>
       <static>1</static>
-      <pose>-6.26417 -0.205267 0 0 0 0</pose>
+      <pose>-6.26417 -0.559648 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -412,7 +412,7 @@
     </model>
     <model name='pl_24'>
       <static>1</static>
-      <pose>-6.12127 -0.178051 0 0 0 0</pose>
+      <pose>-6.12127 -0.574518 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -427,7 +427,7 @@
     </model>
     <model name='pl_25'>
       <static>1</static>
-      <pose>-5.99403 -0.117042 0 0 0 0</pose>
+      <pose>-5.99403 -0.551868 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -442,7 +442,7 @@
     </model>
     <model name='pl_26'>
       <static>1</static>
-      <pose>-5.89758 -0.0608822 0 0 0 0</pose>
+      <pose>-5.89758 -0.525165 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -457,7 +457,7 @@
     </model>
     <model name='pl_27'>
       <static>1</static>
-      <pose>-5.75197 -0.0125638 0 0 0 0</pose>
+      <pose>-5.75197 -0.521625 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -472,7 +472,7 @@
     </model>
     <model name='pl_28'>
       <static>1</static>
-      <pose>-5.62271 0.00967088 0 0 0 0</pose>
+      <pose>-5.62271 -0.539133 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -487,7 +487,7 @@
     </model>
     <model name='pl_29'>
       <static>1</static>
-      <pose>-5.51857 -0.00838543 0 0 0 0</pose>
+      <pose>-5.51857 -0.588975 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -502,7 +502,7 @@
     </model>
     <model name='pl_30'>
       <static>1</static>
-      <pose>-5.39261 0.0501323 0 0 0 0</pose>
+      <pose>-5.39261 -0.568353 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -517,7 +517,7 @@
     </model>
     <model name='pl_31'>
       <static>1</static>
-      <pose>-5.28543 0.0620994 0 0 0 0</pose>
+      <pose>-5.28543 -0.587944 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -532,7 +532,7 @@
     </model>
     <model name='pl_32'>
       <static>1</static>
-      <pose>-5.17161 0.116702 0 0 0 0</pose>
+      <pose>-5.17161 -0.565934 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -547,7 +547,7 @@
     </model>
     <model name='pl_33'>
       <static>1</static>
-      <pose>-5.02453 0.112028 0 0 0 0</pose>
+      <pose>-5.02453 -0.610954 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -562,7 +562,7 @@
     </model>
     <model name='pl_34'>
       <static>1</static>
-      <pose>-4.93749 0.20292 0 0 0 0</pose>
+      <pose>-4.93749 -0.542819 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -577,7 +577,7 @@
     </model>
     <model name='pl_35'>
       <static>1</static>
-      <pose>-4.78268 0.251151 0 0 0 0</pose>
+      <pose>-4.78268 -0.532645 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -592,7 +592,7 @@
     </model>
     <model name='pl_36'>
       <static>1</static>
-      <pose>-4.7028 0.176528 0 0 0 0</pose>
+      <pose>-4.7028 -0.625547 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -607,7 +607,7 @@
     </model>
     <model name='pl_37'>
       <static>1</static>
-      <pose>-4.55571 0.260931 0 0 0 0</pose>
+      <pose>-4.55571 -0.572088 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -622,7 +622,7 @@
     </model>
     <model name='pl_38'>
       <static>1</static>
-      <pose>-4.45344 0.331598 0 0 0 0</pose>
+      <pose>-4.45344 -0.520679 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -637,7 +637,7 @@
     </model>
     <model name='pl_39'>
       <static>1</static>
-      <pose>-4.30678 0.331077 0 0 0 0</pose>
+      <pose>-4.30678 -0.545282 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -652,7 +652,7 @@
     </model>
     <model name='pl_40'>
       <static>1</static>
-      <pose>-4.19705 0.354494 0 0 0 0</pose>
+      <pose>-4.19705 -0.536969 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -667,7 +667,7 @@
     </model>
     <model name='pl_41'>
       <static>1</static>
-      <pose>-4.06087 0.375084 0 0 0 0</pose>
+      <pose>-4.06087 -0.531429 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -682,7 +682,7 @@
     </model>
     <model name='pl_42'>
       <static>1</static>
-      <pose>-3.95378 0.381764 0 0 0 0</pose>
+      <pose>-3.95378 -0.533568 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -697,7 +697,7 @@
     </model>
     <model name='pl_43'>
       <static>1</static>
-      <pose>-3.85882 0.409298 0 0 0 0</pose>
+      <pose>-3.85882 -0.511548 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -712,7 +712,7 @@
     </model>
     <model name='pl_44'>
       <static>1</static>
-      <pose>-3.70854 0.390887 0 0 0 0</pose>
+      <pose>-3.70854 -0.534111 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -727,7 +727,7 @@
     </model>
     <model name='pl_45'>
       <static>1</static>
-      <pose>-3.62369 0.3558 0 0 0 0</pose>
+      <pose>-3.62369 -0.56901 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -742,7 +742,7 @@
     </model>
     <model name='pl_46'>
       <static>1</static>
-      <pose>-3.46989 0.315386 0 0 0 0</pose>
+      <pose>-3.46989 -0.604336 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -757,7 +757,7 @@
     </model>
     <model name='pl_47'>
       <static>1</static>
-      <pose>-3.36221 0.393071 0 0 0 0</pose>
+      <pose>-3.36221 -0.519414 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -772,7 +772,7 @@
     </model>
     <model name='pl_48'>
       <static>1</static>
-      <pose>-3.25573 0.400652 0 0 0 0</pose>
+      <pose>-3.25573 -0.501697 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -787,7 +787,7 @@
     </model>
     <model name='pl_49'>
       <static>1</static>
-      <pose>-3.11338 0.32969 0 0 0 0</pose>
+      <pose>-3.11338 -0.554504 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -802,7 +802,7 @@
     </model>
     <model name='pl_50'>
       <static>1</static>
-      <pose>-2.9961 0.334839 0 0 0 0</pose>
+      <pose>-2.9961 -0.530505 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -817,7 +817,7 @@
     </model>
     <model name='pl_51'>
       <static>1</static>
-      <pose>-2.87856 0.328427 0 0 0 0</pose>
+      <pose>-2.87856 -0.51563 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -832,7 +832,7 @@
     </model>
     <model name='pl_52'>
       <static>1</static>
-      <pose>-2.76794 0.260285 0 0 0 0</pose>
+      <pose>-2.76794 -0.562442 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -847,7 +847,7 @@
     </model>
     <model name='pl_53'>
       <static>1</static>
-      <pose>-2.6275 0.244688 0 0 0 0</pose>
+      <pose>-2.6275 -0.549196 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -862,7 +862,7 @@
     </model>
     <model name='pl_54'>
       <static>1</static>
-      <pose>-2.53057 0.251253 0 0 0 0</pose>
+      <pose>-2.53057 -0.521606 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -877,7 +877,7 @@
     </model>
     <model name='pl_55'>
       <static>1</static>
-      <pose>-2.38241 0.175679 0 0 0 0</pose>
+      <pose>-2.38241 -0.563345 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -892,7 +892,7 @@
     </model>
     <model name='pl_56'>
       <static>1</static>
-      <pose>-2.29656 0.164463 0 0 0 0</pose>
+      <pose>-2.29656 -0.554042 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -907,7 +907,7 @@
     </model>
     <model name='pl_57'>
       <static>1</static>
-      <pose>-2.16179 0.126062 0 0 0 0</pose>
+      <pose>-2.16179 -0.55894 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -922,7 +922,7 @@
     </model>
     <model name='pl_58'>
       <static>1</static>
-      <pose>-2.02314 0.0681468 0 0 0 0</pose>
+      <pose>-2.02314 -0.580808 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -937,7 +937,7 @@
     </model>
     <model name='pl_59'>
       <static>1</static>
-      <pose>-1.90487 0.0289513 0 0 0 0</pose>
+      <pose>-1.90487 -0.58805 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -952,7 +952,7 @@
     </model>
     <model name='pl_60'>
       <static>1</static>
-      <pose>-1.80944 0.0593948 0 0 0 0</pose>
+      <pose>-1.80944 -0.531054 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -967,7 +967,7 @@
     </model>
     <model name='pl_61'>
       <static>1</static>
-      <pose>-1.66646 0.0252175 0 0 0 0</pose>
+      <pose>-1.66646 -0.52423 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -982,7 +982,7 @@
     </model>
     <model name='pl_62'>
       <static>1</static>
-      <pose>-1.55586 -0.0289398 0 0 0 0</pose>
+      <pose>-1.55586 -0.545729 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -997,7 +997,7 @@
     </model>
     <model name='pl_63'>
       <static>1</static>
-      <pose>-1.43817 -0.0515477 0 0 0 0</pose>
+      <pose>-1.43817 -0.532742 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -1012,7 +1012,7 @@
     </model>
     <model name='pl_64'>
       <static>1</static>
-      <pose>-1.32211 -0.0963808 0 0 0 0</pose>
+      <pose>-1.32211 -0.541677 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -1027,7 +1027,7 @@
     </model>
     <model name='pl_65'>
       <static>1</static>
-      <pose>-1.19313 -0.145431 0 0 0 0</pose>
+      <pose>-1.19313 -0.549975 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -1042,7 +1042,7 @@
     </model>
     <model name='pl_66'>
       <static>1</static>
-      <pose>-1.07083 -0.167876 0 0 0 0</pose>
+      <pose>-1.07083 -0.533024 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -1057,7 +1057,7 @@
     </model>
     <model name='pl_67'>
       <static>1</static>
-      <pose>-0.935872 -0.21935 0 0 0 0</pose>
+      <pose>-0.935872 -0.540252 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -1072,7 +1072,7 @@
     </model>
     <model name='pl_68'>
       <static>1</static>
-      <pose>-0.845131 -0.270431 0 0 0 0</pose>
+      <pose>-0.845131 -0.561177 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -1087,7 +1087,7 @@
     </model>
     <model name='pl_69'>
       <static>1</static>
-      <pose>-0.720157 -0.273543 0 0 0 0</pose>
+      <pose>-0.720157 -0.522286 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -1102,7 +1102,7 @@
     </model>
     <model name='pl_70'>
       <static>1</static>
-      <pose>-0.604039 -0.329135 0 0 0 0</pose>
+      <pose>-0.604039 -0.538425 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -1117,7 +1117,7 @@
     </model>
     <model name='pl_71'>
       <static>1</static>
-      <pose>-0.457952 -0.467765 0 0 0 0</pose>
+      <pose>-0.457952 -0.62694 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -1132,7 +1132,7 @@
     </model>
     <model name='pl_72'>
       <static>1</static>
-      <pose>-0.373487 -0.412681 0 0 0 0</pose>
+      <pose>-0.373487 -0.542683 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -1147,7 +1147,7 @@
     </model>
     <model name='pl_73'>
       <static>1</static>
-      <pose>-0.23522 -0.460828 0 0 0 0</pose>
+      <pose>-0.23522 -0.542843 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -1162,7 +1162,7 @@
     </model>
     <model name='pl_74'>
       <static>1</static>
-      <pose>-0.125174 -0.486666 0 0 0 0</pose>
+      <pose>-0.125174 -0.530346 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -1177,7 +1177,7 @@
     </model>
     <model name='pl_75'>
       <static>1</static>
-      <pose>0.00338556 -0.566843 0 0 0 0</pose>
+      <pose>0.00338556 -0.565662 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -1192,7 +1192,7 @@
     </model>
     <model name='pl_76'>
       <static>1</static>
-      <pose>0.149161 -0.591389 0 0 0 0</pose>
+      <pose>0.149161 -0.539346 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -1207,7 +1207,7 @@
     </model>
     <model name='pl_77'>
       <static>1</static>
-      <pose>0.233349 -0.634348 0 0 0 0</pose>
+      <pose>0.233349 -0.552983 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -1222,7 +1222,7 @@
     </model>
     <model name='pl_78'>
       <static>1</static>
-      <pose>0.357293 -0.676278 0 0 0 0</pose>
+      <pose>0.357293 -0.551882 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -1237,7 +1237,7 @@
     </model>
     <model name='pl_79'>
       <static>1</static>
-      <pose>0.447263 -0.720098 0 0 0 0</pose>
+      <pose>0.447263 -0.564607 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -1252,7 +1252,7 @@
     </model>
     <model name='pl_80'>
       <static>1</static>
-      <pose>0.612103 -0.797099 0 0 0 0</pose>
+      <pose>0.612103 -0.585057 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -1267,7 +1267,7 @@
     </model>
     <model name='pl_81'>
       <static>1</static>
-      <pose>0.7192 -0.769814 0 0 0 0</pose>
+      <pose>0.7192 -0.521395 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -1282,7 +1282,7 @@
     </model>
     <model name='pl_82'>
       <static>1</static>
-      <pose>0.850274 -0.797732 0 0 0 0</pose>
+      <pose>0.850274 -0.505268 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -1297,7 +1297,7 @@
     </model>
     <model name='pl_83'>
       <static>1</static>
-      <pose>0.939583 -0.882729 0 0 0 0</pose>
+      <pose>0.939583 -0.560601 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -1312,7 +1312,7 @@
     </model>
     <model name='pl_84'>
       <static>1</static>
-      <pose>1.07591 -0.898098 0 0 0 0</pose>
+      <pose>1.07591 -0.531301 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -1327,7 +1327,7 @@
     </model>
     <model name='pl_85'>
       <static>1</static>
-      <pose>1.2131 -1.0414 0 0 0 0</pose>
+      <pose>1.2131 -0.630485 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -1342,7 +1342,7 @@
     </model>
     <model name='pl_86'>
       <static>1</static>
-      <pose>1.33306 -1.04214 0 0 0 0</pose>
+      <pose>1.33306 -0.593426 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -1357,7 +1357,7 @@
     </model>
     <model name='pl_87'>
       <static>1</static>
-      <pose>1.4482 -1.07902 0 0 0 0</pose>
+      <pose>1.4482 -0.594764 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -1372,7 +1372,7 @@
     </model>
     <model name='pl_88'>
       <static>1</static>
-      <pose>1.56211 -1.03282 0 0 0 0</pose>
+      <pose>1.56211 -0.51416 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -1387,7 +1387,7 @@
     </model>
     <model name='pl_89'>
       <static>1</static>
-      <pose>1.67821 -1.09714 0 0 0 0</pose>
+      <pose>1.67821 -0.544267 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -1402,7 +1402,7 @@
     </model>
     <model name='pl_90'>
       <static>1</static>
-      <pose>1.80957 -1.13624 0 0 0 0</pose>
+      <pose>1.80957 -0.545759 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -1417,7 +1417,7 @@
     </model>
     <model name='pl_91'>
       <static>1</static>
-      <pose>1.91894 -1.12486 0 0 0 0</pose>
+      <pose>1.91894 -0.504002 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -1432,7 +1432,7 @@
     </model>
     <model name='pl_92'>
       <static>1</static>
-      <pose>2.05258 -1.21555 0 0 0 0</pose>
+      <pose>2.05258 -0.558814 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -1447,7 +1447,7 @@
     </model>
     <model name='pl_93'>
       <static>1</static>
-      <pose>2.19294 -1.27729 0 0 0 0</pose>
+      <pose>2.19294 -0.584405 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -1462,7 +1462,7 @@
     </model>
     <model name='pl_94'>
       <static>1</static>
-      <pose>2.29098 -1.27512 0 0 0 0</pose>
+      <pose>2.29098 -0.557971 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -1477,7 +1477,7 @@
     </model>
     <model name='pl_95'>
       <static>1</static>
-      <pose>2.40159 -1.27237 0 0 0 0</pose>
+      <pose>2.40159 -0.52885 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -1492,7 +1492,7 @@
     </model>
     <model name='pl_96'>
       <static>1</static>
-      <pose>2.52267 -1.30195 0 0 0 0</pose>
+      <pose>2.52267 -0.530841 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -1507,7 +1507,7 @@
     </model>
     <model name='pl_97'>
       <static>1</static>
-      <pose>2.62167 -1.38793 0 0 0 0</pose>
+      <pose>2.62167 -0.595285 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -1522,7 +1522,7 @@
     </model>
     <model name='pl_98'>
       <static>1</static>
-      <pose>2.76738 -1.40151 0 0 0 0</pose>
+      <pose>2.76738 -0.578895 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -1537,7 +1537,7 @@
     </model>
     <model name='pl_99'>
       <static>1</static>
-      <pose>2.86768 -1.43612 0 0 0 0</pose>
+      <pose>2.86768 -0.594104 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -1552,7 +1552,7 @@
     </model>
     <model name='pl_100'>
       <static>1</static>
-      <pose>3.0152 -1.39627 0 0 0 0</pose>
+      <pose>3.0152 -0.527603 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -1567,7 +1567,7 @@
     </model>
     <model name='pl_101'>
       <static>1</static>
-      <pose>3.13768 -1.46718 0 0 0 0</pose>
+      <pose>3.13768 -0.578132 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -1582,7 +1582,7 @@
     </model>
     <model name='pl_102'>
       <static>1</static>
-      <pose>3.24001 -1.48904 0 0 0 0</pose>
+      <pose>3.24001 -0.584209 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -1597,7 +1597,7 @@
     </model>
     <model name='pl_103'>
       <static>1</static>
-      <pose>3.36919 -1.42542 0 0 0 0</pose>
+      <pose>3.36919 -0.502317 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -1612,7 +1612,7 @@
     </model>
     <model name='pl_104'>
       <static>1</static>
-      <pose>3.46932 -1.43917 0 0 0 0</pose>
+      <pose>3.46932 -0.50319 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -1627,7 +1627,7 @@
     </model>
     <model name='pl_105'>
       <static>1</static>
-      <pose>3.61186 -1.50766 0 0 0 0</pose>
+      <pose>3.61186 -0.555335 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -1642,7 +1642,7 @@
     </model>
     <model name='pl_106'>
       <static>1</static>
-      <pose>3.69634 -1.46871 0 0 0 0</pose>
+      <pose>3.69634 -0.507801 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -1657,7 +1657,7 @@
     </model>
     <model name='pl_107'>
       <static>1</static>
-      <pose>3.83884 -1.54157 0 0 0 0</pose>
+      <pose>3.83884 -0.568085 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -1672,7 +1672,7 @@
     </model>
     <model name='pl_108'>
       <static>1</static>
-      <pose>3.9648 -1.5203 0 0 0 0</pose>
+      <pose>3.9648 -0.537701 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -1687,7 +1687,7 @@
     </model>
     <model name='pl_109'>
       <static>1</static>
-      <pose>4.09798 -1.57077 0 0 0 0</pose>
+      <pose>4.09798 -0.580604 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -1702,7 +1702,7 @@
     </model>
     <model name='pl_110'>
       <static>1</static>
-      <pose>4.21363 -1.50039 0 0 0 0</pose>
+      <pose>4.21363 -0.505379 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -1717,7 +1717,7 @@
     </model>
     <model name='pl_111'>
       <static>1</static>
-      <pose>4.33743 -1.55381 0 0 0 0</pose>
+      <pose>4.33743 -0.555419 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -1732,7 +1732,7 @@
     </model>
     <model name='pl_112'>
       <static>1</static>
-      <pose>4.43107 -1.51915 0 0 0 0</pose>
+      <pose>4.43107 -0.519443 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -1747,7 +1747,7 @@
     </model>
     <model name='pl_113'>
       <static>1</static>
-      <pose>4.56138 -1.54604 0 0 0 0</pose>
+      <pose>4.56138 -0.546274 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -1762,7 +1762,7 @@
     </model>
     <model name='pl_114'>
       <static>1</static>
-      <pose>4.69709 -1.55554 0 0 0 0</pose>
+      <pose>4.69709 -0.557903 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -1777,7 +1777,7 @@
     </model>
     <model name='pl_115'>
       <static>1</static>
-      <pose>4.77244 -1.5571 0 0 0 0</pose>
+      <pose>4.77244 -0.561616 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -1792,7 +1792,7 @@
     </model>
     <model name='pl_116'>
       <static>1</static>
-      <pose>4.89775 -1.51581 0 0 0 0</pose>
+      <pose>4.89775 -0.525437 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -1807,7 +1807,7 @@
     </model>
     <model name='pl_117'>
       <static>1</static>
-      <pose>5.0438 -1.55037 0 0 0 0</pose>
+      <pose>5.0438 -0.568336 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -1822,7 +1822,7 @@
     </model>
     <model name='pl_118'>
       <static>1</static>
-      <pose>5.15988 -1.49861 0 0 0 0</pose>
+      <pose>5.15988 -0.525021 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -1837,7 +1837,7 @@
     </model>
     <model name='pl_119'>
       <static>1</static>
-      <pose>5.28095 -1.47328 0 0 0 0</pose>
+      <pose>5.28095 -0.510204 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -1852,7 +1852,7 @@
     </model>
     <model name='pl_120'>
       <static>1</static>
-      <pose>5.39926 -1.46993 0 0 0 0</pose>
+      <pose>5.39926 -0.51879 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -1867,7 +1867,7 @@
     </model>
     <model name='pl_121'>
       <static>1</static>
-      <pose>5.5379 -1.43679 0 0 0 0</pose>
+      <pose>5.5379 -0.501703 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -1882,7 +1882,7 @@
     </model>
     <model name='pl_122'>
       <static>1</static>
-      <pose>5.63194 -1.44655 0 0 0 0</pose>
+      <pose>5.63194 -0.523603 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -1897,7 +1897,7 @@
     </model>
     <model name='pl_123'>
       <static>1</static>
-      <pose>5.73749 -1.49065 0 0 0 0</pose>
+      <pose>5.73749 -0.5825 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -1912,7 +1912,7 @@
     </model>
     <model name='pl_124'>
       <static>1</static>
-      <pose>5.85645 -1.40791 0 0 0 0</pose>
+      <pose>5.85645 -0.51793 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -1927,7 +1927,7 @@
     </model>
     <model name='pl_125'>
       <static>1</static>
-      <pose>5.98522 -1.41898 0 0 0 0</pose>
+      <pose>5.98522 -0.550383 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -1942,7 +1942,7 @@
     </model>
     <model name='pl_126'>
       <static>1</static>
-      <pose>6.11769 -1.39562 0 0 0 0</pose>
+      <pose>6.11769 -0.550858 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -1957,7 +1957,7 @@
     </model>
     <model name='pl_127'>
       <static>1</static>
-      <pose>6.2329 -1.36555 0 0 0 0</pose>
+      <pose>6.2329 -0.54299 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -1972,7 +1972,7 @@
     </model>
     <model name='pl_128'>
       <static>1</static>
-      <pose>6.3815 -1.34064 0 0 0 0</pose>
+      <pose>6.3815 -0.548672 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -1987,7 +1987,7 @@
     </model>
     <model name='pl_129'>
       <static>1</static>
-      <pose>6.48637 -1.28908 0 0 0 0</pose>
+      <pose>6.48637 -0.519984 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -2002,7 +2002,7 @@
     </model>
     <model name='pl_130'>
       <static>1</static>
-      <pose>6.59762 -1.33149 0 0 0 0</pose>
+      <pose>6.59762 -0.587791 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -2017,7 +2017,7 @@
     </model>
     <model name='pl_131'>
       <static>1</static>
-      <pose>6.71334 -1.23389 0 0 0 0</pose>
+      <pose>6.71334 -0.517792 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -2032,7 +2032,7 @@
     </model>
     <model name='pl_132'>
       <static>1</static>
-      <pose>6.82025 -1.25749 0 0 0 0</pose>
+      <pose>6.82025 -0.567935 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -2047,7 +2047,7 @@
     </model>
     <model name='pl_133'>
       <static>1</static>
-      <pose>6.97209 -1.17644 0 0 0 0</pose>
+      <pose>6.97209 -0.526218 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -2062,7 +2062,7 @@
     </model>
     <model name='pl_134'>
       <static>1</static>
-      <pose>7.08009 -1.14697 0 0 0 0</pose>
+      <pose>7.08009 -0.525843 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -2077,7 +2077,7 @@
     </model>
     <model name='pl_135'>
       <static>1</static>
-      <pose>7.20199 -1.17259 0 0 0 0</pose>
+      <pose>7.20199 -0.585367 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -2092,7 +2092,7 @@
     </model>
     <model name='pl_136'>
       <static>1</static>
-      <pose>7.30123 -1.128 0 0 0 0</pose>
+      <pose>7.30123 -0.569169 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -2107,7 +2107,7 @@
     </model>
     <model name='pl_137'>
       <static>1</static>
-      <pose>7.45107 -1.08168 0 0 0 0</pose>
+      <pose>7.45107 -0.566966 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -2122,7 +2122,7 @@
     </model>
     <model name='pl_138'>
       <static>1</static>
-      <pose>7.54917 -1.05819 0 0 0 0</pose>
+      <pose>7.54917 -0.573129 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -2137,7 +2137,7 @@
     </model>
     <model name='pl_139'>
       <static>1</static>
-      <pose>7.66162 -1.00389 0 0 0 0</pose>
+      <pose>7.66162 -0.553518 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -2152,7 +2152,7 @@
     </model>
     <model name='pl_140'>
       <static>1</static>
-      <pose>7.78584 -0.950321 0 0 0 0</pose>
+      <pose>7.78584 -0.539076 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -2167,7 +2167,7 @@
     </model>
     <model name='pl_141'>
       <static>1</static>
-      <pose>7.89168 -0.917465 0 0 0 0</pose>
+      <pose>7.89168 -0.540167 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -2182,7 +2182,7 @@
     </model>
     <model name='pl_142'>
       <static>1</static>
-      <pose>8.0323 -0.939668 0 0 0 0</pose>
+      <pose>8.0323 -0.608264 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -2197,7 +2197,7 @@
     </model>
     <model name='pl_143'>
       <static>1</static>
-      <pose>8.1687 -0.84439 0 0 0 0</pose>
+      <pose>8.1687 -0.558265 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -2212,7 +2212,7 @@
     </model>
     <model name='pl_144'>
       <static>1</static>
-      <pose>8.25324 -0.833978 0 0 0 0</pose>
+      <pose>8.25324 -0.576252 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -2227,7 +2227,7 @@
     </model>
     <model name='pl_145'>
       <static>1</static>
-      <pose>8.40349 -0.770477 0 0 0 0</pose>
+      <pose>8.40349 -0.563757 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -2242,7 +2242,7 @@
     </model>
     <model name='pl_146'>
       <static>1</static>
-      <pose>8.52936 -0.69112 0 0 0 0</pose>
+      <pose>8.52936 -0.527573 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -2257,7 +2257,7 @@
     </model>
     <model name='pl_147'>
       <static>1</static>
-      <pose>8.64799 -0.662765 0 0 0 0</pose>
+      <pose>8.64799 -0.540201 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -2272,7 +2272,7 @@
     </model>
     <model name='pl_148'>
       <static>1</static>
-      <pose>8.776 -0.608315 0 0 0 0</pose>
+      <pose>8.776 -0.530205 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -2287,7 +2287,7 @@
     </model>
     <model name='pl_149'>
       <static>1</static>
-      <pose>8.88541 -0.652507 0 0 0 0</pose>
+      <pose>8.88541 -0.612519 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -2317,7 +2317,7 @@
     </model>
     <model name='pl_151'>
       <static>1</static>
-      <pose>-8.88356 0.53596 0 0 0 0</pose>
+      <pose>-8.88356 0.535915 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -2332,7 +2332,7 @@
     </model>
     <model name='pl_152'>
       <static>1</static>
-      <pose>-8.73672 0.497771 0 0 0 0</pose>
+      <pose>-8.73672 0.497256 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -2347,7 +2347,7 @@
     </model>
     <model name='pl_153'>
       <static>1</static>
-      <pose>-8.63437 0.624072 0 0 0 0</pose>
+      <pose>-8.63437 0.622711 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -2362,7 +2362,7 @@
     </model>
     <model name='pl_154'>
       <static>1</static>
-      <pose>-8.53113 0.573517 0 0 0 0</pose>
+      <pose>-8.53113 0.570688 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -2377,7 +2377,7 @@
     </model>
     <model name='pl_155'>
       <static>1</static>
-      <pose>-8.37736 0.552878 0 0 0 0</pose>
+      <pose>-8.37736 0.546394 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -2392,7 +2392,7 @@
     </model>
     <model name='pl_156'>
       <static>1</static>
-      <pose>-8.27327 0.587231 0 0 0 0</pose>
+      <pose>-8.27327 0.577077 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -2407,7 +2407,7 @@
     </model>
     <model name='pl_157'>
       <static>1</static>
-      <pose>-8.17087 0.562171 0 0 0 0</pose>
+      <pose>-8.17087 0.547327 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -2422,7 +2422,7 @@
     </model>
     <model name='pl_158'>
       <static>1</static>
-      <pose>-8.03649 0.59756 0 0 0 0</pose>
+      <pose>-8.03649 0.574762 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -2437,7 +2437,7 @@
     </model>
     <model name='pl_159'>
       <static>1</static>
-      <pose>-7.92041 0.575594 0 0 0 0</pose>
+      <pose>-7.92041 0.54414 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -2452,7 +2452,7 @@
     </model>
     <model name='pl_160'>
       <static>1</static>
-      <pose>-7.81219 0.580344 0 0 0 0</pose>
+      <pose>-7.81219 0.539231 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -2467,7 +2467,7 @@
     </model>
     <model name='pl_161'>
       <static>1</static>
-      <pose>-7.6693 0.609383 0 0 0 0</pose>
+      <pose>-7.6693 0.553052 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -2482,7 +2482,7 @@
     </model>
     <model name='pl_162'>
       <static>1</static>
-      <pose>-7.57024 0.593333 0 0 0 0</pose>
+      <pose>-7.57024 0.524752 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -2497,7 +2497,7 @@
     </model>
     <model name='pl_163'>
       <static>1</static>
-      <pose>-7.408 0.675909 0 0 0 0</pose>
+      <pose>-7.408 0.584197 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -2512,7 +2512,7 @@
     </model>
     <model name='pl_164'>
       <static>1</static>
-      <pose>-7.31235 0.579357 0 0 0 0</pose>
+      <pose>-7.31235 0.472212 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -2527,7 +2527,7 @@
     </model>
     <model name='pl_165'>
       <static>1</static>
-      <pose>-7.19254 0.692762 0 0 0 0</pose>
+      <pose>-7.19254 0.564421 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -2542,7 +2542,7 @@
     </model>
     <model name='pl_166'>
       <static>1</static>
-      <pose>-7.05979 0.717038 0 0 0 0</pose>
+      <pose>-7.05979 0.562833 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -2557,7 +2557,7 @@
     </model>
     <model name='pl_167'>
       <static>1</static>
-      <pose>-6.96081 0.740739 0 0 0 0</pose>
+      <pose>-6.96081 0.565673 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -2572,7 +2572,7 @@
     </model>
     <model name='pl_168'>
       <static>1</static>
-      <pose>-6.86333 0.777873 0 0 0 0</pose>
+      <pose>-6.86333 0.580998 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -2587,7 +2587,7 @@
     </model>
     <model name='pl_169'>
       <static>1</static>
-      <pose>-6.7161 0.761003 0 0 0 0</pose>
+      <pose>-6.7161 0.528938 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -2602,7 +2602,7 @@
     </model>
     <model name='pl_170'>
       <static>1</static>
-      <pose>-6.58409 0.870025 0 0 0 0</pose>
+      <pose>-6.58409 0.60428 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -2617,7 +2617,7 @@
     </model>
     <model name='pl_171'>
       <static>1</static>
-      <pose>-6.49683 0.819022 0 0 0 0</pose>
+      <pose>-6.49683 0.53001 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -2632,7 +2632,7 @@
     </model>
     <model name='pl_172'>
       <static>1</static>
-      <pose>-6.3565 0.883415 0 0 0 0</pose>
+      <pose>-6.3565 0.555504 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -2647,7 +2647,7 @@
     </model>
     <model name='pl_173'>
       <static>1</static>
-      <pose>-6.24478 0.880791 0 0 0 0</pose>
+      <pose>-6.24478 0.520774 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -2662,7 +2662,7 @@
     </model>
     <model name='pl_174'>
       <static>1</static>
-      <pose>-6.09455 0.985585 0 0 0 0</pose>
+      <pose>-6.09455 0.581122 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -2677,7 +2677,7 @@
     </model>
     <model name='pl_175'>
       <static>1</static>
-      <pose>-6.01433 0.938313 0 0 0 0</pose>
+      <pose>-6.01433 0.50965 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -2692,7 +2692,7 @@
     </model>
     <model name='pl_176'>
       <static>1</static>
-      <pose>-5.85956 1.05562 0 0 0 0</pose>
+      <pose>-5.85956 0.579674 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -2707,7 +2707,7 @@
     </model>
     <model name='pl_177'>
       <static>1</static>
-      <pose>-5.73815 1.08762 0 0 0 0</pose>
+      <pose>-5.73815 0.574304 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -2722,7 +2722,7 @@
     </model>
     <model name='pl_178'>
       <static>1</static>
-      <pose>-5.65046 1.09811 0 0 0 0</pose>
+      <pose>-5.65046 0.55782 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -2737,7 +2737,7 @@
     </model>
     <model name='pl_179'>
       <static>1</static>
-      <pose>-5.54592 1.09983 0 0 0 0</pose>
+      <pose>-5.54592 0.527556 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -2752,7 +2752,7 @@
     </model>
     <model name='pl_180'>
       <static>1</static>
-      <pose>-5.40071 1.18176 0 0 0 0</pose>
+      <pose>-5.40071 0.565683 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -2767,7 +2767,7 @@
     </model>
     <model name='pl_181'>
       <static>1</static>
-      <pose>-5.28873 1.19536 0 0 0 0</pose>
+      <pose>-5.28873 0.546273 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -2782,7 +2782,7 @@
     </model>
     <model name='pl_182'>
       <static>1</static>
-      <pose>-5.1545 1.24874 0 0 0 0</pose>
+      <pose>-5.1545 0.561301 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -2797,7 +2797,7 @@
     </model>
     <model name='pl_183'>
       <static>1</static>
-      <pose>-5.03234 1.27717 0 0 0 0</pose>
+      <pose>-5.03234 0.556269 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -2812,7 +2812,7 @@
     </model>
     <model name='pl_184'>
       <static>1</static>
-      <pose>-4.92389 1.32289 0 0 0 0</pose>
+      <pose>-4.92389 0.573675 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -2827,7 +2827,7 @@
     </model>
     <model name='pl_185'>
       <static>1</static>
-      <pose>-4.79941 1.30506 0 0 0 0</pose>
+      <pose>-4.79941 0.525217 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -2842,7 +2842,7 @@
     </model>
     <model name='pl_186'>
       <static>1</static>
-      <pose>-4.68751 1.35545 0 0 0 0</pose>
+      <pose>-4.68751 0.54999 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -2857,7 +2857,7 @@
     </model>
     <model name='pl_187'>
       <static>1</static>
-      <pose>-4.56132 1.38662 0 0 0 0</pose>
+      <pose>-4.56132 0.55471 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -2872,7 +2872,7 @@
     </model>
     <model name='pl_188'>
       <static>1</static>
-      <pose>-4.44001 1.40994 0 0 0 0</pose>
+      <pose>-4.44001 0.555276 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -2887,7 +2887,7 @@
     </model>
     <model name='pl_189'>
       <static>1</static>
-      <pose>-4.32161 1.38637 0 0 0 0</pose>
+      <pose>-4.32161 0.512247 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -2902,7 +2902,7 @@
     </model>
     <model name='pl_190'>
       <static>1</static>
-      <pose>-4.19494 1.47334 0 0 0 0</pose>
+      <pose>-4.19494 0.581611 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -2917,7 +2917,7 @@
     </model>
     <model name='pl_191'>
       <static>1</static>
-      <pose>-4.07478 1.44949 0 0 0 0</pose>
+      <pose>-4.07478 0.544323 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -2932,7 +2932,7 @@
     </model>
     <model name='pl_192'>
       <static>1</static>
-      <pose>-3.95464 1.4363 0 0 0 0</pose>
+      <pose>-3.95464 0.521029 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -2947,7 +2947,7 @@
     </model>
     <model name='pl_193'>
       <static>1</static>
-      <pose>-3.86275 1.47245 0 0 0 0</pose>
+      <pose>-3.86275 0.551787 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -2962,7 +2962,7 @@
     </model>
     <model name='pl_194'>
       <static>1</static>
-      <pose>-3.73117 1.49693 0 0 0 0</pose>
+      <pose>-3.73117 0.572196 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -2977,7 +2977,7 @@
     </model>
     <model name='pl_195'>
       <static>1</static>
-      <pose>-3.61301 1.3958 0 0 0 0</pose>
+      <pose>-3.61301 0.471145 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -2992,7 +2992,7 @@
     </model>
     <model name='pl_196'>
       <static>1</static>
-      <pose>-3.49247 1.5182 0 0 0 0</pose>
+      <pose>-3.49247 0.597343 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -3007,7 +3007,7 @@
     </model>
     <model name='pl_197'>
       <static>1</static>
-      <pose>-3.36458 1.4216 0 0 0 0</pose>
+      <pose>-3.36458 0.508917 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -3022,7 +3022,7 @@
     </model>
     <model name='pl_198'>
       <static>1</static>
-      <pose>-3.24916 1.46725 0 0 0 0</pose>
+      <pose>-3.24916 0.565627 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -3037,7 +3037,7 @@
     </model>
     <model name='pl_199'>
       <static>1</static>
-      <pose>-3.11404 1.43959 0 0 0 0</pose>
+      <pose>-3.11404 0.555302 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -3052,7 +3052,7 @@
     </model>
     <model name='pl_200'>
       <static>1</static>
-      <pose>-2.98219 1.4341 0 0 0 0</pose>
+      <pose>-2.98219 0.571195 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -3067,7 +3067,7 @@
     </model>
     <model name='pl_201'>
       <static>1</static>
-      <pose>-2.88025 1.41228 0 0 0 0</pose>
+      <pose>-2.88025 0.5679 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -3082,7 +3082,7 @@
     </model>
     <model name='pl_202'>
       <static>1</static>
-      <pose>-2.74014 1.39631 0 0 0 0</pose>
+      <pose>-2.74014 0.579139 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -3097,7 +3097,7 @@
     </model>
     <model name='pl_203'>
       <static>1</static>
-      <pose>-2.62771 1.31144 0 0 0 0</pose>
+      <pose>-2.62771 0.517515 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -3112,7 +3112,7 @@
     </model>
     <model name='pl_204'>
       <static>1</static>
-      <pose>-2.52178 1.3428 0 0 0 0</pose>
+      <pose>-2.52178 0.571895 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -3127,7 +3127,7 @@
     </model>
     <model name='pl_205'>
       <static>1</static>
-      <pose>-2.40356 1.32604 0 0 0 0</pose>
+      <pose>-2.40356 0.582066 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -3142,7 +3142,7 @@
     </model>
     <model name='pl_206'>
       <static>1</static>
-      <pose>-2.27284 1.28997 0 0 0 0</pose>
+      <pose>-2.27284 0.577248 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -3157,7 +3157,7 @@
     </model>
     <model name='pl_207'>
       <static>1</static>
-      <pose>-2.16255 1.31159 0 0 0 0</pose>
+      <pose>-2.16255 0.626391 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -3172,7 +3172,7 @@
     </model>
     <model name='pl_208'>
       <static>1</static>
-      <pose>-2.02512 1.19302 0 0 0 0</pose>
+      <pose>-2.02512 0.543537 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -3187,7 +3187,7 @@
     </model>
     <model name='pl_209'>
       <static>1</static>
-      <pose>-1.91891 1.24871 0 0 0 0</pose>
+      <pose>-1.91891 0.627856 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -3202,7 +3202,7 @@
     </model>
     <model name='pl_210'>
       <static>1</static>
-      <pose>-1.80412 1.16517 0 0 0 0</pose>
+      <pose>-1.80412 0.576224 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -3217,7 +3217,7 @@
     </model>
     <model name='pl_211'>
       <static>1</static>
-      <pose>-1.66823 1.10016 0 0 0 0</pose>
+      <pose>-1.66823 0.550198 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -3232,7 +3232,7 @@
     </model>
     <model name='pl_212'>
       <static>1</static>
-      <pose>-1.57401 1.07783 0 0 0 0</pose>
+      <pose>-1.57401 0.555626 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -3247,7 +3247,7 @@
     </model>
     <model name='pl_213'>
       <static>1</static>
-      <pose>-1.43569 1.06432 0 0 0 0</pose>
+      <pose>-1.43569 0.58389 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -3262,7 +3262,7 @@
     </model>
     <model name='pl_214'>
       <static>1</static>
-      <pose>-1.31061 0.992426 0 0 0 0</pose>
+      <pose>-1.31061 0.550731 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -3277,7 +3277,7 @@
     </model>
     <model name='pl_215'>
       <static>1</static>
-      <pose>-1.18976 0.969663 0 0 0 0</pose>
+      <pose>-1.18976 0.566195 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -3292,7 +3292,7 @@
     </model>
     <model name='pl_216'>
       <static>1</static>
-      <pose>-1.07753 0.918978 0 0 0 0</pose>
+      <pose>-1.07753 0.551656 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -3307,7 +3307,7 @@
     </model>
     <model name='pl_217'>
       <static>1</static>
-      <pose>-0.96292 0.900414 0 0 0 0</pose>
+      <pose>-0.96292 0.570585 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -3322,7 +3322,7 @@
     </model>
     <model name='pl_218'>
       <static>1</static>
-      <pose>-0.852651 0.824396 0 0 0 0</pose>
+      <pose>-0.852651 0.531139 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -3337,7 +3337,7 @@
     </model>
     <model name='pl_219'>
       <static>1</static>
-      <pose>-0.71994 0.754751 0 0 0 0</pose>
+      <pose>-0.71994 0.506081 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -3352,7 +3352,7 @@
     </model>
     <model name='pl_220'>
       <static>1</static>
-      <pose>-0.605231 0.699432 0 0 0 0</pose>
+      <pose>-0.605231 0.489735 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -3367,7 +3367,7 @@
     </model>
     <model name='pl_221'>
       <static>1</static>
-      <pose>-0.488195 0.736642 0 0 0 0</pose>
+      <pose>-0.488195 0.567053 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -3382,7 +3382,7 @@
     </model>
     <model name='pl_222'>
       <static>1</static>
-      <pose>-0.353203 0.671344 0 0 0 0</pose>
+      <pose>-0.353203 0.548365 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -3397,7 +3397,7 @@
     </model>
     <model name='pl_223'>
       <static>1</static>
-      <pose>-0.242785 0.592142 0 0 0 0</pose>
+      <pose>-0.242785 0.507495 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -3412,7 +3412,7 @@
     </model>
     <model name='pl_224'>
       <static>1</static>
-      <pose>-0.0980662 0.599704 0 0 0 0</pose>
+      <pose>-0.0980662 0.565479 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -3427,7 +3427,7 @@
     </model>
     <model name='pl_225'>
       <static>1</static>
-      <pose>0.0131214 0.51895 0 0 0 0</pose>
+      <pose>0.0131214 0.52353 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -3442,7 +3442,7 @@
     </model>
     <model name='pl_226'>
       <static>1</static>
-      <pose>0.117777 0.454314 0 0 0 0</pose>
+      <pose>0.117777 0.495414 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -3457,7 +3457,7 @@
     </model>
     <model name='pl_227'>
       <static>1</static>
-      <pose>0.249366 0.491119 0 0 0 0</pose>
+      <pose>0.249366 0.578054 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -3472,7 +3472,7 @@
     </model>
     <model name='pl_228'>
       <static>1</static>
-      <pose>0.337231 0.430992 0 0 0 0</pose>
+      <pose>0.337231 0.548436 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -3487,7 +3487,7 @@
     </model>
     <model name='pl_229'>
       <static>1</static>
-      <pose>0.487564 0.327767 0 0 0 0</pose>
+      <pose>0.487564 0.497139 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -3502,7 +3502,7 @@
     </model>
     <model name='pl_230'>
       <static>1</static>
-      <pose>0.578095 0.317621 0 0 0 0</pose>
+      <pose>0.578095 0.518047 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -3517,7 +3517,7 @@
     </model>
     <model name='pl_231'>
       <static>1</static>
-      <pose>0.712449 0.261778 0 0 0 0</pose>
+      <pose>0.712449 0.507914 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -3532,7 +3532,7 @@
     </model>
     <model name='pl_232'>
       <static>1</static>
-      <pose>0.84038 0.26833 0 0 0 0</pose>
+      <pose>0.84038 0.557489 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -3547,7 +3547,7 @@
     </model>
     <model name='pl_233'>
       <static>1</static>
-      <pose>0.967608 0.239687 0 0 0 0</pose>
+      <pose>0.967608 0.57106 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -3562,7 +3562,7 @@
     </model>
     <model name='pl_234'>
       <static>1</static>
-      <pose>1.09803 0.21096 0 0 0 0</pose>
+      <pose>1.09803 0.584929 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -3577,7 +3577,7 @@
     </model>
     <model name='pl_235'>
       <static>1</static>
-      <pose>1.18426 0.133127 0 0 0 0</pose>
+      <pose>1.18426 0.534837 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -3592,7 +3592,7 @@
     </model>
     <model name='pl_236'>
       <static>1</static>
-      <pose>1.30728 0.0770483 0 0 0 0</pose>
+      <pose>1.30728 0.517701 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -3607,7 +3607,7 @@
     </model>
     <model name='pl_237'>
       <static>1</static>
-      <pose>1.43902 0.0687091 0 0 0 0</pose>
+      <pose>1.43902 0.550164 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -3622,7 +3622,7 @@
     </model>
     <model name='pl_238'>
       <static>1</static>
-      <pose>1.56588 -0.0173904 0 0 0 0</pose>
+      <pose>1.56588 0.502392 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -3637,7 +3637,7 @@
     </model>
     <model name='pl_239'>
       <static>1</static>
-      <pose>1.66515 0.000240724 0 0 0 0</pose>
+      <pose>1.66515 0.549307 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -3652,7 +3652,7 @@
     </model>
     <model name='pl_240'>
       <static>1</static>
-      <pose>1.79761 -0.0464469 0 0 0 0</pose>
+      <pose>1.79761 0.540662 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -3667,7 +3667,7 @@
     </model>
     <model name='pl_241'>
       <static>1</static>
-      <pose>1.91924 -0.0937329 0 0 0 0</pose>
+      <pose>1.91924 0.527207 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -3682,7 +3682,7 @@
     </model>
     <model name='pl_242'>
       <static>1</static>
-      <pose>2.04842 -0.0950134 0 0 0 0</pose>
+      <pose>2.04842 0.560628 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -3697,7 +3697,7 @@
     </model>
     <model name='pl_243'>
       <static>1</static>
-      <pose>2.15895 -0.154441 0 0 0 0</pose>
+      <pose>2.15895 0.529838 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -3712,7 +3712,7 @@
     </model>
     <model name='pl_244'>
       <static>1</static>
-      <pose>2.27791 -0.24561 0 0 0 0</pose>
+      <pose>2.27791 0.468352 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -3727,7 +3727,7 @@
     </model>
     <model name='pl_245'>
       <static>1</static>
-      <pose>2.38822 -0.189268 0 0 0 0</pose>
+      <pose>2.38822 0.55112 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -3742,7 +3742,7 @@
     </model>
     <model name='pl_246'>
       <static>1</static>
-      <pose>2.50195 -0.210496 0 0 0 0</pose>
+      <pose>2.50195 0.555986 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -3757,7 +3757,7 @@
     </model>
     <model name='pl_247'>
       <static>1</static>
-      <pose>2.64177 -0.288229 0 0 0 0</pose>
+      <pose>2.64177 0.508674 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -3772,7 +3772,7 @@
     </model>
     <model name='pl_248'>
       <static>1</static>
-      <pose>2.75699 -0.279965 0 0 0 0</pose>
+      <pose>2.75699 0.540585 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -3787,7 +3787,7 @@
     </model>
     <model name='pl_249'>
       <static>1</static>
-      <pose>2.88552 -0.277002 0 0 0 0</pose>
+      <pose>2.88552 0.568357 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -3802,7 +3802,7 @@
     </model>
     <model name='pl_250'>
       <static>1</static>
-      <pose>2.99956 -0.341488 0 0 0 0</pose>
+      <pose>2.99956 0.524461 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -3817,7 +3817,7 @@
     </model>
     <model name='pl_251'>
       <static>1</static>
-      <pose>3.11827 -0.337886 0 0 0 0</pose>
+      <pose>3.11827 0.548037 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -3832,7 +3832,7 @@
     </model>
     <model name='pl_252'>
       <static>1</static>
-      <pose>3.24881 -0.347303 0 0 0 0</pose>
+      <pose>3.24881 0.55883 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -3847,7 +3847,7 @@
     </model>
     <model name='pl_253'>
       <static>1</static>
-      <pose>3.35133 -0.411318 0 0 0 0</pose>
+      <pose>3.35133 0.509368 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -3862,7 +3862,7 @@
     </model>
     <model name='pl_254'>
       <static>1</static>
-      <pose>3.47552 -0.408948 0 0 0 0</pose>
+      <pose>3.47552 0.527788 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -3877,7 +3877,7 @@
     </model>
     <model name='pl_255'>
       <static>1</static>
-      <pose>3.58666 -0.403085 0 0 0 0</pose>
+      <pose>3.58666 0.546522 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -3892,7 +3892,7 @@
     </model>
     <model name='pl_256'>
       <static>1</static>
-      <pose>3.71411 -0.409444 0 0 0 0</pose>
+      <pose>3.71411 0.553163 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -3907,7 +3907,7 @@
     </model>
     <model name='pl_257'>
       <static>1</static>
-      <pose>3.84628 -0.436467 0 0 0 0</pose>
+      <pose>3.84628 0.53761 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -3922,7 +3922,7 @@
     </model>
     <model name='pl_258'>
       <static>1</static>
-      <pose>3.98789 -0.443709 0 0 0 0</pose>
+      <pose>3.98789 0.540356 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -3937,7 +3937,7 @@
     </model>
     <model name='pl_259'>
       <static>1</static>
-      <pose>4.09322 -0.436286 0 0 0 0</pose>
+      <pose>4.09322 0.55365 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -3952,7 +3952,7 @@
     </model>
     <model name='pl_260'>
       <static>1</static>
-      <pose>4.21339 -0.516277 0 0 0 0</pose>
+      <pose>4.21339 0.478722 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -3967,7 +3967,7 @@
     </model>
     <model name='pl_261'>
       <static>1</static>
-      <pose>4.31098 -0.440413 0 0 0 0</pose>
+      <pose>4.31098 0.557411 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -3982,7 +3982,7 @@
     </model>
     <model name='pl_262'>
       <static>1</static>
-      <pose>4.44723 -0.379735 0 0 0 0</pose>
+      <pose>4.44723 0.620096 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -3997,7 +3997,7 @@
     </model>
     <model name='pl_263'>
       <static>1</static>
-      <pose>4.56387 -0.411356 0 0 0 0</pose>
+      <pose>4.56387 0.588395 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -4012,7 +4012,7 @@
     </model>
     <model name='pl_264'>
       <static>1</static>
-      <pose>4.6892 -0.419399 0 0 0 0</pose>
+      <pose>4.6892 0.578421 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -4027,7 +4027,7 @@
     </model>
     <model name='pl_265'>
       <static>1</static>
-      <pose>4.80612 -0.448978 0 0 0 0</pose>
+      <pose>4.80612 0.545318 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -4042,7 +4042,7 @@
     </model>
     <model name='pl_266'>
       <static>1</static>
-      <pose>4.92611 -0.471303 0 0 0 0</pose>
+      <pose>4.92611 0.517656 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -4057,7 +4057,7 @@
     </model>
     <model name='pl_267'>
       <static>1</static>
-      <pose>5.05418 -0.461864 0 0 0 0</pose>
+      <pose>5.05418 0.519484 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -4072,7 +4072,7 @@
     </model>
     <model name='pl_268'>
       <static>1</static>
-      <pose>5.16299 -0.359717 0 0 0 0</pose>
+      <pose>5.16299 0.613623 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -4087,7 +4087,7 @@
     </model>
     <model name='pl_269'>
       <static>1</static>
-      <pose>5.27732 -0.412829 0 0 0 0</pose>
+      <pose>5.27732 0.550585 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -4102,7 +4102,7 @@
     </model>
     <model name='pl_270'>
       <static>1</static>
-      <pose>5.41396 -0.398753 0 0 0 0</pose>
+      <pose>5.41396 0.550787 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -4117,7 +4117,7 @@
     </model>
     <model name='pl_271'>
       <static>1</static>
-      <pose>5.51031 -0.380711 0 0 0 0</pose>
+      <pose>5.51031 0.557745 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -4132,7 +4132,7 @@
     </model>
     <model name='pl_272'>
       <static>1</static>
-      <pose>5.64699 -0.349613 0 0 0 0</pose>
+      <pose>5.64699 0.571302 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -4147,7 +4147,7 @@
     </model>
     <model name='pl_273'>
       <static>1</static>
-      <pose>5.75073 -0.303625 0 0 0 0</pose>
+      <pose>5.75073 0.602575 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -4162,7 +4162,7 @@
     </model>
     <model name='pl_274'>
       <static>1</static>
-      <pose>5.9 -0.3324 0 0 0 0</pose>
+      <pose>5.9 0.550547 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -4177,7 +4177,7 @@
     </model>
     <model name='pl_275'>
       <static>1</static>
-      <pose>6.00322 -0.328318 0 0 0 0</pose>
+      <pose>6.00322 0.537145 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -4192,7 +4192,7 @@
     </model>
     <model name='pl_276'>
       <static>1</static>
-      <pose>6.13697 -0.312288 0 0 0 0</pose>
+      <pose>6.13697 0.528852 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -4207,7 +4207,7 @@
     </model>
     <model name='pl_277'>
       <static>1</static>
-      <pose>6.24809 -0.283925 0 0 0 0</pose>
+      <pose>6.24809 0.535609 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -4222,7 +4222,7 @@
     </model>
     <model name='pl_278'>
       <static>1</static>
-      <pose>6.35167 -0.226724 0 0 0 0</pose>
+      <pose>6.35167 0.57156 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -4237,7 +4237,7 @@
     </model>
     <model name='pl_279'>
       <static>1</static>
-      <pose>6.49601 -0.217243 0 0 0 0</pose>
+      <pose>6.49601 0.549696 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -4252,7 +4252,7 @@
     </model>
     <model name='pl_280'>
       <static>1</static>
-      <pose>6.59187 -0.170696 0 0 0 0</pose>
+      <pose>6.59187 0.574344 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -4267,7 +4267,7 @@
     </model>
     <model name='pl_281'>
       <static>1</static>
-      <pose>6.71941 -0.155299 0 0 0 0</pose>
+      <pose>6.71941 0.559319 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -4282,7 +4282,7 @@
     </model>
     <model name='pl_282'>
       <static>1</static>
-      <pose>6.85827 -0.0959345 0 0 0 0</pose>
+      <pose>6.85827 0.583949 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -4297,7 +4297,7 @@
     </model>
     <model name='pl_283'>
       <static>1</static>
-      <pose>6.95376 -0.03656 0 0 0 0</pose>
+      <pose>6.95376 0.618507 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -4312,7 +4312,7 @@
     </model>
     <model name='pl_284'>
       <static>1</static>
-      <pose>7.08004 -0.0475579 0 0 0 0</pose>
+      <pose>7.08004 0.573579 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -4327,7 +4327,7 @@
     </model>
     <model name='pl_285'>
       <static>1</static>
-      <pose>7.19223 -0.0413167 0 0 0 0</pose>
+      <pose>7.19223 0.54866 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -4342,7 +4342,7 @@
     </model>
     <model name='pl_286'>
       <static>1</static>
-      <pose>7.299 0.0441179 0 0 0 0</pose>
+      <pose>7.299 0.6036 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -4357,7 +4357,7 @@
     </model>
     <model name='pl_287'>
       <static>1</static>
-      <pose>7.45639 0.000415813 0 0 0 0</pose>
+      <pose>7.45639 0.513541 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -4372,7 +4372,7 @@
     </model>
     <model name='pl_288'>
       <static>1</static>
-      <pose>7.54194 0.014099 0 0 0 0</pose>
+      <pose>7.54194 0.501368 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -4387,7 +4387,7 @@
     </model>
     <model name='pl_289'>
       <static>1</static>
-      <pose>7.69411 0.0959951 0 0 0 0</pose>
+      <pose>7.69411 0.536214 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -4402,7 +4402,7 @@
     </model>
     <model name='pl_290'>
       <static>1</static>
-      <pose>7.79927 0.133649 0 0 0 0</pose>
+      <pose>7.79927 0.540617 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -4417,7 +4417,7 @@
     </model>
     <model name='pl_291'>
       <static>1</static>
-      <pose>7.91855 0.148758 0 0 0 0</pose>
+      <pose>7.91855 0.517355 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -4432,7 +4432,7 @@
     </model>
     <model name='pl_292'>
       <static>1</static>
-      <pose>8.04029 0.178089 0 0 0 0</pose>
+      <pose>8.04029 0.50686 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -4447,7 +4447,7 @@
     </model>
     <model name='pl_293'>
       <static>1</static>
-      <pose>8.15914 0.269944 0 0 0 0</pose>
+      <pose>8.15914 0.559262 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -4462,7 +4462,7 @@
     </model>
     <model name='pl_294'>
       <static>1</static>
-      <pose>8.28561 0.296256 0 0 0 0</pose>
+      <pose>8.28561 0.543048 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -4477,7 +4477,7 @@
     </model>
     <model name='pl_295'>
       <static>1</static>
-      <pose>8.38916 0.343174 0 0 0 0</pose>
+      <pose>8.38916 0.554787 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -4492,7 +4492,7 @@
     </model>
     <model name='pl_296'>
       <static>1</static>
-      <pose>8.51418 0.428205 0 0 0 0</pose>
+      <pose>8.51418 0.596975 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -4507,7 +4507,7 @@
     </model>
     <model name='pl_297'>
       <static>1</static>
-      <pose>8.64921 0.424402 0 0 0 0</pose>
+      <pose>8.64921 0.546544 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -4522,7 +4522,7 @@
     </model>
     <model name='pl_298'>
       <static>1</static>
-      <pose>8.75435 0.443275 0 0 0 0</pose>
+      <pose>8.75435 0.52892 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
@@ -4537,7 +4537,7 @@
     </model>
     <model name='pl_299'>
       <static>1</static>
-      <pose>8.86875 0.493614 0 0 0 0</pose>
+      <pose>8.86875 0.539412 0 0 0 0</pose>
       <link name='l'>
         <visual name='v'>
           <geometry>
