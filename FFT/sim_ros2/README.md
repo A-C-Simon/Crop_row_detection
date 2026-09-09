@@ -30,8 +30,11 @@ the MultiROI rig uses a look-into-the-turn lead. Probes print
 ## Pipeline notes (`src/fftsim/fftsim/pipeline.py`)
 
 * Fixed BEV geometry for the sim camera: pitch 66 deg from nadir, 1.4 m
-  high, 51 deg vertical FOV, 10 m range (env overrides `FFT_PITCH_DEG`,
-  `FFT_HEIGHT_M`, `FFT_FOV_Y_DEG`, `FFT_YAW_DEG`, `FFT_RANGE_M`).
+  high, 51 deg vertical FOV, 5 m range (env overrides `FFT_PITCH_DEG`,
+  `FFT_HEIGHT_M`, `FFT_FOV_Y_DEG`, `FFT_YAW_DEG`, `FFT_RANGE_M`). The short
+  range is deliberate: a 10 m window lets S-bends smear the spectrum
+  (spawn read −0.79 m at prom 138 with full confidence), while 5 m sees
+  straighter rows (−0.22 m, prom 85) and runs ~4x faster.
 * Accepts a frame when `n_rows >= 2` and prominence >= 10, else holds the
   last detection (status `HELD`). Lateral error in meters × 300 px/m feeds
   the shared servo; confidence scales forward speed.
@@ -54,21 +57,27 @@ the MultiROI rig uses a look-into-the-turn lead. Probes print
   (same convention as the MultiROI lookahead FF). Suggested 0.5 for the
   ring world once affinity is on.
 * BEV reference trim (`trim` launch arg, per-world `trim_default` in the
-  spawn sidecar): the rectified reference sits off true straight-ahead by a
-  near-constant amount for a fixed camera. The ring world carries 0.17 m;
-  without it the loop settles ~0.2 m off.
+  spawn sidecar, currently 0.0): subtracts a static bias from raw ey.
+  Needed at 10 m range (0.17 m bias); the 5 m window is near-unbiased so
+  the default stays 0.
 * Overlay (`/fftsim/overlay`): back-projected row borders/centerline from
   `corridor_in_image` plus `ey/eth/rows/prominence` text. CSV schema matches
   the MultiROI rig with `cross_track` in meters of lateral deviation.
 * Runs ~75 ms/frame (~7-13 Hz); fast enough for the 0.2 m/s rover.
 
-## Reference result (committed ring, R = 12 m, trim 0.17 m)
+## Reference results (5 m range, trim 0.0)
 
-Full half-lap, clean `completed 0.5 lap(s)` stop at 180 deg: true radial
-error mean −0.04 m, max 0.20 m; reported `err_x` mean +51 px (BEV-frame
-remainder, not displacement); `n_rows` 5+, no dropouts. A yaw-lead spawn
-(as used by the MultiROI rig) over-reacts with this detector; tangent
-spawn tracks stably.
+Ring (R = 12 m): full half-lap, clean stop at −179.8 deg. Reported `err_x`
+mean 21 px, max 67 px; true radial error mean 0.11 m, max 0.20 m; `n_rows`
+3+, no dropouts. A yaw-lead spawn (as used by the MultiROI rig)
+over-reacts with this detector; tangent spawn tracks stably.
+
+S-bend (`farm_curve.world`, straight spawn): 13 m traversed (`−8 → +5`),
+`|err_x|` mean 13 px, max 43 px, no dropouts, clean `max_seconds` stop.
+Plus safety nets that earned their keep: the straddle gate rejects
+wrong-furrow locks (same-side row pairs), and the rover stands still
+(`v = w = 0`) after ~30 consecutively held frames instead of driving
+blind into the crops.
 
 ## Verification (offline, no Gazebo needed)
 
