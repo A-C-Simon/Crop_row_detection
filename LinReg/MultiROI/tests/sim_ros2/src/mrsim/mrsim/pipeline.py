@@ -158,7 +158,27 @@ def build_pipeline(algorithm: str):
             name = "multiroi"
 
             def __init__(self):
-                self.detector = MultiROIDetector()
+                # line_fit=1 selects the straight least-squares nav line
+                # instead of the smoothing-spline nav curve (same switch as
+                # run_mr_navigation.py --line).
+                line_fit = str(os.environ.get("MRSIM_LINE_FIT", "0")).lower() \
+                    in ("1", "true", "yes")
+                # ROI vertical coverage: shorter lookahead bends less across
+                # the view, which reduces inside-cutting on curves at the
+                # cost of less preview. Validated default 0.75.
+                try:
+                    vc = float(os.environ.get("MRSIM_VERTICAL_COVERAGE", "0.75"))
+                except ValueError:
+                    vc = 0.75
+                vc = min(1.0, max(0.3, vc))
+                try:
+                    iwf = float(os.environ.get("MRSIM_INIT_WINDOW", "1.0"))
+                except ValueError:
+                    iwf = 1.0
+                self.detector = MultiROIDetector(nav_curve=(not line_fit),
+                                                 vertical_coverage=vc,
+                                                 init_window_frac=iwf)
+                self.line_fit = line_fit
                 # servo gains overridable for experiments (defaults = the
                 # validated values); e.g. a smaller lambda_theta leans on the
                 # local lateral error instead of the lookahead heading, which
@@ -176,14 +196,18 @@ def build_pipeline(algorithm: str):
                 except ValueError:
                     hg = 0.1
                 try:
+                    ki = float(os.environ.get("MRSIM_KI", "0.3"))
+                except ValueError:
+                    ki = 0.3
+                try:
                     fg = float(os.environ.get("MRSIM_FF_GAIN", "0.0"))
                 except ValueError:
                     fg = 0.0
                 self.ff_gain = fg
                 self.ff_mem = {}
                 self.vs = MultiROIVS(MRVSParams(
-                    width=640, height=480, vertical_coverage=0.75,
-                    lambda_x=lx, lambda_theta=lt, heading_gate=hg))
+                    width=640, height=480, vertical_coverage=vc,
+                    lambda_x=lx, lambda_theta=lt, heading_gate=hg, ki=ki))
                 self.t_filter = TemporalNavigationFilter(
                     TemporalFilterParams(image_width=640, image_height=480,
                                          n_strips=self.detector.n))
