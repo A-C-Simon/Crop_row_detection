@@ -3,11 +3,20 @@
     export FFT_DIR=/abs/path/to/FFT
     export MULTIROI_DIR=/abs/path/to/LinReg/MultiROI   # shared servo only
     ros2 launch fftsim farm.launch.py log_dir:=/tmp/fftsim_log
+    ros2 launch fftsim farm.launch.py field:=zigzag5 log_dir:=/tmp/z
 
-Starts gzserver headless on the generated farm world, spawns the rover in
-the furrow between two plant rows, and runs `nav_node.py` (camera ->
-DFT detector -> shared visual servo -> /cmd_vel). The launch shuts
-everything down when the nav node exits (end of lane / max time / Ctrl-C).
+Starts gzserver headless on the selected field, spawns the rover in the
+configured furrow, and runs `nav_node.py` (camera -> DFT detector ->
+shared visual servo -> /cmd_vel). The launch shuts everything down when
+the nav node exits (end of lane / laps / max time / Ctrl-C).
+
+Fields (world + spawn/lane defaults travel together; explicit robot_*/
+lane/circle args always win):
+    circle    2-row ring R12 (default)      curve     2-row S-bend
+    straight  2-row straight                curve5    5-row S-bend
+    straight5 5-row straight                zigzag5   5-row gentle zigzag
+Custom world file: world:=/path/to.world (sibling .spawn.json used when
+present, else the field sidecar).
 
 Note: the nav node is launched as `python3 nav_node.py` with env vars
 instead of a console script, because colcon (modern setuptools) installs
@@ -23,11 +32,11 @@ from launch import LaunchDescription
 from launch.actions import (DeclareLaunchArgument, IncludeLaunchDescription,
                             Shutdown, AppendEnvironmentVariable,
                             SetEnvironmentVariable,
-                            RegisterEventHandler, ExecuteProcess)
+                            RegisterEventHandler, ExecuteProcess,
+                            OpaqueFunction)
 from launch.conditions import IfCondition
 from launch.event_handlers import OnProcessExit
 from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
 from launch_ros.actions import Node
 
 PACKAGE = "fftsim"
@@ -72,38 +81,82 @@ if not (_NAV_PY.exists() and _TELEOP_PY.exists()):
     raise RuntimeError(f"fftsim nodes not found under {_SIM_SRC}")
 
 
-def _load_sidecar(pkg_share):
-    """Spawn/lane defaults for the committed world (written by
-    gen_farm_world.py as <world-stem>.spawn.json). Custom worlds passed via
-    world:= should set robot_x/y/yaw and circle_* explicitly."""
+FIELDS = {
+    "circle": "farm_maize",
+    "curve": "farm_curve",
+    "straight": "farm_straight",
+    "curve5": "farm_curve5",
+    "straight5": "farm_straight5",
+    "zigzag5": "farm_zigzag5",
+}
+
+
+def _read_sidecar(path):
+    try:
+        p = Path(path)
+        if p.is_file():
+            return json.loads(p.read_text())
+    except Exception:
+        pass
+    return {}
+
+
+def _load_sidecar(pkg_share, field, world):
+    """Spawn/lane defaults for a field.
+
+    Precedence per key: explicit launch arg > sibling sidecar of an
+    explicitly passed world file > the field preset sidecar > hardcoded
+    fallback. Returns (world_file, defaults dict).
+    """
+    worlds = Path(pkg_share) / "worlds"
+    stem = FIELDS.get(field, "farm_maize")
+    world_file = world or str(worlds / (stem + ".world"))
+    chain = []
+    if world:
+        sib = str(Path(world).with_suffix("")) + ".spawn.json"
+        chain.append(_read_sidecar(sib))
+    chain.append(_read_sidecar(worlds / (stem + ".spawn.json")))
     defaults = {"robot_x": "-8.0", "robot_y": "0.0", "robot_yaw": "0.0",
                 "lane_y": "0.0", "lane_end_x": "9.0",
                 "circle_cx": "0.0", "circle_cy": "0.0", "circle_r": "0.0",
                 "max_laps_default": "1", "trim_default": "0.0"}
-    try:
-        sc = Path(pkg_share) / "worlds" / "farm_maize.spawn.json"
-        if sc.is_file():
-            raw = json.loads(sc.read_text())
-            for k in ("robot_x", "robot_y", "robot_yaw", "lane_y",
-                      "lane_end_x", "circle_cx", "circle_cy", "circle_r"):
-                if raw.get(k) is not None:
-                    defaults[k] = str(raw[k])
-            if raw.get("max_laps_default") is not None:
-                defaults["max_laps_default"] = str(raw["max_laps_default"])
-            if raw.get("trim_default") is not None:
-                defaults["trim_default"] = str(raw["trim_default"])
-    except Exception:
-        pass
-    return defaults
+    for sc in reversed(chain):
+        for k in ("robot_x", "robot_y", "robot_yaw", "lane_y",
+                  "lane_end_x", "circle_cx", "circle_cy", "circle_r"):
+            if sc.get(k) is not None:
+                defaults[k] = str(sc[k])
+        for k in ("max_laps_default", "trim_default"):
+            if sc.get(k) is not None:
+                defaults[k] = str(sc[k])
+    return world_file, defaults
 
 
-def generate_launch_description():
+def _setup(context):
+    cfg = context.launch_configurations
     pkg_share = get_package_share_directory(PACKAGE)
     gazebo_share = get_package_share_directory("gazebo_ros")
     gazebo_default_models = "/usr/share/gazebo-11/models"
-    sidecar = _load_sidecar(pkg_share)
+    field = cfg.get("field", "circle")
+    world_file, sidecar = _load_sidecar(
+        pkg_share, field, cfg.get("world", ""))
 
-    sim_mode = LaunchConfiguration("mode")
+    def val(name, sidecar_key=None, fallback=""):
+        v = cfg.get(name, "")
+        if v == "" and sidecar_key and sidecar.get(sidecar_key) is not None:
+            return str(sidecar[sidecar_key])
+        return v if v != "" else fallback
+
+    robot_x = val("robot_x", "robot_x", "-8.0")
+    robot_y = val("robot_y", "robot_y", "0.0")
+    robot_yaw = val("robot_yaw", "robot_yaw", "0.0")
+    lane_y = val("lane_y", "lane_y", "0.0")
+    lane_end_x = val("lane_end_x", "lane_end_x", "9.0")
+    circle_cx = val("circle_cx", "circle_cx", "0.0")
+    circle_cy = val("circle_cy", "circle_cy", "0.0")
+    circle_r = val("circle_r", "circle_r", "0.0")
+    max_laps = val("max_laps", "max_laps_default", "1")
+    trim = val("trim", "trim_default", "0.0")
+
     # idle env: nav node runs detection/overlay but never publishes /cmd_vel
     # unless mode:=auto (so teleop/demo own the topic)
     nav_idle = "1" if os.environ.get("MRSIM_SIM_MODE", "auto") != "auto" else ""
@@ -113,19 +166,19 @@ def generate_launch_description():
         additional_env={
             "MRSIM_MODE": "nav",
             "MRSIM_NAV_IDLE": nav_idle,
-            "MRSIM_LANE_Y": LaunchConfiguration("lane_y"),
-            "MRSIM_LANE_END_X": LaunchConfiguration("lane_end_x"),
-            "MRSIM_CIRCLE_CX": LaunchConfiguration("circle_cx"),
-            "MRSIM_CIRCLE_CY": LaunchConfiguration("circle_cy"),
-            "MRSIM_CIRCLE_R": LaunchConfiguration("circle_r"),
-            "MRSIM_CIRCLE_LAPS": LaunchConfiguration("max_laps"),
-            "MRSIM_LAMBDA_X": LaunchConfiguration("lambda_x"),
-            "MRSIM_LAMBDA_THETA": LaunchConfiguration("lambda_theta"),
-            "MRSIM_HEADING_GATE": LaunchConfiguration("heading_gate"),
-            "MRSIM_FF_GAIN": LaunchConfiguration("ff_gain"),
-            "FFT_TRIM_M": LaunchConfiguration("trim"),
-            "MRSIM_LOG_DIR": LaunchConfiguration("log_dir"),
-            "MRSIM_MAX_SECONDS": LaunchConfiguration("max_seconds"),
+            "MRSIM_LANE_Y": lane_y,
+            "MRSIM_LANE_END_X": lane_end_x,
+            "MRSIM_CIRCLE_CX": circle_cx,
+            "MRSIM_CIRCLE_CY": circle_cy,
+            "MRSIM_CIRCLE_R": circle_r,
+            "MRSIM_CIRCLE_LAPS": max_laps,
+            "MRSIM_LAMBDA_X": cfg.get("lambda_x", "2.0"),
+            "MRSIM_LAMBDA_THETA": cfg.get("lambda_theta", "1.0"),
+            "MRSIM_HEADING_GATE": cfg.get("heading_gate", "0.1"),
+            "MRSIM_FF_GAIN": cfg.get("ff_gain", "0.0"),
+            "FFT_TRIM_M": trim,
+            "MRSIM_LOG_DIR": cfg.get("log_dir", "/tmp/fftsim_log"),
+            "MRSIM_MAX_SECONDS": cfg.get("max_seconds", "0"),
         })
 
     # mode:=demo - scripted keys, headless-verifiable. The demo process exits
@@ -135,54 +188,9 @@ def generate_launch_description():
         cmd=[sys.executable, str(_TELEOP_PY)],
         output="screen",
         condition=IfCondition("1" if os.environ.get("MRSIM_SIM_MODE", "auto") == "demo" else "0"),
-        additional_env={"MRSIM_DEMO_KEYS": LaunchConfiguration("demo_keys")})
+        additional_env={"MRSIM_DEMO_KEYS": cfg.get("demo_keys", "w w w a a s s")})
 
-    return LaunchDescription([
-        DeclareLaunchArgument("world", default_value=PathJoinSubstitution(
-            [pkg_share, "worlds", "farm_maize.world"])),
-        DeclareLaunchArgument("mode", default_value="auto",
-                              choices=["auto", "teleop", "demo"],
-                              description="auto=FFT drives; "
-                                          "teleop=keyboard node drives "
-                                          "(nav node idles, GUI view); "
-                                          "demo=scripted keys (headless test)"),
-        DeclareLaunchArgument("demo_keys", default_value="w w w a a s s",
-                              description="scripted key sequence for mode:=demo"),
-        DeclareLaunchArgument("gui", default_value="false"),
-        DeclareLaunchArgument("robot_x", default_value=sidecar["robot_x"]),
-        DeclareLaunchArgument("robot_y", default_value=sidecar["robot_y"]),
-        DeclareLaunchArgument("robot_yaw", default_value=sidecar["robot_yaw"]),
-        DeclareLaunchArgument("lane_y", default_value=sidecar["lane_y"]),
-        DeclareLaunchArgument("lane_end_x", default_value=sidecar["lane_end_x"]),
-        DeclareLaunchArgument("circle_cx", default_value=sidecar["circle_cx"],
-                              description="ring-field center x (0 = straight mode off)"),
-        DeclareLaunchArgument("circle_cy", default_value=sidecar["circle_cy"],
-                              description="ring-field center y"),
-        DeclareLaunchArgument("circle_r", default_value=sidecar["circle_r"],
-                              description="ring furrow radius; <=0 = straight lane "
-                                          "(end at lane_end_x)"),
-        DeclareLaunchArgument("max_laps", default_value=sidecar["max_laps_default"],
-                              description="ring-field laps before auto-stop; "
-                                          "<=0 = loop forever"),
-        DeclareLaunchArgument("lambda_x", default_value="2.0",
-                              description="servo lateral gain (validated default)"),
-        DeclareLaunchArgument("lambda_theta", default_value="1.0",
-                              description="servo heading gain (validated default; "
-                                          "try 0.5 to reduce inside-cut on rings)"),
-        DeclareLaunchArgument("heading_gate", default_value="0.1",
-                              description="lateral-priority gate width (normalized "
-                                          "lateral error at which heading authority "
-                                          "halves; <=0 disables)"),
-        DeclareLaunchArgument("ff_gain", default_value="0.0",
-                              description="curvature-feedforward gain (experiment, "
-                                          "default off)"),
-        DeclareLaunchArgument("trim", default_value=sidecar["trim_default"],
-                              description="static lateral bias trim in meters, "
-                                          "subtracted from raw ey (BEV reference "
-                                          "calibration)"),
-        DeclareLaunchArgument("max_seconds", default_value="0"),
-        DeclareLaunchArgument("log_dir", default_value="/tmp/fftsim_log"),
-
+    return [
         # env for gazebo + spawn
         AppendEnvironmentVariable("GAZEBO_MODEL_PATH",
                                   f"{_AGRIBOT_MODELS}:{gazebo_default_models}"),
@@ -194,8 +202,8 @@ def generate_launch_description():
             PythonLaunchDescriptionSource(
                 os.path.join(gazebo_share, "launch", "gazebo.launch.py")),
             launch_arguments={
-                "world": LaunchConfiguration("world"),
-                "gui": LaunchConfiguration("gui"),
+                "world": world_file,
+                "gui": cfg.get("gui", "false"),
                 "verbose": "false",
             }.items(),
         ),
@@ -213,10 +221,10 @@ def generate_launch_description():
              arguments=[
                  "-topic", "robot_description",
                  "-entity", "rover",
-                 "-x", LaunchConfiguration("robot_x"),
-                 "-y", LaunchConfiguration("robot_y"),
+                 "-x", robot_x,
+                 "-y", robot_y,
                  "-z", "0.0",
-                 "-Y", LaunchConfiguration("robot_yaw"),
+                 "-Y", robot_yaw,
              ]),
 
         # 4) FFT navigation node (idles its /cmd_vel unless mode:=auto)
@@ -229,4 +237,63 @@ def generate_launch_description():
                                            on_exit=[Shutdown(reason="nav done")])),
         RegisterEventHandler(OnProcessExit(target_action=demo,
                                            on_exit=[Shutdown(reason="demo done")])),
+    ]
+
+
+def generate_launch_description():
+    return LaunchDescription([
+        DeclareLaunchArgument(
+            "field", default_value="circle", choices=list(FIELDS) + ["custom"],
+            description="field preset (world + spawn/lane defaults travel "
+                        "together); use field:=custom with world:= for other files"),
+        DeclareLaunchArgument("world", default_value="",
+                              description="world file override (empty = the "
+                                          "field preset world; a sibling "
+                                          ".spawn.json seeds defaults)"),
+        DeclareLaunchArgument("mode", default_value="auto",
+                              choices=["auto", "teleop", "demo"],
+                              description="auto=FFT drives; "
+                                          "teleop=keyboard node drives "
+                                          "(nav node idles, GUI view); "
+                                          "demo=scripted keys (headless test)"),
+        DeclareLaunchArgument("demo_keys", default_value="w w w a a s s",
+                              description="scripted key sequence for mode:=demo"),
+        DeclareLaunchArgument("gui", default_value="false"),
+        DeclareLaunchArgument("robot_x", default_value="",
+                              description="spawn x (empty = field default)"),
+        DeclareLaunchArgument("robot_y", default_value="",
+                              description="spawn y (empty = field default)"),
+        DeclareLaunchArgument("robot_yaw", default_value="",
+                              description="spawn yaw (empty = field default)"),
+        DeclareLaunchArgument("lane_y", default_value="",
+                              description="furrow center y (empty = field default)"),
+        DeclareLaunchArgument("lane_end_x", default_value="9.0"),
+        DeclareLaunchArgument("circle_cx", default_value="",
+                              description="ring-field center x (empty = field default)"),
+        DeclareLaunchArgument("circle_cy", default_value="",
+                              description="ring-field center y (empty = field default)"),
+        DeclareLaunchArgument("circle_r", default_value="",
+                              description="ring furrow radius; <=0 = straight lane "
+                                          "(end at lane_end_x; empty = field default)"),
+        DeclareLaunchArgument("max_laps", default_value="",
+                              description="ring-field laps before auto-stop; "
+                                          "<=0 = loop forever (empty = field default)"),
+        DeclareLaunchArgument("lambda_x", default_value="2.0",
+                              description="servo lateral gain (validated default)"),
+        DeclareLaunchArgument("lambda_theta", default_value="1.0",
+                              description="servo heading gain (validated default; "
+                                          "try 0.5 to reduce inside-cut on rings)"),
+        DeclareLaunchArgument("heading_gate", default_value="0.1",
+                              description="lateral-priority gate width (normalized "
+                                          "lateral error at which heading authority "
+                                          "halves; <=0 disables)"),
+        DeclareLaunchArgument("ff_gain", default_value="0.0",
+                              description="curvature-feedforward gain (experiment, "
+                                          "default off)"),
+        DeclareLaunchArgument("trim", default_value="",
+                              description="static lateral bias trim in meters "
+                                          "(empty = field default)"),
+        DeclareLaunchArgument("max_seconds", default_value="0"),
+        DeclareLaunchArgument("log_dir", default_value="/tmp/fftsim_log"),
+        OpaqueFunction(function=_setup),
     ])
