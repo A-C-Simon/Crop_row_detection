@@ -19,13 +19,19 @@ tree) and `MULTIROI_DIR` for the shared servo.
 cd FFT/sim_ros2
 ./run_sim.sh --probe --out /tmp/fft_probe   # 5 frames: n_rows/ey/theta/prominence
 ./run_sim.sh --out /tmp/fft_log             # closed loop, 0.5-lap default
+./run_sim.sh --straight 5 --out /tmp/fft_s5 # numbered rows: --straight/--curved/--zigzag
 ./run_sim_gui.sh --auto                     # GUI + autonomous driving
 ```
 
-Spawn/termination defaults follow `src/fftsim/worlds/farm_maize.spawn.json`.
-Note the ring spawn yaw is tangent (1.5708): the DFT view prefers it, while
-the MultiROI rig uses a look-into-the-turn lead. Probes print
-`n_rows ey theta prom status`.
+Fields work like the MultiROI rig: `--circle` (default), `--curve[N]`,
+`--straight[N]`, `--zigzag[N]` (bare flag: N=2, N=5 for zigzag; other
+counts generate on demand into a shared fields cache). Explicit
+`--x/--y/--yaw/--laps` always win; `--world` selects a custom file.
+
+Spawn/termination defaults follow the field sidecars (e.g.
+`src/fftsim/worlds/farm_maize.spawn.json`).
+Note the ring spawn yaw is a look-into-the-turn lead (1.8308), same as the
+MultiROI rig. Probes print `n_rows ey theta prom status`.
 
 ## Pipeline notes (`src/fftsim/fftsim/pipeline.py`)
 
@@ -69,8 +75,8 @@ the MultiROI rig uses a look-into-the-turn lead. Probes print
 
 Ring (R = 12 m): full half-lap, clean stop at −179.8 deg. Reported `err_x`
 mean 21 px, max 67 px; true radial error mean 0.11 m, max 0.20 m; `n_rows`
-3+, no dropouts. A yaw-lead spawn (as used by the MultiROI rig)
-over-reacts with this detector; tangent spawn tracks stably.
+3+, no dropouts. A tangent spawn also tracks stably here; the yaw lead is
+shared with the MultiROI rig for consistent spawn geometry.
 
 S-bend (`farm_curve.world`, straight spawn): 13 m traversed (`−8 → +5`),
 `|err_x|` mean 13 px, max 43 px, no dropouts, clean `max_seconds` stop.
