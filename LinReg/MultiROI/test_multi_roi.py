@@ -179,7 +179,8 @@ class MultiROIDetector:
                  prior_min_conf=0.40, prior_min_center_px=12.0,
                  ignore_initial: int = 0,
                  vertical_coverage: float = 0.75,
-                 roi_draw_frac: float = 1.0):
+                 roi_draw_frac: float = 1.0,
+                 init_window_frac: float = 1.0):
         self.n = n_strips
         self.l_frac = l_frac             # clustering distance L as fraction of W
         self.border_frac = border_frac
@@ -222,6 +223,13 @@ class MultiROIDetector:
         # roi_draw_frac=0.75 means each white box is 75% of strip height (centered)
         self.vertical_coverage = float(vertical_coverage)
         self.roi_draw_frac = float(roi_draw_frac)
+        # --- initial strip window: start the strip-1 climb in the central
+        # init_window_frac of the image instead of full width, so the first
+        # pick anchors the furrow the camera is already in. 1.0 = legacy
+        # full-width search (can anchor on outer rows when several identical
+        # corridors are visible, cf. photo_6); 0.4 keeps the driven furrow
+        # for a centered spawn while upper strips still roam freely.
+        self.init_window_frac = float(min(1.0, max(0.1, init_window_frac)))
 
     def detect(self, bgr, lookahead_prior=None):
         """Run the full pipeline on one BGR image; returns results dict.
@@ -294,7 +302,12 @@ class MultiROIDetector:
         strip_suppressed = [False] * self.n  # true when lookahead prior held ROI/midpoint
 
         mo_x = w / 2.0                       # Sec. 2.3.2: initial midpoint MO
-        x_lo, x_hi = 0, w                    # initial ROI = full strip width
+        iwf = float(getattr(self, "init_window_frac", 1.0))
+        if iwf >= 1.0:
+            x_lo, x_hi = 0, w                # initial ROI = full strip width
+        else:
+            x_lo = int(max(0, round(w / 2.0 - w * iwf / 2.0)))
+            x_hi = int(min(w, round(w / 2.0 + w * iwf / 2.0)))
         # --- lookahead prior seeding: keep boxes/midpoints steady through gaps ---
         if lookahead_prior is not None:
             try:
