@@ -332,9 +332,11 @@ def generate_launch_description():
                                           "(0 = until Ctrl-C)"),
         DeclareLaunchArgument("turn_mode", default_value="bulb",
                               description="headland turn style: bulb "
-                                          "(odometry push/spin/slide/spin) or "
+                                          "(odometry push/spin/slide/spin), "
                                           "fishtail (rear-guided reverse-in, "
-                                          "no spinning)"),
+                                          "no spinning) or shuttle (no turns: "
+                                          "vision row-end, lateral jog, "
+                                          "alternate forward/backward lanes)"),
         DeclareLaunchArgument("lane_y", default_value="",
                               description="furrow center y (empty = field default)"),
         DeclareLaunchArgument("lane_end_x", default_value="9.0"),

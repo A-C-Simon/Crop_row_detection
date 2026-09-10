@@ -33,7 +33,7 @@
 #     --rows-change 0 is given.
 #   --max-lanes N  lanes to cover before auto-stop (0 = until Ctrl-C;
 #     defaults to a full sweep of the field).
-#   --turn-mode bulb|fishtail: headland turn style (default bulb).
+#   --turn-mode bulb|fishtail|shuttle: headland turn style (default bulb).
 #   --laps N       ring-field laps before auto-stop, 0 = loop forever.
 #   --line         straight nav-line fit instead of the spline.
 #   --coverage F / --init-window F / --world PATH  see run_sim.sh header.
@@ -130,8 +130,8 @@ while [[ $# -gt 0 ]]; do
       HAVE_RC=1; RC_VALUE="$2"; shift 2 ;;
     --max-lanes) EXTRA_ARGS+=(max_lanes:="$2"); HAVE_MAXLANES=1; shift 2 ;;
     --turn-mode)
-      if [[ "$2" != "bulb" && "$2" != "fishtail" ]]; then
-        echo "--turn-mode takes bulb or fishtail"; exit 1; fi
+      if [[ "$2" != "bulb" && "$2" != "fishtail" && "$2" != "shuttle" ]]; then
+        echo "--turn-mode takes bulb, fishtail or shuttle"; exit 1; fi
       EXTRA_ARGS+=(turn_mode:="$2"); shift 2 ;;
     --line) EXTRA_ARGS+=(line_fit:=true) ; shift ;;
     --coverage) EXTRA_ARGS+=(vertical_coverage:="$2") ; shift 2 ;;

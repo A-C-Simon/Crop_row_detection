@@ -111,13 +111,14 @@ class MultiROINavNode(Node):
         self.turn_dir = 1
         self.lanes_done = 0
         self.drive_dir = 1
-        # turn_mode: "bulb" (odometry push/spin/slide/spin, validated) or
-        # "fishtail" (rear-guided reverse-in: push past the rows, forward
-        # arc toward the next furrow, reverse back into it steered by the
-        # rear camera - no in-place spinning).
+        # turn_mode: "bulb" (odometry push/spin/slide/spin, validated),
+        # "fishtail" (rear-guided reverse-in: push, arc, reverse), or
+        # "shuttle" (no turns at all: vision row-end, lateral jog one
+        # spacing, lanes alternate forward/front-camera and
+        # backward/rear-camera with a primary/secondary camera swap).
         self.turn_mode = str(os.environ.get("MRSIM_TURN_MODE",
                                             _p("turn_mode", "bulb"))).lower()
-        if self.turn_mode not in ("bulb", "fishtail"):
+        if self.turn_mode not in ("bulb", "fishtail", "shuttle"):
             self.get_logger().warn(
                 f"unknown turn_mode '{self.turn_mode}'; using bulb")
             self.turn_mode = "bulb"
@@ -188,16 +189,18 @@ class MultiROINavNode(Node):
                                f"(vf_des={self.v_max})")
         if getattr(self.pipeline, "line_fit", False):
             self.get_logger().info("nav fit: straight line (no spline)")
-        # --- rear algorithm pipeline (fishtail turns only): a second,
+        # --- rear algorithm pipeline (fishtail + shuttle): a second,
         # independent MultiROI instance on the rear camera. While reversing,
-        # the rover moves the way the rear camera faces, so its (v, w) is
-        # used negated (see _fishtail_twist). ---
+        # the rover moves the way the rear camera faces: the image mirror
+        # and the reversed motion cancel, so its (v, w) applies with +sign
+        # (v negated for travel, w kept). Verified by derivation; the
+        # shuttle backward legs prove it in sim (rear_w_sign=+1).
         self.rear_pipeline = None
         self.rear_out = None
         self.rear_t = None
         self.rear_frame_idx = 0
         self.rear_ms = 0.0
-        if self.turn_mode == "fishtail":
+        if self.turn_mode in ("fishtail", "shuttle"):
             try:
                 self.rear_pipeline = build_pipeline(self.algorithm)
                 if (self.pipeline.name == "multiroi"
@@ -206,14 +209,20 @@ class MultiROINavNode(Node):
                 self.get_logger().info("rear pipeline: on "
                                        "(/camera_back/image_raw)")
             except Exception as e:
-                self.get_logger().warn(f"rear pipeline failed: {e}; "
-                                       "fishtail falls back to odometry")
+                self.get_logger().warn(f"rear pipeline failed: {e}")
         try:
             self.rear_w_sign = float(os.environ.get("MRSIM_REAR_W_SIGN",
-                                                    _p("rear_w_sign", -1.0)))
+                                                    _p("rear_w_sign", 1.0)))
         except Exception:
-            self.rear_w_sign = -1.0
+            self.rear_w_sign = 1.0
         self.last_w = 0.0
+        # front freshness (the secondary-camera check needs it on backward
+        # shuttle legs) + leg odometry for the shuttle vision trigger guard
+        self.front_info = None
+        self.front_t = None
+        self.leg_x0 = self.lane_start_x
+        self.leg_yaw = 0.0
+        self.end_empty_n = 0
 
         # --- ROS plumbing ---
         self.cam_sub = self.create_subscription(
@@ -438,10 +447,240 @@ class MultiROINavNode(Node):
         self.drive_dir *= -1
         self._reset_perception()
         self.phase = "follow"
+        self.leg_x0 = self.odom_x
+        self.leg_yaw = self.odom_yaw
+        self.end_empty_n = 0
         self.get_logger().info(
             f"row change done: lane {self.lane_index} "
             f"(y={self.lane_y:+.2f}) dir={self.drive_dir:+d}")
         return tw, "follow", ""
+
+    # --------------------------------------------------------------
+    # Shuttle (no-turn row switching). Lanes alternate forward/front and
+    # backward/rear; the primary camera swaps every lane. At the row end
+    # the primary runs out of crops (empty); the rover drives straight
+    # until the secondary agrees it is fully out, jogs laterally one
+    # furrow spacing, swaps primary and drives back. The chassis never
+    # turns around: yaw stays ~0 on every leg.
+    SHUTTLE_END_FRAMES = 10
+    SHUTTLE_END_CONF = 0.15
+    SHUTTLE_EXIT_V = 0.15
+    SHUTTLE_EXIT_M = 1.8
+    SHUTTLE_BACKSTOP_M = 2.5
+    SHUTTLE_JOG_V = 0.15
+    SHUTTLE_CRAB = 0.45
+    SHUTTLE_TOL_Y = 0.06
+    SHUTTLE_TOL_YAW = 0.10
+    SHUTTLE_TIMEOUT = 30.0
+
+    @staticmethod
+    def _pipe_locked(pipe_out, pipe_t, t_now):
+        """Fresh, lined detection on a pipeline, else None."""
+        if pipe_out is None or pipe_t is None:
+            return None
+        try:
+            if (t_now - pipe_t) > 0.5:
+                return None
+            info = pipe_out.get("info", {})
+            if not info.get("has_line", False):
+                return None
+            return info
+        except Exception:
+            return None
+
+    def _secondary_empty(self, t_now):
+        """True when the secondary camera sees no crops (row fully exited).
+
+        Uses confidence, not has_line: at the row end the detector often
+        sees crop fragments with confidence but forms no line, and that
+        still means "not fully out". Stale/missing counts as empty.
+        """
+        try:
+            if self.drive_dir > 0:
+                out, pt = self.rear_out, self.rear_t
+            else:
+                out = {"info": self.front_info} if self.front_info else None
+                pt = self.front_t
+            if out is None or pt is None or (t_now - pt) > 0.5:
+                return True
+            return float(out["info"].get("confidence", 0)) < 0.25
+        except Exception:
+            return True
+
+    def _primary_empty(self, out, t_now):
+        """True when the primary camera sees no more crops this frame.
+
+        Uses the filter status + confidence, not has_line: has_line
+        flickers false for stretches mid-lane (nav fit gaps) while status
+        stays accepted, which false-triggered row ends in sim. A true row
+        end is persistently pending + low confidence.
+        """
+        try:
+            if self.drive_dir > 0:
+                info = out.get("info", {})
+            else:
+                locked = self._pipe_locked(self.rear_out, self.rear_t, t_now)
+                info = locked if locked is not None else {}
+                if locked is None:
+                    return True
+            if str(info.get("status", "")) != "accepted":
+                return True
+            return float(info.get("confidence", 0)) < self.SHUTTLE_END_CONF
+        except Exception:
+            return False
+
+    def _shuttle_end_triggered(self, out, t_now):
+        # vision trigger: primary empty for END_FRAMES straight, only
+        # past 70% of the leg (row ends are at lane ends; vision picks
+        # the exact point late in the leg, odometry vetoes mid-lane
+        # false trips from filter flicker). Odometry backstop forces it
+        # past the sidecar lane end (safety if rows outrun the map).
+        if self.drive_dir > 0:
+            if self.odom_x >= self.lane_end_x + self.SHUTTLE_BACKSTOP_M:
+                return True
+            if self.odom_x < self.leg_x0 + 0.7 * (self.lane_end_x
+                                                 - self.leg_x0):
+                self.end_empty_n = 0
+                return False
+        else:
+            if self.odom_x <= self.lane_start_x - self.SHUTTLE_BACKSTOP_M:
+                return True
+            if self.odom_x > self.leg_x0 + 0.7 * (self.lane_start_x
+                                                 - self.leg_x0):
+                self.end_empty_n = 0
+                return False
+        if self._primary_empty(out, t_now):
+            self.end_empty_n += 1
+        else:
+            self.end_empty_n = 0
+        return self.end_empty_n >= self.SHUTTLE_END_FRAMES
+
+    def _enter_exit(self, t_now, nxt):
+        self.phase_target_y = float(self.furrows[nxt])
+        self.phase = "exit"
+        self.phase_t0 = t_now
+        self.phase_x0, self.phase_y0 = self.odom_x, self.odom_y
+        self.phase_yaw0 = self.odom_yaw
+        self.leg_yaw = self.odom_yaw
+        prim = "front" if self.drive_dir > 0 else "rear"
+        sec = "rear" if self.drive_dir > 0 else "front"
+        self.get_logger().info(
+            f"row end ({prim} empty): exiting "
+            f"{'+x' if self.drive_dir > 0 else '-x'}, secondary={sec}")
+
+    def _shuttle_twist(self, t_now):
+        """Exit straight, then crab one spacing sideways. Returns
+        (twist, done, Tenth-leg info) like the other machines."""
+        tw = Twist()
+        if t_now - self.phase_t0 > self.SHUTTLE_TIMEOUT:
+            return tw, "timeout", f"turn timeout in {self.phase}"
+        if self.phase == "exit":
+            # straight out, nose held; done when the secondary agrees the
+            # row is fully out (no crops anywhere in its view) or the
+            # overshoot cap.
+            tw.linear.x = self.drive_dir * self.SHUTTLE_EXIT_V
+            tw.angular.z = float(np.clip(
+                -1.5 * self._ang_diff(self.odom_yaw, self.phase_yaw0),
+                -0.4, 0.4))
+            exited = self._secondary_empty(t_now)
+            over = abs(self.odom_x - self.phase_x0) >= self.SHUTTLE_EXIT_M
+            if exited or over:
+                self.phase, self.phase_t0 = "jog", t_now
+                self.get_logger().info(
+                    f"shuttle jog: y {self.odom_y:+.2f} -> "
+                    f"{self.phase_target_y:+.2f} "
+                    f"({'secondary empty' if exited else 'overshoot cap'})")
+        elif self.phase == "jog":
+            # lateral crab toward the next furrow, backing toward the
+            # field (not away): the jog ends parked at the row ends with
+            # the rear camera facing the rows, so the backward leg starts
+            # with a rear lock. The nose never turns around.
+            side = 1.0 if self.phase_target_y >= self.odom_y else -1.0
+            y_ok = abs(self.phase_target_y - self.odom_y) < self.SHUTTLE_TOL_Y
+            if y_ok:
+                yaw_sp = self.leg_yaw
+            else:
+                yaw_sp = self.leg_yaw - side * self.drive_dir * self.SHUTTLE_CRAB
+            tw.linear.x = -self.drive_dir * self.SHUTTLE_JOG_V
+            tw.angular.z = float(np.clip(
+                0.8 * self._ang_diff(yaw_sp, self.odom_yaw), -0.4, 0.4))
+            if y_ok and abs(self._ang_diff(self.odom_yaw, self.leg_yaw)) \
+                    < self.SHUTTLE_TOL_YAW:
+                return self._finish_turn(tw)
+        else:
+            return tw, "timeout", f"bad turn phase {self.phase}"
+        return tw, "", ""
+
+    def _lane_change_prelude(self):
+        """Shared leg-completion prologue. Returns (next lane, stop_reason);
+        stop_reason '' means keep going."""
+        self.lanes_done += 1
+        if self.max_lanes > 0 and self.lanes_done >= self.max_lanes:
+            return None, (f"covered {self.lanes_done} lane(s), "
+                          f"last y={self.lane_y:+.2f}")
+        nxt = self.lane_index + self.turn_dir
+        if not (0 <= nxt < len(self.furrows)):
+            self.turn_dir *= -1
+            nxt = self.lane_index + self.turn_dir
+            if not (0 <= nxt < len(self.furrows)):
+                return None, "no adjacent furrow to change into"
+        return nxt, ""
+
+    def _rear_base_err(self, t_now):
+        """Lateral px error of the rear corridor at its base (image
+        bottom = crops by the chassis), vs image center. Uses the raw
+        accepted strip dots, not the fitted/filtered line: the fit goes
+        diagonal on rear views while the dots sit in the corridor.
+        None when the rear is stale or shows no low dots."""
+        try:
+            if self.rear_out is None or self.rear_t is None:
+                return None
+            if (t_now - self.rear_t) > 0.5:
+                return None
+            res = self.rear_out.get("res")
+            if not res:
+                return None
+            dots = res.get("q_accepted", []) or []
+            binary = res.get("binary")
+            bh = binary.shape[0] if binary is not None else 480
+            dx, _dy = res.get("crop_offset", (0, 0))
+            low = [float(x) for x, y in dots if float(y) > 0.75 * float(bh)]
+            if not low:
+                return None
+            return sum(low) / len(low) + float(dx) - 320.0
+        except Exception:
+            return None
+
+    def _step_shuttle_follow(self, out, t_now):
+        """One control tick on a shuttle leg. Forward legs servo the front
+        camera; backward legs servo the rear corridor base (raw dots) and
+        creep straight until dots show."""
+        if self._shuttle_end_triggered(out, t_now):
+            nxt, stop = self._lane_change_prelude()
+            if stop:
+                return Twist(), stop
+            self._enter_exit(t_now, nxt)
+            return Twist(), ""
+        tw = Twist()
+        if self.drive_dir > 0:
+            tw.linear.x = float(np.clip(out["v"], 0.0, self.v_max))
+            tw.angular.z = float(out["w"])
+        else:
+            base = self._rear_base_err(t_now)
+            if base is not None:
+                # reversing: the lane at +Y appears at +px, and moving
+                # -x needs yaw<0 to gain +Y, so steer -k*err with a weak
+                # nose hold for damping.
+                w_lat = -1.5 * (float(base) / 320.0)
+                w_hold = -0.3 * self._ang_diff(self.odom_yaw, self.leg_yaw)
+                tw.linear.x = -0.15
+                tw.angular.z = float(np.clip(w_lat + w_hold, -0.6, 0.6))
+            else:
+                tw.linear.x = -0.10
+                tw.angular.z = float(np.clip(
+                    -1.5 * self._ang_diff(self.odom_yaw, self.leg_yaw),
+                    -0.4, 0.4))
+        return tw, ""
 
     def _rear_locked(self, t_now):
         """Fresh rear detection usable for reverse steering, else None."""
@@ -542,17 +781,12 @@ class MultiROINavNode(Node):
         """One control tick in row-change mode. Returns (twist, stop_reason).
         stop_reason "" means keep driving."""
         if self.phase == "follow":
+            if self.turn_mode == "shuttle":
+                return self._step_shuttle_follow(out, t_now)
             if self._lane_end_reached():
-                self.lanes_done += 1
-                if self.max_lanes > 0 and self.lanes_done >= self.max_lanes:
-                    return Twist(), (f"covered {self.lanes_done} lane(s), "
-                                     f"last y={self.lane_y:+.2f}")
-                nxt = self.lane_index + self.turn_dir
-                if not (0 <= nxt < len(self.furrows)):
-                    self.turn_dir *= -1
-                    nxt = self.lane_index + self.turn_dir
-                    if not (0 <= nxt < len(self.furrows)):
-                        return Twist(), "no adjacent furrow to change into"
+                nxt, stop = self._lane_change_prelude()
+                if stop:
+                    return Twist(), stop
                 self._enter_turn(t_now)
                 tw = Twist()
                 return tw, ""
@@ -562,6 +796,8 @@ class MultiROINavNode(Node):
             return tw, ""
         if self.turn_mode == "fishtail":
             tw, status, reason = self._fishtail_twist(t_now)
+        elif self.turn_mode == "shuttle":
+            tw, status, reason = self._shuttle_twist(t_now)
         else:
             tw, status, reason = self._turn_twist(t_now)
         if status == "timeout":
@@ -594,10 +830,14 @@ class MultiROINavNode(Node):
     def _on_rear_image(self, msg: Image):
         if self.rear_pipeline is None:
             return
-        # the rear view is only used by the fishtail arc/reverse phases;
-        # skip it while following so the front pipeline keeps full CPU.
-        if self.phase not in ("arc", "reverse"):
-            return
+        # the rear view is only processed when some consumer needs it:
+        # fishtail arc/reverse phases (gated so the front keeps full CPU
+        # while following). Shuttle always runs it: the filter must be
+        # warm on clear rows mid-lane, otherwise it cold-starts at the
+        # row end and never locks (seen in sim).
+        if self.turn_mode == "fishtail":
+            if self.phase not in ("arc", "reverse"):
+                return
         t_now = msg.header.stamp.sec + msg.header.stamp.nanosec * 1e-9
         try:
             bgr = self._decode_bgr(msg)
@@ -677,6 +917,8 @@ class MultiROINavNode(Node):
             return
         self.last_w = float(out["w"])
         info = out["info"]
+        self.front_info = info
+        self.front_t = t_now
 
         # --- command (skipped in teleop idle mode) ---
         twist = Twist()
@@ -701,7 +943,8 @@ class MultiROINavNode(Node):
             except Exception as e:  # pragma: no cover
                 self.get_logger().warn(f"overlay pub: {e}")
 
-        # --- logging ---
+        # --- logging (v/w are the commanded twist, so backward shuttle
+        # legs read correctly too) ---
         cross = self._cross_track()
         if self.log_dir:
             self.csv_w.writerow([
@@ -711,7 +954,8 @@ class MultiROINavNode(Node):
                 f"{info.get('raw_err_theta_deg', info.get('err_theta_deg', 0)):.2f}",
                 f"{info.get('filt_err_theta_deg', 0):.2f}",
                 f"{info.get('confidence', 0):.2f}", str(info.get("status", "")),
-                f"{out['v']:.3f}", f"{out['w']:.3f}",
+                f"{self._last_cmd.linear.x:.3f}",
+                f"{self._last_cmd.angular.z:.3f}",
                 int(info.get("n_two_sided", 0)), f"{info.get('ff', 0):.4f}",
                 *self._rear_csv()])
             self.csv_f.flush()
@@ -724,14 +968,21 @@ class MultiROINavNode(Node):
             leg_txt = (f" leg={self.lanes_done + 1} lane={self.lane_index} "
                        f"ph={self.phase}"
                        if self.row_change and self.circle_r <= 0.0 else "")
+            if self.turn_mode == "shuttle" and self.row_change \
+                    and self.circle_r <= 0.0:
+                leg_txt += f" prim={'R' if self.drive_dir < 0 else 'F'}"
             rear_txt = ""
-            if self.turn_mode == "fishtail" and self.phase in ("arc", "reverse"):
+            if self.turn_mode in ("fishtail", "shuttle") and (
+                    self.phase in ("arc", "reverse", "exit", "jog")
+                    or (self.turn_mode == "shuttle" and self.drive_dir < 0)):
                 try:
                     rinfo = (self.rear_out or {}).get("info", {})
                     age = (t_now - self.rear_t) if self.rear_t else -1.0
-                    rear_txt = (f" rear_x={rinfo.get('err_x', 0):+.0f} "
-                                f"rear_c={rinfo.get('confidence', 0):.2f} "
-                                f"rage={age:.1f}s rn={self.rear_frame_idx} "
+                    base = self._rear_base_err(t_now)
+                    btxt = f"{base:+.0f}" if base is not None else "--"
+                    rear_txt = (f" rear_c={rinfo.get('confidence', 0):.2f} "
+                                f"rbase={btxt} rage={age:.1f}s "
+                                f"rn={self.rear_frame_idx} "
                                 f"rms={self.rear_ms:.0f}ms")
                 except Exception:
                     pass

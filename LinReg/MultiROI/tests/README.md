@@ -132,10 +132,16 @@ Turns are odometry-scripted by default (bulb: push, spin, slide, spin
 with per-phase timeouts that stop safe); `--turn-mode fishtail` backs
 into the next furrow instead (push, forward arc away, rear-camera-guided
 reverse-in, no spinning; the rear steers when it locks, an odometry crab
-finishes otherwise). Detection keeps drawing throughout.
+finishes otherwise); `--turn-mode shuttle` never turns at all (vision
+row-end on the primary camera, straight exit until the secondary agrees,
+lateral jog one spacing, camera swap, lanes alternate forward/backward;
+backward legs servo the rear corridor base, no line fit needed).
+Detection keeps drawing throughout.
 Measured on straight 3-row auto sweep: lane 1 out, turn, lane 0 back
 (mean 0.053 m), clean stop. Fishtail on straight 4-row middle furrow:
 legs 0.029 m and 0.057 m, bulb parity, clean `covered 2 lane(s)` stop.
+Shuttle on the same field: 0.032 m forward, 0.048 m backward (rear
+dot-servo, zero creep frames), max nose-off 26 deg, clean stop.
 Straight fields only; needs 2+ furrows.
 On bending 5-row fields (curve5, zigzag5) the corridor fit can still walk
 or lag: identical competing furrows plus lookahead hold. Lane anchoring
