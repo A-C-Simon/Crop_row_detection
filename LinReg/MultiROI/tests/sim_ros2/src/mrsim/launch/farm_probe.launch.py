@@ -133,6 +133,15 @@ def _setup(context):
     robot_y = val("robot_y", "0.0")
     if cfg.get("spawn_row", "") != "" and cfg.get("robot_y", "") == "":
         robot_y = _spawn_row_y(sidecar, cfg.get("spawn_row", ""))
+    elif cfg.get("spawn_row", "") == "" and cfg.get("robot_y", "") == "":
+        # default probe spot is lane 1 (first furrow)
+        try:
+            furrows = [float(c) for c in json.loads(sidecar.get("furrows",
+                                                               "[0.0]"))]
+            if furrows:
+                robot_y = f"{furrows[0]:.3f}"
+        except Exception:
+            pass
 
     probe = ExecuteProcess(
         cmd=[sys.executable, str(_NAV_PY)],

@@ -16,9 +16,10 @@ lane/circle args always win):
     straight5 5-row straight                zigzag5   5-row gentle zigzag
 Custom world file: world:=/path/to.world (sibling .spawn.json used when
 present, else the field sidecar).
-Drive another furrow: spawn_row:=2 (1-based from the left). Chain furrows
-with row_change:=true (headland turn at each lane end, max_lanes bounds
-the demo).
+Drive another furrow: spawn_row:=2 (1-based from the left; default is
+lane 1). Chain furrows with row_change:=true (headland turn at each lane
+end, max_lanes bounds the demo) - the sweep starts at lane 1 and walks
+1, 2, 3, ...
 
 Note: the nav node is launched as `python3 nav_node.py` with env vars
 instead of a console script, because colcon (modern setuptools) installs
@@ -167,18 +168,14 @@ def _setup(context):
     vertical_coverage = val("vertical_coverage", "vertical_coverage_default",
                             "0.75")
 
-    # --spawn N: drive the Nth furrow from the left (1-based). Overrides
-    # the sidecar spawn/lane unless robot_y/lane_y were passed explicitly.
+    # --spawn N: drive the Nth furrow from the left (1-based). Default
+    # start is lane 1 (furrows[0]); the sweep then walks 1, 2, 3, ...
+    # An explicit spawn_row or robot_y/lane_y overrides this default.
     try:
         furrows = [float(c) for c in json.loads(sidecar.get("furrows", "[0.0]"))]
     except Exception:
         furrows = [0.0]
     lane_index = 0
-    try:
-        lane_index = min(range(len(furrows)),
-                         key=lambda i: abs(furrows[i] - float(lane_y)))
-    except Exception:
-        pass
     spawn_row = cfg.get("spawn_row", "")
     if spawn_row != "":
         try:
@@ -194,6 +191,14 @@ def _setup(context):
             robot_y = f"{furrows[lane_index]:.3f}"
         if cfg.get("lane_y", "") == "":
             lane_y = f"{furrows[lane_index]:.3f}"
+    elif cfg.get("robot_y", "") != "" or cfg.get("lane_y", "") != "":
+        try:
+            lane_index = min(range(len(furrows)),
+                             key=lambda i: abs(furrows[i] - float(lane_y)))
+        except Exception:
+            pass
+    elif furrows:
+        robot_y = lane_y = f"{furrows[0]:.3f}"
 
     # idle env: nav node runs detection/overlay but never publishes /cmd_vel
     # unless mode:=auto (so teleop/demo own the topic)

@@ -160,6 +160,17 @@ def _setup(context):
     robot_y = val("robot_y", "robot_y", "0.0")
     robot_yaw = val("robot_yaw", "robot_yaw", "0.0")
     lane_y = val("lane_y", "lane_y", "0.0")
+    # default start is lane 1 (first furrow of the sidecar) unless the
+    # rover is placed explicitly.
+    if cfg.get("robot_y", "") == "" and cfg.get("lane_y", "") == "":
+        try:
+            sib = str(Path(world_file).with_suffix("")) + ".spawn.json"
+            furrows = [float(c) for c in
+                       json.loads(Path(sib).read_text()).get("furrows", [])]
+            if furrows:
+                robot_y = lane_y = f"{furrows[0]:.3f}"
+        except Exception:
+            pass
     lane_end_x = val("lane_end_x", "lane_end_x", "9.0")
     circle_cx = val("circle_cx", "circle_cx", "0.0")
     circle_cy = val("circle_cy", "circle_cy", "0.0")

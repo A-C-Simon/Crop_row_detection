@@ -27,7 +27,8 @@
 #   --field NAME   raw preset name (circle, curve, straight, curve5,
 #     straight5, zigzag5, custom).
 #   --x/--y/--yaw  spawn pose override (defaults follow the field sidecar).
-#   --spawn N      drive the Nth furrow from the left, 1-based.
+#   --spawn N      drive the Nth furrow from the left, 1-based
+#     (default lane 1).
 #   --row-change / --rows-change 0|1: headland-turn into the next furrow
 #     at each lane end. Automatic on fields with 2+ furrows unless
 #     --rows-change 0 is given.

@@ -122,11 +122,12 @@ Straight 5-row tracks its lane once spawned inside a real furrow (mean
 0.01 m). Two related gotchas, both fixed: the generator used to shift rows
 by the lane offset, parking the spawn on top of a row; and identical
 neighboring furrows can still pull the fit, so `--spawn N` (1-based from
-the left) picks the driven furrow explicitly.
+the left, default lane 1) picks the driven furrow explicitly.
 
 Row changing: on fields with 2+ furrows the demo turns into the next
 furrow at each lane end and covers them all, with no extra flags
-(`max_lanes` defaults to a full sweep). `--rows-change 0|1` forces it
+(`max_lanes` defaults to a full sweep), starting at lane 1 and walking
+1, 2, 3, ... `--rows-change 0|1` forces it
 off/on (`--row-change` means 1); with 0, `--max-lanes` does nothing.
 Turns are odometry-scripted by default (bulb: push, spin, slide, spin
 with per-phase timeouts that stop safe); `--turn-mode fishtail` backs
@@ -134,14 +135,18 @@ into the next furrow instead (push, forward arc away, rear-camera-guided
 reverse-in, no spinning; the rear steers when it locks, an odometry crab
 finishes otherwise); `--turn-mode shuttle` never turns at all (vision
 row-end on the primary camera, straight exit until the secondary agrees,
-lateral jog one spacing, camera swap, lanes alternate forward/backward;
-backward legs servo the rear corridor base, no line fit needed).
+lateral jog one spacing, camera swap, lanes alternate forward/backward).
+The shuttle auto-switches vision to whichever camera sees crops: the
+exiting camera steers the exit, and backward legs servo the rear
+corridor base (raw dots windowed around the odometry-predicted lane, no
+line fit needed, so it cannot lock the next furrow over).
 Detection keeps drawing throughout.
 Measured on straight 3-row auto sweep: lane 1 out, turn, lane 0 back
 (mean 0.053 m), clean stop. Fishtail on straight 4-row middle furrow:
 legs 0.029 m and 0.057 m, bulb parity, clean `covered 2 lane(s)` stop.
 Shuttle on the same field: 0.032 m forward, 0.048 m backward (rear
-dot-servo, zero creep frames), max nose-off 26 deg, clean stop.
+dot-servo, zero creep frames), max nose-off 26 deg, clean stop; 3-lane
+sweep from the lane-1 default: 0.026, 0.033, 0.021 m, 2 creep rows.
 Straight fields only; needs 2+ furrows.
 On bending 5-row fields (curve5, zigzag5) the corridor fit can still walk
 or lag: identical competing furrows plus lookahead hold. Lane anchoring

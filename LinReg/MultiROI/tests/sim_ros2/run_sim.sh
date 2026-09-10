@@ -18,8 +18,9 @@
 #   --seconds N    stop after N sim-seconds (0 = off; lane end/laps stop first).
 #   --out DIR      log dir for nav_run.csv + overlay PNGs.
 #   --x/--y/--yaw  spawn pose override (defaults follow the field sidecar).
-#   --spawn N      drive the Nth furrow from the left, 1-based (overrides the
-#     sidecar spawn/lane unless --x/--y/--lane-y are also given).
+#   --spawn N      drive the Nth furrow from the left, 1-based (default
+#     lane 1; overrides the sidecar spawn/lane unless --x/--y/--lane-y
+#     are also given).
 #   --row-change / --rows-change 0|1: headland-turn into the next furrow at
 #     each lane end (straight fields only; odometry-scripted bulb turn,
 #     vision keeps drawing but does not steer during the maneuver).

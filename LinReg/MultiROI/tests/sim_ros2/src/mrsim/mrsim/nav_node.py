@@ -568,16 +568,25 @@ class MultiROINavNode(Node):
             f"row end ({prim} empty): exiting "
             f"{'+x' if self.drive_dir > 0 else '-x'}, secondary={sec}")
 
-    def _shuttle_twist(self, t_now):
+    def _shuttle_twist(self, out, t_now):
         """Exit straight, then crab one spacing sideways. Returns
         (twist, done, Tenth-leg info) like the other machines."""
         tw = Twist()
         if t_now - self.phase_t0 > self.SHUTTLE_TIMEOUT:
             return tw, "timeout", f"turn timeout in {self.phase}"
         if self.phase == "exit":
-            # straight out, nose held; done when the secondary agrees the
-            # row is fully out (no crops anywhere in its view) or the
-            # overshoot cap.
+            # out past the row end, nose held. Vision auto-switch: while
+            # the secondary still sees crops at its base it steers the
+            # exit (it looks back at the lane being left); once it sees
+            # nothing the row is fully out. Overshoot cap backstops.
+            if self.drive_dir > 0:
+                sbase = self._rear_base_err(t_now)
+            else:
+                sbase = self._front_base_err(out) if out else None
+            if sbase is not None:
+                return self._dot_twist(sbase, -1,
+                                       self.drive_dir * self.SHUTTLE_EXIT_V,
+                                       self.phase_yaw0), "", ""
             tw.linear.x = self.drive_dir * self.SHUTTLE_EXIT_V
             tw.angular.z = float(np.clip(
                 -1.5 * self._ang_diff(self.odom_yaw, self.phase_yaw0),
@@ -631,25 +640,69 @@ class MultiROINavNode(Node):
         bottom = crops by the chassis), vs image center. Uses the raw
         accepted strip dots, not the fitted/filtered line: the fit goes
         diagonal on rear views while the dots sit in the corridor.
-        None when the rear is stale or shows no low dots."""
+        Dots are windowed around the odometry-predicted lane position so
+        the mean cannot lock the adjacent furrow. None when the rear is
+        stale or shows no nearby low dots."""
         try:
             if self.rear_out is None or self.rear_t is None:
                 return None
             if (t_now - self.rear_t) > 0.5:
                 return None
-            res = self.rear_out.get("res")
-            if not res:
-                return None
-            dots = res.get("q_accepted", []) or []
-            binary = res.get("binary")
-            bh = binary.shape[0] if binary is not None else 480
-            dx, _dy = res.get("crop_offset", (0, 0))
-            low = [float(x) for x, y in dots if float(y) > 0.75 * float(bh)]
-            if not low:
-                return None
-            return sum(low) / len(low) + float(dx) - 320.0
+            # rear image-right is world +Y: lane at +Y shows at +px.
+            pred = 320.0 + self.SHUTTLE_DOT_PX_PER_M * (self.lane_y
+                                                       - self.odom_y)
+            return self._base_err_from_res(self.rear_out.get("res"), pred,
+                                           self.SHUTTLE_DOT_WINDOW_PX)
         except Exception:
             return None
+
+    # px per meter at the image base band (camera geometry ~260-400);
+    # anchors dot selection to the driven furrow via odometry.
+    SHUTTLE_DOT_PX_PER_M = 300.0
+    SHUTTLE_DOT_WINDOW_PX = 150.0
+
+    @staticmethod
+    def _base_err_from_res(res, pred_px=None, window_px=150.0):
+        """Mean x of accepted strip dots in the bottom image quarter, vs
+        center (px). With pred_px given, only dots near the predicted
+        lane position count. None when no (nearby) low dots show."""
+        if not res:
+            return None
+        dots = res.get("q_accepted", []) or []
+        binary = res.get("binary")
+        bh = binary.shape[0] if binary is not None else 480
+        dx, _dy = res.get("crop_offset", (0, 0))
+        low = [float(x) + float(dx) for x, y in dots
+               if float(y) > 0.75 * float(bh)]
+        if pred_px is not None:
+            low = [x for x in low if abs(x - pred_px) <= window_px]
+        if not low:
+            return None
+        return sum(low) / len(low) - 320.0
+
+    def _front_base_err(self, out):
+        """Same base-dot error for the front camera (current frame, so
+        always fresh). Front image-right is world -Y."""
+        try:
+            pred = 320.0 - self.SHUTTLE_DOT_PX_PER_M * (self.lane_y
+                                                       - self.odom_y)
+            return self._base_err_from_res(out.get("res"), pred,
+                                           self.SHUTTLE_DOT_WINDOW_PX)
+        except Exception:
+            return None
+
+    def _dot_twist(self, err_px, face_sign, v, hold_yaw):
+        """Steer from a corridor-base dot error. face_sign is +1 when
+        driving the way the camera faces, -1 when backing relative to
+        it (image mirror): the mirror and the reversed motion cancel
+        driving forward-facing, and add up driving against, hence the
+        sign. A weak nose hold damps the heading."""
+        tw = Twist()
+        tw.linear.x = float(v)
+        w_lat = face_sign * (-1.5 * float(err_px) / 320.0)
+        w_hold = -0.3 * self._ang_diff(self.odom_yaw, hold_yaw)
+        tw.angular.z = float(np.clip(w_lat + w_hold, -0.6, 0.6))
+        return tw
 
     def _step_shuttle_follow(self, out, t_now):
         """One control tick on a shuttle leg. Forward legs servo the front
@@ -666,20 +719,18 @@ class MultiROINavNode(Node):
             tw.linear.x = float(np.clip(out["v"], 0.0, self.v_max))
             tw.angular.z = float(out["w"])
         else:
+            # rear primary; front is the auto-switch fallback (it sees
+            # the lane behind while backing). Both steer from base dots.
             base = self._rear_base_err(t_now)
             if base is not None:
-                # reversing: the lane at +Y appears at +px, and moving
-                # -x needs yaw<0 to gain +Y, so steer -k*err with a weak
-                # nose hold for damping.
-                w_lat = -1.5 * (float(base) / 320.0)
-                w_hold = -0.3 * self._ang_diff(self.odom_yaw, self.leg_yaw)
-                tw.linear.x = -0.15
-                tw.angular.z = float(np.clip(w_lat + w_hold, -0.6, 0.6))
-            else:
-                tw.linear.x = -0.10
-                tw.angular.z = float(np.clip(
-                    -1.5 * self._ang_diff(self.odom_yaw, self.leg_yaw),
-                    -0.4, 0.4))
+                return self._dot_twist(base, +1, -0.15, self.leg_yaw), ""
+            fbase = self._front_base_err(out)
+            if fbase is not None:
+                return self._dot_twist(fbase, -1, -0.15, self.leg_yaw), ""
+            tw.linear.x = -0.10
+            tw.angular.z = float(np.clip(
+                -1.5 * self._ang_diff(self.odom_yaw, self.leg_yaw),
+                -0.4, 0.4))
         return tw, ""
 
     def _rear_locked(self, t_now):
@@ -797,7 +848,7 @@ class MultiROINavNode(Node):
         if self.turn_mode == "fishtail":
             tw, status, reason = self._fishtail_twist(t_now)
         elif self.turn_mode == "shuttle":
-            tw, status, reason = self._shuttle_twist(t_now)
+            tw, status, reason = self._shuttle_twist(out, t_now)
         else:
             tw, status, reason = self._turn_twist(t_now)
         if status == "timeout":
