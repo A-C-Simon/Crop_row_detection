@@ -163,7 +163,11 @@ def _setup(context):
                          (Path(pkg_share) / "urdf" / "rover.urdf").read_text()}]),
         Node(package="gazebo_ros", executable="spawn_entity.py",
              output="screen",
-             arguments=["-topic", "robot_description", "-entity", "rover",
+             # -file (SDF), not -topic (URDF): live URDF parsing drops the
+             # second camera sensor, the converted SDF keeps both (see
+             # farm.launch.py).
+             arguments=["-file", str(Path(pkg_share) / "urdf" / "rover.sdf"),
+                        "-entity", "rover",
                         "-x", val("robot_x", "-8.0"),
                         "-y", robot_y,
                         "-z", "0.0", "-Y", val("robot_yaw", "0.0")]),

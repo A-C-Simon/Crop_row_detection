@@ -4,9 +4,15 @@
   crop-row navigation algorithm inside Gazebo Classic (ROS 2 Humble).
 
   - 4 driven wheels, libgazebo_ros_diff_drive  (/cmd_vel -> wheels, /odom, tf)
-  - front RGB camera, libgazebo_ros_camera (640x480), pitched downward via
-    camera_mount; camera_optical gives the standard upright optical frame.
+  - front + rear RGB cameras, libgazebo_ros_camera (640x480 each), pitched
+    downward via their mounts; *_optical gives the standard upright frames.
   - base_footprint sits on the ground plane at z=0.
+
+  DUAL-FILE NOTE: the sim spawns rover.sdf (same dir), NOT this URDF,
+  because Gazebo 11's live URDF parsing silently drops the second camera
+  sensor. After editing this file, regenerate it:
+    gz sdf -p src/mrsim/urdf/rover.urdf > src/mrsim/urdf/rover.sdf
+  (robot_state_publisher keeps using this URDF for TF.)
 -->
 <robot name="mrsim_rover">
   <material name="grey"><color rgba="0.62 0.62 0.62 1"/></material>
@@ -171,6 +177,36 @@
     <origin xyz="0 0 0" rpy="-1.57079632679 0 -1.57079632679"/>
   </joint>
 
+  <!-- ============ REAR CAMERA (dual-camera fishtail turns) ============
+       Mirror of the front camera facing backward: rpy="0 +0.42 pi" sends
+       the sensor +X axis backward-down (~24 deg below horizontal; URDF
+       composes R=Rx*Ry*Rz, verified against the working front camera),
+       same height and optics as the front unit. Publishes
+       /camera_back/image_raw for the reverse leg of fishtail turns. -->
+  <link name="camera_back_mount">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry><box size="0.10 0.08 0.06"/></geometry>
+      <material name="green"/>
+    </visual>
+  </link>
+  <joint name="camera_back_mount_joint" type="fixed">
+    <parent link="base_link"/><child link="camera_back_mount"/>
+    <origin xyz="-0.22 0 1.15" rpy="0 0 0"/>
+  </joint>
+
+  <link name="camera_back_link"/>
+  <joint name="camera_back_link_joint" type="fixed">
+    <parent link="camera_back_mount"/><child link="camera_back_link"/>
+    <origin xyz="-0.06 0 0.05" rpy="0 0.42 3.14159265"/>
+  </joint>
+
+  <link name="camera_back_optical"/>
+  <joint name="camera_back_optical_joint" type="fixed">
+    <parent link="camera_back_link"/><child link="camera_back_optical"/>
+    <origin xyz="0 0 0" rpy="-1.57079632679 0 -1.57079632679"/>
+  </joint>
+
   <!-- ============ GAZEBO PLUGINS ============ -->
   <gazebo>
     <plugin name="diff_drive" filename="libgazebo_ros_diff_drive.so">
@@ -219,6 +255,29 @@
         </ros>
         <camera_name>camera</camera_name>
         <frame_name>camera_optical</frame_name>
+        <image_rate>20.0</image_rate>
+      </plugin>
+    </sensor>
+  </gazebo>
+
+  <gazebo reference="camera_back_link">
+    <sensor name="back_cam" type="camera">
+      <always_on>1</always_on>
+      <update_rate>20</update_rate>
+      <visualize>false</visualize>
+      <camera name="back_cam_intrinsics">
+        <horizontal_fov>1.13446</horizontal_fov>
+        <image><width>640</width><height>480</height><format>R8G8B8</format></image>
+        <clip><near>0.02</near><far>60</far></clip>
+      </camera>
+      <plugin name="camera_back_ros" filename="libgazebo_ros_camera.so">
+        <ros>
+          <namespace>/</namespace>
+          <remapping>image_raw:=camera_back/image_raw</remapping>
+          <remapping>camera_info:=camera_back/camera_info</remapping>
+        </ros>
+        <camera_name>camera_back</camera_name>
+        <frame_name>camera_back_optical</frame_name>
         <image_rate>20.0</image_rate>
       </plugin>
     </sensor>

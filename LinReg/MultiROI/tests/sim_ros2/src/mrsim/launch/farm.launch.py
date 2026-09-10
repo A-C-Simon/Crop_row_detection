@@ -260,11 +260,16 @@ def _setup(context):
                  "robot_description":
                      (Path(pkg_share) / "urdf" / "rover.urdf").read_text()}]),
 
-        # 3) spawn the rover into the furrow
+        # 3) spawn the rover into the furrow. NOTE: spawned from rover.sdf,
+        # not the URDF topic: Gazebo 11's live URDF parsing silently drops
+        # the second camera sensor, while the converted SDF keeps both.
+        # After editing rover.urdf, regenerate with:
+        #   gz sdf -p src/mrsim/urdf/rover.urdf > src/mrsim/urdf/rover.sdf
+        # (robot_state_publisher still uses the URDF for TF.)
         Node(package="gazebo_ros", executable="spawn_entity.py",
              output="screen",
              arguments=[
-                 "-topic", "robot_description",
+                 "-file", str(Path(pkg_share) / "urdf" / "rover.sdf"),
                  "-entity", "rover",
                  "-x", robot_x,
                  "-y", robot_y,
