@@ -124,11 +124,19 @@ by the lane offset, parking the spawn on top of a row; and identical
 neighboring furrows can still pull the fit, so `--spawn N` (1-based from
 the left) picks the driven furrow explicitly.
 
-Row changing: `--spawn 2 --row-change --max-lanes 2` drives lane 2 out,
-bulb-turns at the lane end (push, spin, slide, spin on odometry, detection
-keeps drawing throughout) and drives the next lane back, then stops.
-Measured on straight5: leg means 0.027 m and 0.057 m, clean
-`covered 2 lane(s)` stop. Straight fields only; needs 2+ furrows.
+Row changing: on fields with 2+ furrows the demo turns into the next
+furrow at each lane end and covers them all, with no extra flags
+(`max_lanes` defaults to a full sweep). `--rows-change 0|1` forces it
+off/on (`--row-change` means 1); with 0, `--max-lanes` does nothing.
+Turns are odometry-scripted by default (bulb: push, spin, slide, spin
+with per-phase timeouts that stop safe); `--turn-mode fishtail` backs
+into the next furrow instead (push, forward arc away, rear-camera-guided
+reverse-in, no spinning; the rear steers when it locks, an odometry crab
+finishes otherwise). Detection keeps drawing throughout.
+Measured on straight 3-row auto sweep: lane 1 out, turn, lane 0 back
+(mean 0.053 m), clean stop. Fishtail on straight 4-row middle furrow:
+legs 0.029 m and 0.057 m, bulb parity, clean `covered 2 lane(s)` stop.
+Straight fields only; needs 2+ furrows.
 On bending 5-row fields (curve5, zigzag5) the corridor fit can still walk
 or lag: identical competing furrows plus lookahead hold. Lane anchoring
 there is open work.

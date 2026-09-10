@@ -20,11 +20,15 @@
 #   --x/--y/--yaw  spawn pose override (defaults follow the field sidecar).
 #   --spawn N      drive the Nth furrow from the left, 1-based (overrides the
 #     sidecar spawn/lane unless --x/--y/--lane-y are also given).
-#   --row-change   at each lane end, headland-turn into the next furrow and
-#     keep going (straight fields only; odometry-scripted bulb turn, vision
-#     keeps drawing but does not steer during the maneuver).
-#   --max-lanes N  lanes to cover with --row-change before auto-stop
-#     (0 = until Ctrl-C; default 2).
+#   --row-change / --rows-change 0|1: headland-turn into the next furrow at
+#     each lane end (straight fields only; odometry-scripted bulb turn,
+#     vision keeps drawing but does not steer during the maneuver).
+#     Automatic on fields with 2+ furrows unless --rows-change 0 is given.
+#   --max-lanes N  lanes to cover before auto-stop (0 = until Ctrl-C;
+#     defaults to a full sweep of the field).
+#   --turn-mode bulb|fishtail: headland turn style (bulb = odometry
+#     push/spin/slide/spin; fishtail = rear-guided reverse-in, no
+#     spinning; default bulb).
 #   --laps N       ring-field laps before auto-stop, 0 = loop forever.
 #   --line         straight least-squares nav line instead of the spline.
 #   --coverage F   ROI height fraction from the image bottom (shorter
@@ -121,6 +125,10 @@ while [[ $# -gt 0 ]]; do
         echo "--rows-change takes 0 or 1"; exit 1; fi
       HAVE_RC=1; RC_VALUE="$2"; shift 2 ;;
     --max-lanes) EXTRA_ARGS+=(max_lanes:="$2"); HAVE_MAXLANES=1; shift 2 ;;
+    --turn-mode)
+      if [[ "$2" != "bulb" && "$2" != "fishtail" ]]; then
+        echo "--turn-mode takes bulb or fishtail"; exit 1; fi
+      EXTRA_ARGS+=(turn_mode:="$2"); shift 2 ;;
     --line) EXTRA_ARGS+=(line_fit:=true); shift ;;
     --coverage) EXTRA_ARGS+=(vertical_coverage:="$2"); shift 2 ;;
     --init-window) EXTRA_ARGS+=(init_window:="$2"); shift 2 ;;

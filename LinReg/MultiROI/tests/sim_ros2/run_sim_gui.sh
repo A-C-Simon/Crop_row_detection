@@ -28,8 +28,12 @@
 #     straight5, zigzag5, custom).
 #   --x/--y/--yaw  spawn pose override (defaults follow the field sidecar).
 #   --spawn N      drive the Nth furrow from the left, 1-based.
-#   --row-change   headland-turn into the next furrow at each lane end.
-#   --max-lanes N  lanes to cover before auto-stop (0 = until Ctrl-C).
+#   --row-change / --rows-change 0|1: headland-turn into the next furrow
+#     at each lane end. Automatic on fields with 2+ furrows unless
+#     --rows-change 0 is given.
+#   --max-lanes N  lanes to cover before auto-stop (0 = until Ctrl-C;
+#     defaults to a full sweep of the field).
+#   --turn-mode bulb|fishtail: headland turn style (default bulb).
 #   --laps N       ring-field laps before auto-stop, 0 = loop forever.
 #   --line         straight nav-line fit instead of the spline.
 #   --coverage F / --init-window F / --world PATH  see run_sim.sh header.
@@ -125,10 +129,14 @@ while [[ $# -gt 0 ]]; do
         echo "--rows-change takes 0 or 1"; exit 1; fi
       HAVE_RC=1; RC_VALUE="$2"; shift 2 ;;
     --max-lanes) EXTRA_ARGS+=(max_lanes:="$2"); HAVE_MAXLANES=1; shift 2 ;;
+    --turn-mode)
+      if [[ "$2" != "bulb" && "$2" != "fishtail" ]]; then
+        echo "--turn-mode takes bulb or fishtail"; exit 1; fi
+      EXTRA_ARGS+=(turn_mode:="$2"); shift 2 ;;
     --line) EXTRA_ARGS+=(line_fit:=true) ; shift ;;
     --coverage) EXTRA_ARGS+=(vertical_coverage:="$2") ; shift 2 ;;
     --world) WORLD_ARG=(world:="$2") ; WORLD_FILE="$2" ; shift 2 ;;
-    *) echo "unknown arg $1 (--auto|--demo|--keys|--algo|--circle|--curve|--straight|--zigzag|--field|--x|--y|--yaw|--laps|--spawn|--row-change|--max-lanes|--line|--coverage|--world)"; exit 1 ;;
+    *) echo "unknown arg $1 (--auto|--demo|--keys|--algo|--circle|--curve|--straight|--zigzag|--field|--x|--y|--yaw|--laps|--spawn|--row-change|--max-lanes|--turn-mode|--line|--coverage|--world)"; exit 1 ;;
   esac
 done
 

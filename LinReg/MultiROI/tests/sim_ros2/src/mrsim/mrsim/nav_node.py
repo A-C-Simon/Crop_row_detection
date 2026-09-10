@@ -111,6 +111,16 @@ class MultiROINavNode(Node):
         self.turn_dir = 1
         self.lanes_done = 0
         self.drive_dir = 1
+        # turn_mode: "bulb" (odometry push/spin/slide/spin, validated) or
+        # "fishtail" (rear-guided reverse-in: push past the rows, forward
+        # arc toward the next furrow, reverse back into it steered by the
+        # rear camera - no in-place spinning).
+        self.turn_mode = str(os.environ.get("MRSIM_TURN_MODE",
+                                            _p("turn_mode", "bulb"))).lower()
+        if self.turn_mode not in ("bulb", "fishtail"):
+            self.get_logger().warn(
+                f"unknown turn_mode '{self.turn_mode}'; using bulb")
+            self.turn_mode = "bulb"
         self.phase = "follow"
         self.phase_t0 = 0.0
         self.phase_x0 = self.phase_y0 = self.phase_yaw0 = 0.0
@@ -148,7 +158,7 @@ class MultiROINavNode(Node):
                 self.get_logger().info(
                     f"row change on: {len(self.furrows)} furrows, start lane "
                     f"{self.lane_index} (y={self.lane_y:+.2f}), "
-                    f"max_lanes={self.max_lanes:g}")
+                    f"max_lanes={self.max_lanes:g} turn={self.turn_mode}")
         log_dir = os.environ.get("MRSIM_LOG_DIR", _p("log_dir", ""))
         self.save_every = int(os.environ.get("MRSIM_SAVE_EVERY",
                                              _p("save_every", 20)))
@@ -166,7 +176,8 @@ class MultiROINavNode(Node):
             self.csv_w = csv.writer(self.csv_f)
             self.csv_w.writerow(["sim_t", "odom_x", "odom_y", "cross_track",
                                  "err_x_px", "raw_th_deg", "filt_th_deg",
-                                 "conf", "status", "v", "w", "n_two", "ff"])
+                                 "conf", "status", "v", "w", "n_two", "ff",
+                                 "rear_err_x_px", "rear_th_deg", "rear_conf"])
             self.get_logger().info(f"logging to {self.log_dir}")
 
         # --- algorithm pipeline (selection seam; default: multiroi) ---
@@ -177,9 +188,31 @@ class MultiROINavNode(Node):
                                f"(vf_des={self.v_max})")
         if getattr(self.pipeline, "line_fit", False):
             self.get_logger().info("nav fit: straight line (no spline)")
-        # mr_vs vf_des == v_max: rebuild vs with the rover's speed cap
-        if self.pipeline.name == "multiroi" and hasattr(self.pipeline, "vs"):
-            self.pipeline.vs.params.vf_des = self.v_max
+        # --- rear algorithm pipeline (fishtail turns only): a second,
+        # independent MultiROI instance on the rear camera. While reversing,
+        # the rover moves the way the rear camera faces, so its (v, w) is
+        # used negated (see _fishtail_twist). ---
+        self.rear_pipeline = None
+        self.rear_out = None
+        self.rear_t = None
+        self.rear_frame_idx = 0
+        self.rear_ms = 0.0
+        if self.turn_mode == "fishtail":
+            try:
+                self.rear_pipeline = build_pipeline(self.algorithm)
+                if (self.pipeline.name == "multiroi"
+                        and hasattr(self.rear_pipeline, "vs")):
+                    self.rear_pipeline.vs.params.vf_des = self.v_max
+                self.get_logger().info("rear pipeline: on "
+                                       "(/camera_back/image_raw)")
+            except Exception as e:
+                self.get_logger().warn(f"rear pipeline failed: {e}; "
+                                       "fishtail falls back to odometry")
+        try:
+            self.rear_w_sign = float(os.environ.get("MRSIM_REAR_W_SIGN",
+                                                    _p("rear_w_sign", -1.0)))
+        except Exception:
+            self.rear_w_sign = -1.0
         self.last_w = 0.0
 
         # --- ROS plumbing ---
@@ -189,6 +222,16 @@ class MultiROINavNode(Node):
         self.ovl_pub = self.create_publisher(Image, "/multiroi/overlay", 5)
         self.odom_sub = self.create_subscription(
             Odometry, odom_topic, self._on_odom, 10)
+        self.rear_sub = None
+        self.rear_ovl_pub = None
+        if self.rear_pipeline is not None:
+            rear_topic = str(os.environ.get("MRSIM_REAR_CAMERA_TOPIC",
+                                            _p("rear_camera_topic",
+                                               "/camera_back/image_raw")))
+            self.rear_sub = self.create_subscription(
+                Image, rear_topic, self._on_rear_image, _sensor_qos())
+            self.rear_ovl_pub = self.create_publisher(
+                Image, "/multiroi/overlay_rear", 5)
 
         self.odom_x = self.odom_y = 0.0
         self.odom_yaw = 0.0
@@ -242,17 +285,32 @@ class MultiROINavNode(Node):
         return self.odom_y - self.lane_y
 
     # --------------------------------------------------------------
-    # Row changing: ExG-style headland turns between adjacent furrows.
-    # At each lane end the rover pushes past the rows, bulb-turns into the
-    # next furrow and drives it back the other way. Detection keeps running
-    # for the overlay the whole time; the scripted phases only borrow the
-    # wheels. Straight fields only.
+    # Row changing: headland turns between adjacent furrows. At each lane
+    # end the rover pushes past the rows, turns into the next furrow and
+    # drives it back the other way. Detection keeps running for the overlay
+    # the whole time. Two styles (turn_mode): "bulb" scripts
+    # push/spin1/slide/spin2 on odometry; "fishtail" arcs forward away from
+    # the target furrow then reverses into it, steered by the rear camera
+    # when it locks (negated servo output) with an odometry crab fallback.
+    # Straight fields only.
     TURN_PUSH_M = 1.3
     TURN_RATE = 0.5
     TURN_DRIVE_V = 0.18
     TURN_TOL_YAW = 0.12
     TURN_TOL_Y = 0.06
     TURN_TIMEOUT = 15.0
+    # fishtail (rear-guided reverse-in) tuning: forward arc swings the nose
+    # toward the next furrow, then the rover backs into it steered by the
+    # rear camera. No in-place spinning.
+    FISHTAIL_ARC_YAW = 1.5
+    FISHTAIL_PUSH_M = 0.7
+    FISHTAIL_REVERSE_V = 0.15
+    FISHTAIL_CRAB_GAIN = 1.2
+    FISHTAIL_TOL_YAW = 0.20
+    FISHTAIL_TOL_Y = 0.10
+    FISHTAIL_REAR_TOL_PX = 25.0
+    FISHTAIL_MIN_REVERSE_M = 0.4
+    FISHTAIL_TIMEOUT = 25.0
 
     def _reset_perception(self):
         try:
@@ -264,7 +322,16 @@ class MultiROINavNode(Node):
                 self.pipeline.t_filter.reset()
         except Exception:
             pass
+        try:
+            if self.rear_pipeline is not None:
+                self.rear_pipeline.reset()
+                if hasattr(self.rear_pipeline, "t_filter"):
+                    self.rear_pipeline.t_filter.reset()
+        except Exception:
+            pass
         self.last_w = 0.0
+        self.rear_out = None
+        self.rear_t = None
 
     def _lane_end_reached(self):
         if self.drive_dir > 0:
@@ -282,9 +349,26 @@ class MultiROINavNode(Node):
         self.phase_x0, self.phase_y0 = self.odom_x, self.odom_y
         self.phase_yaw0 = self.odom_yaw
         self.phase_slide_yaw = 0.0
+        # fishtail bookkeeping: side (+1 target above, -1 below), leg yaw,
+        # arc-end yaw and final (next-leg) yaw. Arc carries the rover toward
+        # the target furrow while moving along the current leg direction.
+        self.phase_side = 1.0 if self.phase_target_y >= self.odom_y else -1.0
+        self.phase_yaw_leg = self.odom_yaw
+        # Fishtail geometry (verified sign analysis, straight fields): the
+        # forward arc swings the nose AWAY from the target furrow, then the
+        # reversing rover backs TOWARD it while the nose comes around to the
+        # next-leg heading. (Arcing toward the target first backs away from
+        # it and strands the rover - seen in sim.)
+        self.phase_arc_yaw = (self.phase_yaw_leg - self.phase_side
+                              * self.drive_dir * self.FISHTAIL_ARC_YAW)
+        self.phase_final_yaw = (self.phase_yaw_leg - self.phase_side
+                                * self.drive_dir * math.pi)
+        self.phase_no_rear_t = None
+        self._no_rear_warned = False
         self.get_logger().info(
             f"row change: lane {self.lane_index} -> {nxt} "
-            f"(y {self.lane_y:+.2f} -> {self.phase_target_y:+.2f})")
+            f"(y {self.lane_y:+.2f} -> {self.phase_target_y:+.2f}) "
+            f"turn={self.turn_mode}")
 
     def _spin_toward(self, target_yaw):
         d = self._ang_diff(target_yaw, self.odom_yaw)
@@ -299,14 +383,7 @@ class MultiROINavNode(Node):
         if t_now - self.phase_t0 > self.TURN_TIMEOUT:
             return tw, "timeout", f"turn timeout in {self.phase}"
         if self.phase == "push":
-            tw.linear.x = self.TURN_DRIVE_V
-            tw.angular.z = float(np.clip(
-                -1.5 * self._ang_diff(self.odom_yaw, self.phase_yaw0),
-                -0.4, 0.4))
-            if (self.odom_x - self.phase_x0) * self.drive_dir >= self.TURN_PUSH_M:
-                side = 1.0 if self.phase_target_y >= self.odom_y else -1.0
-                self.phase_target_yaw = side * math.pi / 2.0
-                self.phase, self.phase_t0 = "spin1", t_now
+            return self._push_twist(t_now)
         elif self.phase == "spin1":
             w, done = self._spin_toward(self.phase_target_yaw)
             tw.angular.z = w
@@ -327,15 +404,136 @@ class MultiROINavNode(Node):
             w, done = self._spin_toward(self.phase_target_yaw)
             tw.angular.z = w
             if done:
-                self.lane_index += self.turn_dir
-                self.lane_y = float(self.furrows[self.lane_index])
-                self.drive_dir *= -1
-                self._reset_perception()
-                self.phase = "follow"
+                return self._finish_turn(tw)
+        else:
+            return tw, "timeout", f"bad turn phase {self.phase}"
+        return tw, "", ""
+
+    def _push_twist(self, t_now):
+        """Shared push-past-the-rows phase; branches to arc (fishtail) or
+        spin1 (bulb) once past."""
+        tw = Twist()
+        tw.linear.x = self.TURN_DRIVE_V
+        tw.angular.z = float(np.clip(
+            -1.5 * self._ang_diff(self.odom_yaw, self.phase_yaw0),
+            -0.4, 0.4))
+        push_m = self.FISHTAIL_PUSH_M \
+            if self.turn_mode == "fishtail" else self.TURN_PUSH_M
+        if (self.odom_x - self.phase_x0) * self.drive_dir >= push_m:
+            if self.turn_mode == "fishtail":
+                self.phase, self.phase_t0 = "arc", t_now
                 self.get_logger().info(
-                    f"row change done: lane {self.lane_index} "
-                    f"(y={self.lane_y:+.2f}) dir={self.drive_dir:+d}")
-                return tw, "follow", ""
+                    f"fishtail arc: side={self.phase_side:+.0f} "
+                    f"to yaw {self.phase_arc_yaw:+.2f}")
+            else:
+                side = 1.0 if self.phase_target_y >= self.odom_y else -1.0
+                self.phase_target_yaw = side * math.pi / 2.0
+                self.phase, self.phase_t0 = "spin1", t_now
+        return tw, "", ""
+
+    def _finish_turn(self, tw):
+        """Shared lane bookkeeping when a turn completes; resumes FOLLOW."""
+        self.lane_index += self.turn_dir
+        self.lane_y = float(self.furrows[self.lane_index])
+        self.drive_dir *= -1
+        self._reset_perception()
+        self.phase = "follow"
+        self.get_logger().info(
+            f"row change done: lane {self.lane_index} "
+            f"(y={self.lane_y:+.2f}) dir={self.drive_dir:+d}")
+        return tw, "follow", ""
+
+    def _rear_locked(self, t_now):
+        """Fresh rear detection usable for reverse steering, else None."""
+        if self.rear_pipeline is None or self.rear_out is None:
+            return None
+        try:
+            if self.rear_t is None or (t_now - self.rear_t) > 0.5:
+                return None
+            info = self.rear_out.get("info", {})
+            if not info.get("has_line", False):
+                return None
+            return info
+        except Exception:
+            return None
+
+    def _fishtail_twist(self, t_now):
+        """Rear-guided reverse-in turn (no spinning). Returns (twist, done,
+        Tenth-leg info); done True means FOLLOW resumed."""
+        tw = Twist()
+        if t_now - self.phase_t0 > self.FISHTAIL_TIMEOUT:
+            return tw, "timeout", f"turn timeout in {self.phase}"
+        if self.phase == "push":
+            return self._push_twist(t_now)
+        if self.phase == "arc":
+            # forward arc AWAY from the next furrow until the nose has swung
+            tw.linear.x = self.TURN_DRIVE_V
+            tw.angular.z = -self.phase_side * self.drive_dir * self.TURN_RATE
+            if abs(self._ang_diff(self.odom_yaw, self.phase_arc_yaw)) \
+                    < self.FISHTAIL_TOL_YAW:
+                self.phase, self.phase_t0 = "reverse", t_now
+                self.phase_x0, self.phase_y0 = self.odom_x, self.odom_y
+                try:
+                    if self.rear_pipeline is not None:
+                        self.rear_pipeline.reset()
+                except Exception:
+                    pass
+                self.rear_out = None
+                self.get_logger().info("fishtail reverse: backing in")
+        elif self.phase == "reverse":
+            tw.linear.x = -self.FISHTAIL_REVERSE_V
+            info = self._rear_locked(t_now)
+            if info is not None:
+                # reversing moves the way the rear camera faces: reuse its
+                # forward servo output negated (sign verified in sim).
+                try:
+                    tw.angular.z = float(np.clip(
+                        self.rear_w_sign * float(self.rear_out["w"]),
+                        -0.6, 0.6))
+                except Exception:
+                    tw.angular.z = 0.0
+            else:
+                # no rear lock yet: crab toward the furrow while converging
+                # on the final heading. Reversing at yaw th moves laterally
+                # vy = v*sin(th) with v<0, so hold the nose off the final
+                # heading by d*k*e_y (e_y = target - y); that gains y at
+                # ~|v|*k*e_y while the heading still converges.
+                e_y = self.phase_target_y - self.odom_y
+                crab = float(np.clip(self.drive_dir * self.FISHTAIL_CRAB_GAIN
+                                     * e_y, -0.5, 0.5))
+                yaw_sp = self.phase_final_yaw + crab
+                d = self._ang_diff(yaw_sp, self.odom_yaw)
+                tw.angular.z = float(np.clip(0.8 * d, -0.4, 0.4))
+            backed = math.hypot(self.odom_x - self.phase_x0,
+                                self.odom_y - self.phase_y0)
+            yaw_ok = abs(self._ang_diff(self.odom_yaw,
+                                        self.phase_final_yaw)) \
+                < self.FISHTAIL_TOL_YAW
+            y_ok = abs(self.phase_target_y - self.odom_y) < self.FISHTAIL_TOL_Y
+            if self.rear_pipeline is not None:
+                rear_ok = (info is not None
+                           and abs(float(info.get("err_x", 1e9)))
+                           < self.FISHTAIL_REAR_TOL_PX)
+                # robust fallback: if the rear never locks (headland view,
+                # CPU starvation), complete on odometry after a grace period
+                # rather than timing out mid-field.
+                if info is None:
+                    if self.phase_no_rear_t is None:
+                        self.phase_no_rear_t = t_now
+                    elif t_now - self.phase_no_rear_t > 8.0:
+                        if not getattr(self, "_no_rear_warned", False):
+                            self._no_rear_warned = True
+                            self.get_logger().warn(
+                                "fishtail: no rear lock for 8s, finishing "
+                                "on odometry")
+                        rear_ok = True
+                else:
+                    self.phase_no_rear_t = None
+            else:
+                rear_ok = True
+            if backed >= self.FISHTAIL_MIN_REVERSE_M and yaw_ok and y_ok \
+                    and rear_ok:
+                return self._finish_turn(tw)
         else:
             return tw, "timeout", f"bad turn phase {self.phase}"
         return tw, "", ""
@@ -362,7 +560,10 @@ class MultiROINavNode(Node):
             tw.linear.x = float(np.clip(out["v"], 0.0, self.v_max))
             tw.angular.z = float(out["w"])
             return tw, ""
-        tw, status, reason = self._turn_twist(t_now)
+        if self.turn_mode == "fishtail":
+            tw, status, reason = self._fishtail_twist(t_now)
+        else:
+            tw, status, reason = self._turn_twist(t_now)
         if status == "timeout":
             return Twist(), reason
         return tw, ""
@@ -379,6 +580,72 @@ class MultiROINavNode(Node):
         self.destroy_node()
 
     # --------------------------------------------------------------
+    def _decode_bgr(self, msg: Image):
+        """Image msg -> BGR array, or None for unsupported encodings."""
+        enc = msg.encoding
+        if enc in ("bgr8", "8UC3"):
+            return self.bridge.imgmsg_to_cv2(msg, desired_encoding="bgr8")
+        if enc in ("rgb8",):
+            rgb = self.bridge.imgmsg_to_cv2(msg, desired_encoding="rgb8")
+            return cv2.cvtColor(rgb, cv2.COLOR_RGB2BGR)
+        self.get_logger().warn(f"unsupported encoding {enc}")
+        return None
+
+    def _on_rear_image(self, msg: Image):
+        if self.rear_pipeline is None:
+            return
+        # the rear view is only used by the fishtail arc/reverse phases;
+        # skip it while following so the front pipeline keeps full CPU.
+        if self.phase not in ("arc", "reverse"):
+            return
+        t_now = msg.header.stamp.sec + msg.header.stamp.nanosec * 1e-9
+        try:
+            bgr = self._decode_bgr(msg)
+        except Exception as e:
+            self.get_logger().warn(f"rear decode: {e}")
+            return
+        if bgr is None:
+            return
+        try:
+            t0 = time.perf_counter()
+            out = self.rear_pipeline.process(bgr)
+            self.rear_ms = 1000.0 * (time.perf_counter() - t0)
+        except Exception as e:
+            self.get_logger().error(f"rear pipeline failed: {e}")
+            return
+        self.rear_out = out
+        self.rear_t = t_now
+        self.rear_frame_idx += 1
+        # save rear views through the turn (front overlay keeps publishing,
+        # but nothing subscribes to the rear one mid-run)
+        try:
+            if self.log_dir and self.rear_frame_idx % 10 == 0:
+                cv2.imwrite(str(self.log_dir /
+                                f"rear_{self.rear_frame_idx:05d}.png"),
+                            out["overlay"])
+        except Exception:
+            pass
+        if self.rear_ovl_pub is not None \
+                and self.rear_ovl_pub.get_subscription_count() > 0:
+            try:
+                rgb = cv2.cvtColor(out["overlay"], cv2.COLOR_BGR2RGB)
+                im = self.bridge.cv2_to_imgmsg(rgb, encoding="rgb8")
+                im.header = msg.header
+                self.rear_ovl_pub.publish(im)
+            except Exception as e:  # pragma: no cover
+                self.get_logger().warn(f"rear overlay pub: {e}")
+
+    def _rear_csv(self):
+        try:
+            if self.rear_out is not None:
+                info = self.rear_out.get("info", {})
+                return [f"{info.get('err_x', 0):.1f}",
+                        f"{info.get('raw_err_theta_deg', info.get('err_theta_deg', 0)):.2f}",
+                        f"{info.get('confidence', 0):.2f}"]
+        except Exception:
+            pass
+        return ["", "", ""]
+
     def _on_image(self, msg: Image):
         # sim-time delta between frames
         t_now = msg.header.stamp.sec + msg.header.stamp.nanosec * 1e-9
@@ -395,14 +662,12 @@ class MultiROINavNode(Node):
         self.frame_idx += 1
 
         # decode to BGR
-        enc = msg.encoding
-        if enc in ("bgr8", "8UC3"):
-            bgr = self.bridge.imgmsg_to_cv2(msg, desired_encoding="bgr8")
-        elif enc in ("rgb8",):
-            rgb = self.bridge.imgmsg_to_cv2(msg, desired_encoding="rgb8")
-            bgr = cv2.cvtColor(rgb, cv2.COLOR_RGB2BGR)
-        else:
-            self.get_logger().warn(f"unsupported encoding {enc}")
+        try:
+            bgr = self._decode_bgr(msg)
+        except Exception as e:
+            self.get_logger().warn(f"decode: {e}")
+            return
+        if bgr is None:
             return
 
         try:
@@ -447,7 +712,8 @@ class MultiROINavNode(Node):
                 f"{info.get('filt_err_theta_deg', 0):.2f}",
                 f"{info.get('confidence', 0):.2f}", str(info.get("status", "")),
                 f"{out['v']:.3f}", f"{out['w']:.3f}",
-                int(info.get("n_two_sided", 0)), f"{info.get('ff', 0):.4f}"])
+                int(info.get("n_two_sided", 0)), f"{info.get('ff', 0):.4f}",
+                *self._rear_csv()])
             self.csv_f.flush()
             if ovl is not None and self.frame_idx % self.save_every == 0:
                 cv2.imwrite(str(self.log_dir / f"frame_{self.frame_idx:05d}.png"), ovl)
@@ -458,11 +724,22 @@ class MultiROINavNode(Node):
             leg_txt = (f" leg={self.lanes_done + 1} lane={self.lane_index} "
                        f"ph={self.phase}"
                        if self.row_change and self.circle_r <= 0.0 else "")
+            rear_txt = ""
+            if self.turn_mode == "fishtail" and self.phase in ("arc", "reverse"):
+                try:
+                    rinfo = (self.rear_out or {}).get("info", {})
+                    age = (t_now - self.rear_t) if self.rear_t else -1.0
+                    rear_txt = (f" rear_x={rinfo.get('err_x', 0):+.0f} "
+                                f"rear_c={rinfo.get('confidence', 0):.2f} "
+                                f"rage={age:.1f}s rn={self.rear_frame_idx} "
+                                f"rms={self.rear_ms:.0f}ms")
+                except Exception:
+                    pass
             self.get_logger().info(
                 f"[{self.frame_idx:>4}] t={t_now:6.2f} odom=({self.odom_x:+.2f},"
                 f"{self.odom_y:+.2f}) cross={cross:+.3f}{lap_txt}{leg_txt} "
                 f"w={twist.angular.z:+.2f} conf={info.get('confidence', 0):.2f} "
-                f"status={info.get('status', '')}")
+                f"status={info.get('status', '')}{rear_txt}")
 
         # auto-termination is disabled while idling (teleop decides when done)
         if self.idle:

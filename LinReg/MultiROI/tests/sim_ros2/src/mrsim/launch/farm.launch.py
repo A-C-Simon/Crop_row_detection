@@ -221,6 +221,7 @@ def _setup(context):
             "MRSIM_INIT_WINDOW": cfg.get("init_window", "1.0"),
             "MRSIM_ROW_CHANGE": cfg.get("row_change", "false"),
             "MRSIM_MAX_LANES": cfg.get("max_lanes", "2"),
+            "MRSIM_TURN_MODE": cfg.get("turn_mode", "bulb"),
             "MRSIM_LANE_START_X": robot_x,
             "MRSIM_LANE_INDEX": str(lane_index),
             "MRSIM_FURROWS": ",".join(f"{c:.3f}" for c in furrows),
@@ -329,6 +330,11 @@ def generate_launch_description():
         DeclareLaunchArgument("max_lanes", default_value="2",
                               description="lanes to cover with row_change on "
                                           "(0 = until Ctrl-C)"),
+        DeclareLaunchArgument("turn_mode", default_value="bulb",
+                              description="headland turn style: bulb "
+                                          "(odometry push/spin/slide/spin) or "
+                                          "fishtail (rear-guided reverse-in, "
+                                          "no spinning)"),
         DeclareLaunchArgument("lane_y", default_value="",
                               description="furrow center y (empty = field default)"),
         DeclareLaunchArgument("lane_end_x", default_value="9.0"),
