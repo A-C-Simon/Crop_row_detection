@@ -25,6 +25,8 @@
 #     straight5, zigzag5, custom).
 #   --x/--y/--yaw  spawn pose override (defaults follow the field sidecar).
 #   --laps N       ring-field laps before auto-stop, 0 = loop forever.
+#   Reset in any mode (no relaunch): press r in the teleop terminal, or run
+#     ros2 topic pub --once /reset_rover std_msgs/msg/Empty "{}"
 #   --world PATH   custom world file (sibling .spawn.json seeds defaults).
 #   --tof / --tof-min M / --tof-gain G / --tof-max-w W / --tof-v V:
 #     crop-safety guard (side + angled-front ToF rangers override vision steering when
