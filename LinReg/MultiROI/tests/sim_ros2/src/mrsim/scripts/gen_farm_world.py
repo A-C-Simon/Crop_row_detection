@@ -261,7 +261,10 @@ def main():
     # plants: visual mesh + a thin static stem collision (cheap cylinder).
     # The visual mesh alone is invisible to ray sensors (no <collision>),
     # which left the side ToF rangers blind; the stem (r=5 cm, z 0..0.6 m)
-    # makes plants ray-visible and gives real bump contact, while the wide
+    # makes plants ray-visible. collide_without_contact keeps it
+    # sensor-only: the rover passes through stems with zero contact force
+    # (no tripping/toppling - toppling is not a real-life scenario here),
+    # while the ToF guard still sees the rows and steers away. The wide
     # leaf canopy stays visual-only so normal tracking never snags. The
     # agribot big_plant STL is only ~0.15 m tall; scale it up so rows read
     # clearly from the rover camera (~0.5 m high).
@@ -276,7 +279,8 @@ def main():
             f"          <geometry><cylinder><radius>0.05</radius>"
             f"<length>0.60</length></cylinder></geometry>\n"
             f"          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode>"
-            f"</friction></surface>\n"
+            f"</friction><contact><collide_without_contact>true"
+            f"</collide_without_contact></contact></surface>\n"
             f"          <max_contacts>4</max_contacts>\n"
             f"        </collision>\n"
             f"        <visual name='v'>\n"
