@@ -33,6 +33,18 @@ Spawn/termination defaults follow the field sidecars (e.g.
 Note the ring spawn yaw is a look-into-the-turn lead (1.8308), same as the
 MultiROI rig. Probes print `n_rows ey theta prom status`.
 
+### Crop-safety ToF guard
+
+Same rig-wide guard as MultiROI (see its tests README): four rangers
+(`/tof/left`, `/tof/right`, `/tof/front_left`, `/tof/front_right`, the
+front pair yawed +/-35 deg for bend lookahead) feed `tof_guard.py`, which
+sits between the nav stack (`/cmd_vel_raw`) and the wheels (`/cmd_vel`).
+Enable with `./run_sim.sh --tof` plus `--tof-min`, `--tof-gain`,
+`--tof-max-w`, `--tof-v` tuning; per-frame telemetry goes to
+`tof_guard.csv`. In any mode,
+`ros2 topic pub --once /reset_rover std_msgs/msg/Empty "{}"` (or `r` in a
+keyboard terminal) teleports the rover back to the start pose.
+
 ## Pipeline notes (`src/fftsim/fftsim/pipeline.py`)
 
 * Fixed BEV geometry for the sim camera: pitch 66 deg from nadir, 1.4 m

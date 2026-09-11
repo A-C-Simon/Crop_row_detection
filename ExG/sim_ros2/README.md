@@ -29,6 +29,18 @@ counts generate on demand into a shared fields cache). Explicit
 Spawn/termination defaults follow the field sidecars (e.g.
 `src/exgsim/worlds/farm_maize.spawn.json`, ring R = 12 m).
 
+### Crop-safety ToF guard
+
+Same rig-wide guard as MultiROI (see its tests README): four rangers
+(`/tof/left`, `/tof/right`, `/tof/front_left`, `/tof/front_right`, the
+front pair yawed +/-35 deg for bend lookahead) feed `tof_guard.py`. With
+`tof:=true` the C++ stack's `/cmd_vel` is remapped to `/cmd_vel_raw` and
+the guard owns the wheels. Enable with `./run_sim.sh --tof` plus
+`--tof-min`, `--tof-gain`, `--tof-max-w`, `--tof-v` tuning; per-frame
+telemetry goes to `tof_guard.csv`. In any mode,
+`ros2 topic pub --once /reset_rover std_msgs/msg/Empty "{}"` (or `r` in a
+keyboard terminal) teleports the rover back to the start pose.
+
 ## How it fits together
 
 * `bridge.py`: `/camera/image_raw` (BestEffort) → `/front/rgb/image_raw`

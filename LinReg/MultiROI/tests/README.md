@@ -250,6 +250,56 @@ MRSIM_SIM_MODE=demo ros2 launch mrsim farm.launch.py \
     demo_keys:="w w w w a a d d s s" log_dir:=/tmp/mrsim_demo gui:=false
 ```
 
+## Crop-safety ToF guard
+
+The rover carries four sideways/angled infrared rangers that watch the crop
+rows independently of vision: `/tof/left` and `/tof/right` look straight
+out from the chassis flanks, `/tof/front_left` and `/tof/front_right` sit
+at the nose yawed +/-35 deg outward like angled headlamps, so head-on drift
+into plants at bends is seen ~0.7 m ahead. All four ride on short stalks at
+0.46 m height with small orange housings (visible in the GUI). They are
+plain Gazebo ray sensors (`libgazebo_ros_ray_sensor.so`, 5-ray fan,
+`sensor_msgs/Range`).
+
+With `--tof`, `farm.launch.py` inserts `tof_guard.py` between the nav stack
+and the wheels: nav/teleop publish raw commands on `/cmd_vel_raw`, the
+guard republishes the safety-checked command on `/cmd_vel`. Each side uses
+the nearer of its two rangers. While every reading stays above `tof_min`
+the guard passes commands through untouched; below it the guard overrides
+the yaw (the vision output is discarded for that tick) and steers away from
+the close side, capping forward speed at `tof_v`:
+
+```bash
+./run_sim.sh --tof --tof-min 0.35 --tof-gain 2.0 --tof-max-w 0.6 --tof-v 0.12
+```
+
+Per-frame telemetry lands in `tof_guard.csv` (`left_m right_m fl_m fr_m`
+plus raw/safe `v w` and the override flag). Two implementation notes that
+will bite if ignored: the Gazebo plugin reports "no return" as float32
+FLT_MAX, which this image's `rosidl_generator_py` Range converter rejects,
+so the guard subscribes raw and parses the CDR bytes by hand; for the same
+reason `ros2 topic echo /tof/left` crashes, use the CSV instead. And the
+farm plants carry thin static stem collisions (r = 5 cm, z 0..0.6 m, added
+by `gen_farm_world.py`) because ray sensors only see collision geometry;
+the stems are marked `collide_without_contact`, so they are sensor-only and
+the rover can never trip or topple on them.
+
+## Rover reset (no relaunch)
+
+A `rover_reset` listener runs in every launch. Reset the rover to the start
+pose without relaunching by pressing `r` in the launch terminal (works in
+auto mode too; in fftsim teleop mode the keyboard teleop owns the keys and
+has its own `r`), by pressing `r` in a manual teleop terminal, or from any
+shell with:
+
+```bash
+ros2 topic pub --once /reset_rover std_msgs/msg/Empty "{}"
+```
+
+The reset deletes and respawns the rover through Gazebo's entity services,
+so odometry restarts from the spawn pose just like a fresh launch. Rapid
+repeat resets are ignored for 3 s while a respawn settles.
+
 ## Choosing the detection algorithm
 
 Every nav node run goes through one pipeline selected by `algorithm:=`
