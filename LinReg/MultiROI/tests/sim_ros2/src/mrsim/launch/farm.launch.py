@@ -3,6 +3,7 @@
     export MULTIROI_DIR=/abs/path/to/LinReg/MultiROI
     ros2 launch mrsim farm.launch.py log_dir:=/tmp/mrsim_log
     ros2 launch mrsim farm.launch.py field:=zigzag5 log_dir:=/tmp/z
+    ros2 launch mrsim farm.launch.py tof:=true tof_min:=0.35  # ToF guard on
 
 Starts gzserver headless on the selected field, spawns the rover in the
 configured furrow, and runs `nav_node.py` (camera -> MultiROI
@@ -87,7 +88,8 @@ if not (Path(_AGRIBOT_MODELS) / "big_plant").is_dir():
 _SIM_SRC = Path(_MULTIROI) / "tests" / "sim_ros2" / "src" / "mrsim"
 _NAV_PY = _SIM_SRC / "mrsim" / "nav_node.py"
 _TELEOP_PY = _SIM_SRC / "mrsim" / "teleop_node.py"
-if not (_NAV_PY.exists() and _TELEOP_PY.exists()):
+_TOF_PY = _SIM_SRC / "mrsim" / "tof_guard.py"
+if not (_NAV_PY.exists() and _TELEOP_PY.exists() and _TOF_PY.exists()):
     raise RuntimeError(f"mrsim nodes not found under {_SIM_SRC}")
 
 
@@ -203,12 +205,23 @@ def _setup(context):
     # idle env: nav node runs detection/overlay but never publishes /cmd_vel
     # unless mode:=auto (so teleop/demo own the topic)
     nav_idle = "1" if os.environ.get("MRSIM_SIM_MODE", "auto") != "auto" else ""
+    # ToF crop-safety guard: when tof:=true the nav/teleop/demo nodes
+    # publish the raw command on /cmd_vel_raw and tof_guard.py republishes
+    # the safety-overridden command on /cmd_vel (side + angled-front ToF rangers in the
+    # rover URDF). The guard override wins over vision servoing whenever
+    # a side clearance drops below tof_min.
+    tof_on = str(cfg.get("tof", "false")).lower() in ("1", "true", "yes")
+    cmd_topic = "/cmd_vel_raw" if tof_on else "/cmd_vel"
+    log_dir = cfg.get("log_dir", "/tmp/mrsim_log")
     nav = ExecuteProcess(
         cmd=[sys.executable, str(_NAV_PY)],
         output="screen",
         additional_env={
             "MRSIM_MODE": "nav",
             "MRSIM_ALGORITHM": os.environ.get("MRSIM_ALGORITHM", "multiroi"),
+            "MRSIM_CAMERA_TOPIC": os.environ.get("MRSIM_CAMERA_TOPIC",
+                                                 "/camera/image_raw"),
+            "MRSIM_CMD_TOPIC": cmd_topic,
             "MRSIM_NAV_IDLE": nav_idle,
             "MRSIM_LANE_Y": lane_y,
             "MRSIM_LANE_END_X": lane_end_x,
@@ -241,9 +254,27 @@ def _setup(context):
         cmd=[sys.executable, str(_TELEOP_PY)],
         output="screen",
         condition=IfCondition("1" if os.environ.get("MRSIM_SIM_MODE", "auto") == "demo" else "0"),
-        additional_env={"MRSIM_DEMO_KEYS": cfg.get("demo_keys", "w w w a a s s")})
+        additional_env={"MRSIM_DEMO_KEYS": cfg.get("demo_keys", "w w w a a s s"),
+                        "MRSIM_CMD_TOPIC": cmd_topic})
 
-    return [
+
+
+    # ToF guard: raw nav/teleop commands in, safety-overridden command out.
+    # Only launched with tof:=true; otherwise nav drives /cmd_vel directly.
+    guard = ExecuteProcess(
+        cmd=[sys.executable, str(_TOF_PY)],
+        output="screen",
+        additional_env={
+            "MRSIM_TOF_MIN": cfg.get("tof_min", "0.35"),
+            "MRSIM_TOF_GAIN": cfg.get("tof_gain", "2.0"),
+            "MRSIM_TOF_MAX_W": cfg.get("tof_max_w", "0.6"),
+            "MRSIM_TOF_V": cfg.get("tof_v", "0.12"),
+            "MRSIM_TOF_IN": cmd_topic,
+            "MRSIM_TOF_OUT": "/cmd_vel",
+            "MRSIM_LOG_DIR": log_dir,
+        }) if tof_on else None
+
+    actions = [
         AppendEnvironmentVariable("GAZEBO_MODEL_PATH",
                                   f"{_AGRIBOT_MODELS}:{gazebo_default_models}"),
         AppendEnvironmentVariable("MULTIROI_DIR", _MULTIROI),
@@ -283,8 +314,12 @@ def _setup(context):
                  "-Y", robot_yaw,
              ]),
 
-        # 4) MultiROI navigation node (idles its /cmd_vel unless mode:=auto)
+        # 4) MultiROI navigation node (idles its raw cmd unless mode:=auto;
+        #    with tof:=true it publishes /cmd_vel_raw for the guard)
         nav,
+        # 4b) ToF crop-safety guard (only with tof:=true): overrides the
+        #     vision servo whenever a side ranger is closer than tof_min
+        *([guard] if guard is not None else []),
         # 5) mode:=demo - scripted teleop keys (headless check); its exit
         #    shuts the launch down (second handler below)
         demo,
@@ -294,6 +329,7 @@ def _setup(context):
         RegisterEventHandler(OnProcessExit(target_action=demo,
                                            on_exit=[Shutdown(reason="demo done")])),
     ]
+    return actions
 
 
 def generate_launch_description():
@@ -384,5 +420,21 @@ def generate_launch_description():
                                           "bottom (empty = field default)"),
         DeclareLaunchArgument("max_seconds", default_value="0"),
         DeclareLaunchArgument("log_dir", default_value="/tmp/mrsim_log"),
+        DeclareLaunchArgument("tof", default_value="false",
+                              description="crop-safety guard: side + angled-front ToF rangers "
+                                          "override vision steering below "
+                                          "tof_min (same switch as --tof)"),
+        DeclareLaunchArgument("tof_min", default_value="0.35",
+                              description="minimum side clearance in m; "
+                                          "closer steers away (override)"),
+        DeclareLaunchArgument("tof_gain", default_value="2.0",
+                              description="guard yaw gain rad/s per m "
+                                          "of clearance deficit"),
+        DeclareLaunchArgument("tof_max_w", default_value="0.6",
+                              description="guard |angular| clamp while "
+                                          "overriding"),
+        DeclareLaunchArgument("tof_v", default_value="0.12",
+                              description="guard linear cap (m/s) while "
+                                          "overriding"),
         OpaqueFunction(function=_setup),
     ])
