@@ -5,7 +5,7 @@
 # the C++ stack idles (mask_tune on, nothing published); drive with the
 # keyboard node in a second terminal:
 #   source install/setup.bash && ros2 run exgsim exg_teleop
-# (w/s = fwd/back, a/d = turn, space = stop, x = quit).
+# (w/s = fwd/back, a/d = turn, space = stop, x = quit, r = respawn at start).
 #
 #   ./run_sim_gui.sh               # GUI + teleop (C++ stack idles)
 #   ./run_sim_gui.sh --auto        # GUI + autonomous ExG driving
@@ -25,6 +25,8 @@
 #     straight5, zigzag5, custom).
 #   --x/--y/--yaw  spawn pose override (defaults follow the field sidecar).
 #   --laps N       ring-field laps before auto-stop, 0 = loop forever.
+#   Reset in any mode (no relaunch): press r in the teleop terminal, or run
+#     ros2 topic pub --once /reset_rover std_msgs/msg/Empty "{}"
 #   --world PATH   custom world file (sibling .spawn.json seeds defaults).
 #   --tof / --tof-min M / --tof-gain G / --tof-max-w W / --tof-v V:
 #     crop-safety guard (side + angled-front ToF rangers override vision steering when
@@ -34,7 +36,7 @@
 #
 # In teleop mode run the keyboard driver by hand in this terminal after the
 # sim is up:  source install/setup.bash && ros2 run exgsim exg_teleop
-# (w/s = fwd/back, a/d = turn, space = stop, x = quit).
+# (w/s = fwd/back, a/d = turn, space = stop, x = quit, r = respawn at start).
 set -e
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

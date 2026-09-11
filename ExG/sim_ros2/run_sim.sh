@@ -17,6 +17,8 @@
 #     per-frame vs errors through the monitor.
 #   --seconds N    stop after N sim-seconds (0 = off; lane end/laps stop first).
 #   --out DIR      log dir for nav_run.csv + overlay PNGs.
+#   Reset in any mode (no relaunch): press r in the teleop terminal, or run
+#     ros2 topic pub --once /reset_rover std_msgs/msg/Empty "{}"
 #   --x/--y/--yaw  spawn pose override (defaults follow the field sidecar).
 #   --laps N       ring-field laps before auto-stop, 0 = loop forever.
 #   --world PATH   custom world file (sibling .spawn.json seeds defaults).
