@@ -79,8 +79,9 @@ _NAV_PY = _SIM_SRC / "fftsim" / "nav_node.py"
 _TELEOP_PY = _SIM_SRC / "fftsim" / "teleop_node.py"
 _TELEPORT_PY = _SIM_SRC / "fftsim" / "teleport_node.py"
 _TOF_PY = _SIM_SRC / "fftsim" / "tof_guard.py"
+_RESET_PY = _SIM_SRC / "fftsim" / "rover_reset.py"
 if not (_NAV_PY.exists() and _TELEOP_PY.exists() and _TELEPORT_PY.exists()
-        and _TOF_PY.exists()):
+        and _TOF_PY.exists() and _RESET_PY.exists()):
     raise RuntimeError(f"fftsim nodes not found under {_SIM_SRC}")
 
 
@@ -224,6 +225,18 @@ def _setup(context):
             "1" if os.environ.get("MRSIM_SIM_MODE", "auto") == "teleop" else "0"),
         additional_env={"MRSIM_SPAWN": f"{robot_x},{robot_y},{robot_yaw}"})
 
+    # Rover reset listener (all modes): `ros2 topic pub --once
+    # /reset_rover std_msgs/msg/Empty {}` teleports the rover back to the
+    # initial spawn pose - no relaunch needed after a mistake. The keyboard
+    # teleop has the same action on its 'r' key.
+    reset = ExecuteProcess(
+        cmd=[sys.executable, str(_RESET_PY)],
+        output="screen",
+        additional_env={
+            "MRSIM_SPAWN": f"{robot_x},{robot_y},{robot_yaw}",
+            "MRSIM_CMD_TOPIC": cmd_topic,
+            "MRSIM_LOG_DIR": log_dir,
+        })
 
     # ToF guard: raw nav/teleop commands in, safety-overridden command out.
     # Only launched with tof:=true; otherwise nav drives /cmd_vel directly.
@@ -283,6 +296,9 @@ def _setup(context):
         # 4b) ToF crop-safety guard (only with tof:=true): overrides the
         #     vision servo whenever a side ranger is closer than tof_min
         *([guard] if guard is not None else []),
+        # 4c) reset listener (all modes): /reset_rover teleports the rover
+        #     back to the spawn pose without relaunching
+        reset,
         # 5) mode:=teleop - keyboard teleop + 'r' respawn (starts in teleop)
         teleop,
         # 6) mode:=demo - scripted teleop keys (headless check); its exit
