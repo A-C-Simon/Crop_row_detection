@@ -54,6 +54,12 @@
       <static>1</static>
       <pose>-9.00307 -0.534657 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -69,6 +75,12 @@
       <static>1</static>
       <pose>-8.88271 -0.559452 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -84,6 +96,12 @@
       <static>1</static>
       <pose>-8.77116 -0.556399 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -99,6 +117,12 @@
       <static>1</static>
       <pose>-8.62666 -0.537276 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -114,6 +138,12 @@
       <static>1</static>
       <pose>-8.50756 -0.542533 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -129,6 +159,12 @@
       <static>1</static>
       <pose>-8.39526 -0.54444 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -144,6 +180,12 @@
       <static>1</static>
       <pose>-8.29999 -0.524342 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -159,6 +201,12 @@
       <static>1</static>
       <pose>-8.15392 -0.535035 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -174,6 +222,12 @@
       <static>1</static>
       <pose>-8.0603 -0.602317 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -189,6 +243,12 @@
       <static>1</static>
       <pose>-7.93068 -0.564046 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -204,6 +264,12 @@
       <static>1</static>
       <pose>-7.79633 -0.551377 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -219,6 +285,12 @@
       <static>1</static>
       <pose>-7.67375 -0.569267 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -234,6 +306,12 @@
       <static>1</static>
       <pose>-7.5563 -0.538175 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -249,6 +327,12 @@
       <static>1</static>
       <pose>-7.44793 -0.498474 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -264,6 +348,12 @@
       <static>1</static>
       <pose>-7.31332 -0.51409 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -279,6 +369,12 @@
       <static>1</static>
       <pose>-7.20744 -0.572185 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -294,6 +390,12 @@
       <static>1</static>
       <pose>-7.08413 -0.553193 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -309,6 +411,12 @@
       <static>1</static>
       <pose>-6.95242 -0.542547 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -324,6 +432,12 @@
       <static>1</static>
       <pose>-6.84537 -0.578707 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -339,6 +453,12 @@
       <static>1</static>
       <pose>-6.72625 -0.513372 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -354,6 +474,12 @@
       <static>1</static>
       <pose>-6.6097 -0.542657 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -369,6 +495,12 @@
       <static>1</static>
       <pose>-6.47488 -0.594692 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -384,6 +516,12 @@
       <static>1</static>
       <pose>-6.35942 -0.510813 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -399,6 +537,12 @@
       <static>1</static>
       <pose>-6.26417 -0.559648 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -414,6 +558,12 @@
       <static>1</static>
       <pose>-6.12127 -0.574518 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -429,6 +579,12 @@
       <static>1</static>
       <pose>-5.99403 -0.551868 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -444,6 +600,12 @@
       <static>1</static>
       <pose>-5.89758 -0.525165 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -459,6 +621,12 @@
       <static>1</static>
       <pose>-5.75197 -0.521625 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -474,6 +642,12 @@
       <static>1</static>
       <pose>-5.62271 -0.539133 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -489,6 +663,12 @@
       <static>1</static>
       <pose>-5.51857 -0.588975 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -504,6 +684,12 @@
       <static>1</static>
       <pose>-5.39261 -0.568353 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -519,6 +705,12 @@
       <static>1</static>
       <pose>-5.28543 -0.587944 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -534,6 +726,12 @@
       <static>1</static>
       <pose>-5.17161 -0.565934 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -549,6 +747,12 @@
       <static>1</static>
       <pose>-5.02453 -0.610954 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -564,6 +768,12 @@
       <static>1</static>
       <pose>-4.93749 -0.542819 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -579,6 +789,12 @@
       <static>1</static>
       <pose>-4.78268 -0.532645 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -594,6 +810,12 @@
       <static>1</static>
       <pose>-4.7028 -0.625547 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -609,6 +831,12 @@
       <static>1</static>
       <pose>-4.55571 -0.572088 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -624,6 +852,12 @@
       <static>1</static>
       <pose>-4.45344 -0.520679 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -639,6 +873,12 @@
       <static>1</static>
       <pose>-4.30678 -0.545282 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -654,6 +894,12 @@
       <static>1</static>
       <pose>-4.19705 -0.536969 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -669,6 +915,12 @@
       <static>1</static>
       <pose>-4.06087 -0.531429 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -684,6 +936,12 @@
       <static>1</static>
       <pose>-3.95378 -0.533568 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -699,6 +957,12 @@
       <static>1</static>
       <pose>-3.85882 -0.511548 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -714,6 +978,12 @@
       <static>1</static>
       <pose>-3.70854 -0.534111 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -729,6 +999,12 @@
       <static>1</static>
       <pose>-3.62369 -0.56901 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -744,6 +1020,12 @@
       <static>1</static>
       <pose>-3.46989 -0.604336 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -759,6 +1041,12 @@
       <static>1</static>
       <pose>-3.36221 -0.519414 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -774,6 +1062,12 @@
       <static>1</static>
       <pose>-3.25573 -0.501697 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -789,6 +1083,12 @@
       <static>1</static>
       <pose>-3.11338 -0.554504 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -804,6 +1104,12 @@
       <static>1</static>
       <pose>-2.9961 -0.530505 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -819,6 +1125,12 @@
       <static>1</static>
       <pose>-2.87856 -0.51563 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -834,6 +1146,12 @@
       <static>1</static>
       <pose>-2.76794 -0.562442 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -849,6 +1167,12 @@
       <static>1</static>
       <pose>-2.6275 -0.549196 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -864,6 +1188,12 @@
       <static>1</static>
       <pose>-2.53057 -0.521606 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -879,6 +1209,12 @@
       <static>1</static>
       <pose>-2.38241 -0.563345 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -894,6 +1230,12 @@
       <static>1</static>
       <pose>-2.29656 -0.554042 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -909,6 +1251,12 @@
       <static>1</static>
       <pose>-2.16179 -0.55894 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -924,6 +1272,12 @@
       <static>1</static>
       <pose>-2.02314 -0.580808 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -939,6 +1293,12 @@
       <static>1</static>
       <pose>-1.90487 -0.58805 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -954,6 +1314,12 @@
       <static>1</static>
       <pose>-1.80944 -0.531054 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -969,6 +1335,12 @@
       <static>1</static>
       <pose>-1.66646 -0.52423 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -984,6 +1356,12 @@
       <static>1</static>
       <pose>-1.55586 -0.545729 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -999,6 +1377,12 @@
       <static>1</static>
       <pose>-1.43817 -0.532742 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -1014,6 +1398,12 @@
       <static>1</static>
       <pose>-1.32211 -0.541677 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -1029,6 +1419,12 @@
       <static>1</static>
       <pose>-1.19313 -0.549975 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -1044,6 +1440,12 @@
       <static>1</static>
       <pose>-1.07083 -0.533024 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -1059,6 +1461,12 @@
       <static>1</static>
       <pose>-0.935872 -0.540252 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -1074,6 +1482,12 @@
       <static>1</static>
       <pose>-0.845131 -0.561177 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -1089,6 +1503,12 @@
       <static>1</static>
       <pose>-0.720157 -0.522286 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -1104,6 +1524,12 @@
       <static>1</static>
       <pose>-0.604039 -0.538425 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -1119,6 +1545,12 @@
       <static>1</static>
       <pose>-0.457952 -0.62694 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -1134,6 +1566,12 @@
       <static>1</static>
       <pose>-0.373487 -0.542683 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -1149,6 +1587,12 @@
       <static>1</static>
       <pose>-0.23522 -0.542843 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -1164,6 +1608,12 @@
       <static>1</static>
       <pose>-0.125174 -0.530346 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -1179,6 +1629,12 @@
       <static>1</static>
       <pose>0.00338556 -0.565662 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -1194,6 +1650,12 @@
       <static>1</static>
       <pose>0.149161 -0.539346 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -1209,6 +1671,12 @@
       <static>1</static>
       <pose>0.233349 -0.552983 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -1224,6 +1692,12 @@
       <static>1</static>
       <pose>0.357293 -0.551882 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -1239,6 +1713,12 @@
       <static>1</static>
       <pose>0.447263 -0.564607 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -1254,6 +1734,12 @@
       <static>1</static>
       <pose>0.612103 -0.585057 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -1269,6 +1755,12 @@
       <static>1</static>
       <pose>0.7192 -0.521395 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -1284,6 +1776,12 @@
       <static>1</static>
       <pose>0.850274 -0.505268 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -1299,6 +1797,12 @@
       <static>1</static>
       <pose>0.939583 -0.560601 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -1314,6 +1818,12 @@
       <static>1</static>
       <pose>1.07591 -0.531301 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -1329,6 +1839,12 @@
       <static>1</static>
       <pose>1.2131 -0.630485 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -1344,6 +1860,12 @@
       <static>1</static>
       <pose>1.33306 -0.593426 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -1359,6 +1881,12 @@
       <static>1</static>
       <pose>1.4482 -0.594764 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -1374,6 +1902,12 @@
       <static>1</static>
       <pose>1.56211 -0.51416 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -1389,6 +1923,12 @@
       <static>1</static>
       <pose>1.67821 -0.544267 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -1404,6 +1944,12 @@
       <static>1</static>
       <pose>1.80957 -0.545759 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -1419,6 +1965,12 @@
       <static>1</static>
       <pose>1.91894 -0.504002 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -1434,6 +1986,12 @@
       <static>1</static>
       <pose>2.05258 -0.558814 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -1449,6 +2007,12 @@
       <static>1</static>
       <pose>2.19294 -0.584405 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -1464,6 +2028,12 @@
       <static>1</static>
       <pose>2.29098 -0.557971 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -1479,6 +2049,12 @@
       <static>1</static>
       <pose>2.40159 -0.52885 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -1494,6 +2070,12 @@
       <static>1</static>
       <pose>2.52267 -0.530841 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -1509,6 +2091,12 @@
       <static>1</static>
       <pose>2.62167 -0.595285 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -1524,6 +2112,12 @@
       <static>1</static>
       <pose>2.76738 -0.578895 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -1539,6 +2133,12 @@
       <static>1</static>
       <pose>2.86768 -0.594104 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -1554,6 +2154,12 @@
       <static>1</static>
       <pose>3.0152 -0.527603 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -1569,6 +2175,12 @@
       <static>1</static>
       <pose>3.13768 -0.578132 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -1584,6 +2196,12 @@
       <static>1</static>
       <pose>3.24001 -0.584209 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -1599,6 +2217,12 @@
       <static>1</static>
       <pose>3.36919 -0.502317 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -1614,6 +2238,12 @@
       <static>1</static>
       <pose>3.46932 -0.50319 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -1629,6 +2259,12 @@
       <static>1</static>
       <pose>3.61186 -0.555335 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -1644,6 +2280,12 @@
       <static>1</static>
       <pose>3.69634 -0.507801 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -1659,6 +2301,12 @@
       <static>1</static>
       <pose>3.83884 -0.568085 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -1674,6 +2322,12 @@
       <static>1</static>
       <pose>3.9648 -0.537701 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -1689,6 +2343,12 @@
       <static>1</static>
       <pose>4.09798 -0.580604 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -1704,6 +2364,12 @@
       <static>1</static>
       <pose>4.21363 -0.505379 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -1719,6 +2385,12 @@
       <static>1</static>
       <pose>4.33743 -0.555419 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -1734,6 +2406,12 @@
       <static>1</static>
       <pose>4.43107 -0.519443 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -1749,6 +2427,12 @@
       <static>1</static>
       <pose>4.56138 -0.546274 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -1764,6 +2448,12 @@
       <static>1</static>
       <pose>4.69709 -0.557903 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -1779,6 +2469,12 @@
       <static>1</static>
       <pose>4.77244 -0.561616 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -1794,6 +2490,12 @@
       <static>1</static>
       <pose>4.89775 -0.525437 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -1809,6 +2511,12 @@
       <static>1</static>
       <pose>5.0438 -0.568336 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -1824,6 +2532,12 @@
       <static>1</static>
       <pose>5.15988 -0.525021 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -1839,6 +2553,12 @@
       <static>1</static>
       <pose>5.28095 -0.510204 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -1854,6 +2574,12 @@
       <static>1</static>
       <pose>5.39926 -0.51879 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -1869,6 +2595,12 @@
       <static>1</static>
       <pose>5.5379 -0.501703 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -1884,6 +2616,12 @@
       <static>1</static>
       <pose>5.63194 -0.523603 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -1899,6 +2637,12 @@
       <static>1</static>
       <pose>5.73749 -0.5825 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -1914,6 +2658,12 @@
       <static>1</static>
       <pose>5.85645 -0.51793 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -1929,6 +2679,12 @@
       <static>1</static>
       <pose>5.98522 -0.550383 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -1944,6 +2700,12 @@
       <static>1</static>
       <pose>6.11769 -0.550858 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -1959,6 +2721,12 @@
       <static>1</static>
       <pose>6.2329 -0.54299 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -1974,6 +2742,12 @@
       <static>1</static>
       <pose>6.3815 -0.548672 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -1989,6 +2763,12 @@
       <static>1</static>
       <pose>6.48637 -0.519984 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -2004,6 +2784,12 @@
       <static>1</static>
       <pose>6.59762 -0.587791 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -2019,6 +2805,12 @@
       <static>1</static>
       <pose>6.71334 -0.517792 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -2034,6 +2826,12 @@
       <static>1</static>
       <pose>6.82025 -0.567935 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -2049,6 +2847,12 @@
       <static>1</static>
       <pose>6.97209 -0.526218 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -2064,6 +2868,12 @@
       <static>1</static>
       <pose>7.08009 -0.525843 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -2079,6 +2889,12 @@
       <static>1</static>
       <pose>7.20199 -0.585367 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -2094,6 +2910,12 @@
       <static>1</static>
       <pose>7.30123 -0.569169 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -2109,6 +2931,12 @@
       <static>1</static>
       <pose>7.45107 -0.566966 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -2124,6 +2952,12 @@
       <static>1</static>
       <pose>7.54917 -0.573129 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -2139,6 +2973,12 @@
       <static>1</static>
       <pose>7.66162 -0.553518 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -2154,6 +2994,12 @@
       <static>1</static>
       <pose>7.78584 -0.539076 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -2169,6 +3015,12 @@
       <static>1</static>
       <pose>7.89168 -0.540167 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -2184,6 +3036,12 @@
       <static>1</static>
       <pose>8.0323 -0.608264 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -2199,6 +3057,12 @@
       <static>1</static>
       <pose>8.1687 -0.558265 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -2214,6 +3078,12 @@
       <static>1</static>
       <pose>8.25324 -0.576252 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -2229,6 +3099,12 @@
       <static>1</static>
       <pose>8.40349 -0.563757 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -2244,6 +3120,12 @@
       <static>1</static>
       <pose>8.52936 -0.527573 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -2259,6 +3141,12 @@
       <static>1</static>
       <pose>8.64799 -0.540201 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -2274,6 +3162,12 @@
       <static>1</static>
       <pose>8.776 -0.530205 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -2289,6 +3183,12 @@
       <static>1</static>
       <pose>8.88541 -0.612519 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -2304,6 +3204,12 @@
       <static>1</static>
       <pose>-8.98924 0.589283 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -2319,6 +3225,12 @@
       <static>1</static>
       <pose>-8.88356 0.535915 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -2334,6 +3246,12 @@
       <static>1</static>
       <pose>-8.73672 0.497256 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -2349,6 +3267,12 @@
       <static>1</static>
       <pose>-8.63437 0.622711 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -2364,6 +3288,12 @@
       <static>1</static>
       <pose>-8.53113 0.570688 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -2379,6 +3309,12 @@
       <static>1</static>
       <pose>-8.37736 0.546394 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -2394,6 +3330,12 @@
       <static>1</static>
       <pose>-8.27327 0.577077 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -2409,6 +3351,12 @@
       <static>1</static>
       <pose>-8.17087 0.547327 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -2424,6 +3372,12 @@
       <static>1</static>
       <pose>-8.03649 0.574762 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -2439,6 +3393,12 @@
       <static>1</static>
       <pose>-7.92041 0.54414 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -2454,6 +3414,12 @@
       <static>1</static>
       <pose>-7.81219 0.539231 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -2469,6 +3435,12 @@
       <static>1</static>
       <pose>-7.6693 0.553052 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -2484,6 +3456,12 @@
       <static>1</static>
       <pose>-7.57024 0.524752 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -2499,6 +3477,12 @@
       <static>1</static>
       <pose>-7.408 0.584197 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -2514,6 +3498,12 @@
       <static>1</static>
       <pose>-7.31235 0.472212 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -2529,6 +3519,12 @@
       <static>1</static>
       <pose>-7.19254 0.564421 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -2544,6 +3540,12 @@
       <static>1</static>
       <pose>-7.05979 0.562833 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -2559,6 +3561,12 @@
       <static>1</static>
       <pose>-6.96081 0.565673 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -2574,6 +3582,12 @@
       <static>1</static>
       <pose>-6.86333 0.580998 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -2589,6 +3603,12 @@
       <static>1</static>
       <pose>-6.7161 0.528938 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -2604,6 +3624,12 @@
       <static>1</static>
       <pose>-6.58409 0.60428 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -2619,6 +3645,12 @@
       <static>1</static>
       <pose>-6.49683 0.53001 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -2634,6 +3666,12 @@
       <static>1</static>
       <pose>-6.3565 0.555504 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -2649,6 +3687,12 @@
       <static>1</static>
       <pose>-6.24478 0.520774 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -2664,6 +3708,12 @@
       <static>1</static>
       <pose>-6.09455 0.581122 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -2679,6 +3729,12 @@
       <static>1</static>
       <pose>-6.01433 0.50965 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -2694,6 +3750,12 @@
       <static>1</static>
       <pose>-5.85956 0.579674 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -2709,6 +3771,12 @@
       <static>1</static>
       <pose>-5.73815 0.574304 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -2724,6 +3792,12 @@
       <static>1</static>
       <pose>-5.65046 0.55782 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -2739,6 +3813,12 @@
       <static>1</static>
       <pose>-5.54592 0.527556 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -2754,6 +3834,12 @@
       <static>1</static>
       <pose>-5.40071 0.565683 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -2769,6 +3855,12 @@
       <static>1</static>
       <pose>-5.28873 0.546273 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -2784,6 +3876,12 @@
       <static>1</static>
       <pose>-5.1545 0.561301 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -2799,6 +3897,12 @@
       <static>1</static>
       <pose>-5.03234 0.556269 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -2814,6 +3918,12 @@
       <static>1</static>
       <pose>-4.92389 0.573675 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -2829,6 +3939,12 @@
       <static>1</static>
       <pose>-4.79941 0.525217 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -2844,6 +3960,12 @@
       <static>1</static>
       <pose>-4.68751 0.54999 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -2859,6 +3981,12 @@
       <static>1</static>
       <pose>-4.56132 0.55471 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -2874,6 +4002,12 @@
       <static>1</static>
       <pose>-4.44001 0.555276 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -2889,6 +4023,12 @@
       <static>1</static>
       <pose>-4.32161 0.512247 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -2904,6 +4044,12 @@
       <static>1</static>
       <pose>-4.19494 0.581611 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -2919,6 +4065,12 @@
       <static>1</static>
       <pose>-4.07478 0.544323 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -2934,6 +4086,12 @@
       <static>1</static>
       <pose>-3.95464 0.521029 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -2949,6 +4107,12 @@
       <static>1</static>
       <pose>-3.86275 0.551787 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -2964,6 +4128,12 @@
       <static>1</static>
       <pose>-3.73117 0.572196 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -2979,6 +4149,12 @@
       <static>1</static>
       <pose>-3.61301 0.471145 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -2994,6 +4170,12 @@
       <static>1</static>
       <pose>-3.49247 0.597343 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -3009,6 +4191,12 @@
       <static>1</static>
       <pose>-3.36458 0.508917 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -3024,6 +4212,12 @@
       <static>1</static>
       <pose>-3.24916 0.565627 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -3039,6 +4233,12 @@
       <static>1</static>
       <pose>-3.11404 0.555302 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -3054,6 +4254,12 @@
       <static>1</static>
       <pose>-2.98219 0.571195 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -3069,6 +4275,12 @@
       <static>1</static>
       <pose>-2.88025 0.5679 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -3084,6 +4296,12 @@
       <static>1</static>
       <pose>-2.74014 0.579139 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -3099,6 +4317,12 @@
       <static>1</static>
       <pose>-2.62771 0.517515 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -3114,6 +4338,12 @@
       <static>1</static>
       <pose>-2.52178 0.571895 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -3129,6 +4359,12 @@
       <static>1</static>
       <pose>-2.40356 0.582066 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -3144,6 +4380,12 @@
       <static>1</static>
       <pose>-2.27284 0.577248 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -3159,6 +4401,12 @@
       <static>1</static>
       <pose>-2.16255 0.626391 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -3174,6 +4422,12 @@
       <static>1</static>
       <pose>-2.02512 0.543537 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -3189,6 +4443,12 @@
       <static>1</static>
       <pose>-1.91891 0.627856 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -3204,6 +4464,12 @@
       <static>1</static>
       <pose>-1.80412 0.576224 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -3219,6 +4485,12 @@
       <static>1</static>
       <pose>-1.66823 0.550198 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -3234,6 +4506,12 @@
       <static>1</static>
       <pose>-1.57401 0.555626 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -3249,6 +4527,12 @@
       <static>1</static>
       <pose>-1.43569 0.58389 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -3264,6 +4548,12 @@
       <static>1</static>
       <pose>-1.31061 0.550731 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -3279,6 +4569,12 @@
       <static>1</static>
       <pose>-1.18976 0.566195 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -3294,6 +4590,12 @@
       <static>1</static>
       <pose>-1.07753 0.551656 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -3309,6 +4611,12 @@
       <static>1</static>
       <pose>-0.96292 0.570585 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -3324,6 +4632,12 @@
       <static>1</static>
       <pose>-0.852651 0.531139 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -3339,6 +4653,12 @@
       <static>1</static>
       <pose>-0.71994 0.506081 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -3354,6 +4674,12 @@
       <static>1</static>
       <pose>-0.605231 0.489735 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -3369,6 +4695,12 @@
       <static>1</static>
       <pose>-0.488195 0.567053 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -3384,6 +4716,12 @@
       <static>1</static>
       <pose>-0.353203 0.548365 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -3399,6 +4737,12 @@
       <static>1</static>
       <pose>-0.242785 0.507495 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -3414,6 +4758,12 @@
       <static>1</static>
       <pose>-0.0980662 0.565479 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -3429,6 +4779,12 @@
       <static>1</static>
       <pose>0.0131214 0.52353 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -3444,6 +4800,12 @@
       <static>1</static>
       <pose>0.117777 0.495414 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -3459,6 +4821,12 @@
       <static>1</static>
       <pose>0.249366 0.578054 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -3474,6 +4842,12 @@
       <static>1</static>
       <pose>0.337231 0.548436 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -3489,6 +4863,12 @@
       <static>1</static>
       <pose>0.487564 0.497139 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -3504,6 +4884,12 @@
       <static>1</static>
       <pose>0.578095 0.518047 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -3519,6 +4905,12 @@
       <static>1</static>
       <pose>0.712449 0.507914 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -3534,6 +4926,12 @@
       <static>1</static>
       <pose>0.84038 0.557489 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -3549,6 +4947,12 @@
       <static>1</static>
       <pose>0.967608 0.57106 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -3564,6 +4968,12 @@
       <static>1</static>
       <pose>1.09803 0.584929 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -3579,6 +4989,12 @@
       <static>1</static>
       <pose>1.18426 0.534837 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -3594,6 +5010,12 @@
       <static>1</static>
       <pose>1.30728 0.517701 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -3609,6 +5031,12 @@
       <static>1</static>
       <pose>1.43902 0.550164 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -3624,6 +5052,12 @@
       <static>1</static>
       <pose>1.56588 0.502392 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -3639,6 +5073,12 @@
       <static>1</static>
       <pose>1.66515 0.549307 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -3654,6 +5094,12 @@
       <static>1</static>
       <pose>1.79761 0.540662 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -3669,6 +5115,12 @@
       <static>1</static>
       <pose>1.91924 0.527207 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -3684,6 +5136,12 @@
       <static>1</static>
       <pose>2.04842 0.560628 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -3699,6 +5157,12 @@
       <static>1</static>
       <pose>2.15895 0.529838 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -3714,6 +5178,12 @@
       <static>1</static>
       <pose>2.27791 0.468352 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -3729,6 +5199,12 @@
       <static>1</static>
       <pose>2.38822 0.55112 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -3744,6 +5220,12 @@
       <static>1</static>
       <pose>2.50195 0.555986 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -3759,6 +5241,12 @@
       <static>1</static>
       <pose>2.64177 0.508674 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -3774,6 +5262,12 @@
       <static>1</static>
       <pose>2.75699 0.540585 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -3789,6 +5283,12 @@
       <static>1</static>
       <pose>2.88552 0.568357 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -3804,6 +5304,12 @@
       <static>1</static>
       <pose>2.99956 0.524461 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -3819,6 +5325,12 @@
       <static>1</static>
       <pose>3.11827 0.548037 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -3834,6 +5346,12 @@
       <static>1</static>
       <pose>3.24881 0.55883 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -3849,6 +5367,12 @@
       <static>1</static>
       <pose>3.35133 0.509368 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -3864,6 +5388,12 @@
       <static>1</static>
       <pose>3.47552 0.527788 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -3879,6 +5409,12 @@
       <static>1</static>
       <pose>3.58666 0.546522 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -3894,6 +5430,12 @@
       <static>1</static>
       <pose>3.71411 0.553163 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -3909,6 +5451,12 @@
       <static>1</static>
       <pose>3.84628 0.53761 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -3924,6 +5472,12 @@
       <static>1</static>
       <pose>3.98789 0.540356 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -3939,6 +5493,12 @@
       <static>1</static>
       <pose>4.09322 0.55365 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -3954,6 +5514,12 @@
       <static>1</static>
       <pose>4.21339 0.478722 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -3969,6 +5535,12 @@
       <static>1</static>
       <pose>4.31098 0.557411 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -3984,6 +5556,12 @@
       <static>1</static>
       <pose>4.44723 0.620096 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -3999,6 +5577,12 @@
       <static>1</static>
       <pose>4.56387 0.588395 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -4014,6 +5598,12 @@
       <static>1</static>
       <pose>4.6892 0.578421 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -4029,6 +5619,12 @@
       <static>1</static>
       <pose>4.80612 0.545318 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -4044,6 +5640,12 @@
       <static>1</static>
       <pose>4.92611 0.517656 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -4059,6 +5661,12 @@
       <static>1</static>
       <pose>5.05418 0.519484 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -4074,6 +5682,12 @@
       <static>1</static>
       <pose>5.16299 0.613623 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -4089,6 +5703,12 @@
       <static>1</static>
       <pose>5.27732 0.550585 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -4104,6 +5724,12 @@
       <static>1</static>
       <pose>5.41396 0.550787 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -4119,6 +5745,12 @@
       <static>1</static>
       <pose>5.51031 0.557745 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -4134,6 +5766,12 @@
       <static>1</static>
       <pose>5.64699 0.571302 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -4149,6 +5787,12 @@
       <static>1</static>
       <pose>5.75073 0.602575 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -4164,6 +5808,12 @@
       <static>1</static>
       <pose>5.9 0.550547 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -4179,6 +5829,12 @@
       <static>1</static>
       <pose>6.00322 0.537145 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -4194,6 +5850,12 @@
       <static>1</static>
       <pose>6.13697 0.528852 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -4209,6 +5871,12 @@
       <static>1</static>
       <pose>6.24809 0.535609 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -4224,6 +5892,12 @@
       <static>1</static>
       <pose>6.35167 0.57156 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -4239,6 +5913,12 @@
       <static>1</static>
       <pose>6.49601 0.549696 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -4254,6 +5934,12 @@
       <static>1</static>
       <pose>6.59187 0.574344 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -4269,6 +5955,12 @@
       <static>1</static>
       <pose>6.71941 0.559319 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -4284,6 +5976,12 @@
       <static>1</static>
       <pose>6.85827 0.583949 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -4299,6 +5997,12 @@
       <static>1</static>
       <pose>6.95376 0.618507 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -4314,6 +6018,12 @@
       <static>1</static>
       <pose>7.08004 0.573579 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -4329,6 +6039,12 @@
       <static>1</static>
       <pose>7.19223 0.54866 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -4344,6 +6060,12 @@
       <static>1</static>
       <pose>7.299 0.6036 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -4359,6 +6081,12 @@
       <static>1</static>
       <pose>7.45639 0.513541 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -4374,6 +6102,12 @@
       <static>1</static>
       <pose>7.54194 0.501368 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -4389,6 +6123,12 @@
       <static>1</static>
       <pose>7.69411 0.536214 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -4404,6 +6144,12 @@
       <static>1</static>
       <pose>7.79927 0.540617 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -4419,6 +6165,12 @@
       <static>1</static>
       <pose>7.91855 0.517355 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -4434,6 +6186,12 @@
       <static>1</static>
       <pose>8.04029 0.50686 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -4449,6 +6207,12 @@
       <static>1</static>
       <pose>8.15914 0.559262 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -4464,6 +6228,12 @@
       <static>1</static>
       <pose>8.28561 0.543048 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -4479,6 +6249,12 @@
       <static>1</static>
       <pose>8.38916 0.554787 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -4494,6 +6270,12 @@
       <static>1</static>
       <pose>8.51418 0.596975 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -4509,6 +6291,12 @@
       <static>1</static>
       <pose>8.64921 0.546544 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -4524,6 +6312,12 @@
       <static>1</static>
       <pose>8.75435 0.52892 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
@@ -4539,6 +6333,12 @@
       <static>1</static>
       <pose>8.86875 0.539412 0 0 0 0</pose>
       <link name='l'>
+        <collision name='stem'>
+          <pose>0 0 0.30 0 0 0</pose>
+          <geometry><cylinder><radius>0.05</radius><length>0.60</length></cylinder></geometry>
+          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode></friction></surface>
+          <max_contacts>4</max_contacts>
+        </collision>
         <visual name='v'>
           <geometry>
             <mesh>
