@@ -35,6 +35,12 @@
 #   --max-lanes N  lanes to cover before auto-stop (0 = until Ctrl-C;
 #     defaults to a full sweep of the field).
 #   --turn-mode bulb|fishtail|shuttle: headland turn style (default bulb).
+#   --tof / --tof-min M / --tof-gain G / --tof-max-w W / --tof-v V:
+#     crop-safety guard (side + angled-front ToF rangers override vision steering when
+#     closer than the min clearance; high priority). In teleop mode drive
+#     the manual keyboard node with MRSIM_CMD_TOPIC=/cmd_vel_raw so the
+#     guard still protects you:
+#       MRSIM_CMD_TOPIC=/cmd_vel_raw python3 src/mrsim/mrsim/teleop_node.py
 #   --laps N       ring-field laps before auto-stop, 0 = loop forever.
 #   --line         straight nav-line fit instead of the spline.
 #   --coverage F / --init-window F / --world PATH  see run_sim.sh header.
@@ -54,6 +60,7 @@ FIELD_ARG=()
 WORLD_ARG=()
 SPAWN_ARGS=()
 EXTRA_ARGS=()
+TOF_ARGS=()
 WORLD_FILE=""
 HAVE_X=0; HAVE_Y=0; HAVE_YAW=0; HAVE_LAPS=0
 HAVE_RC=0; RC_VALUE=""; HAVE_MAXLANES=0
@@ -136,8 +143,13 @@ while [[ $# -gt 0 ]]; do
       EXTRA_ARGS+=(turn_mode:="$2"); shift 2 ;;
     --line) EXTRA_ARGS+=(line_fit:=true) ; shift ;;
     --coverage) EXTRA_ARGS+=(vertical_coverage:="$2") ; shift 2 ;;
+    --tof) TOF_ARGS+=(tof:=true) ; shift ;;
+    --tof-min) TOF_ARGS+=(tof_min:="$2") ; shift 2 ;;
+    --tof-gain) TOF_ARGS+=(tof_gain:="$2") ; shift 2 ;;
+    --tof-max-w) TOF_ARGS+=(tof_max_w:="$2") ; shift 2 ;;
+    --tof-v) TOF_ARGS+=(tof_v:="$2") ; shift 2 ;;
     --world) WORLD_ARG=(world:="$2") ; WORLD_FILE="$2" ; shift 2 ;;
-    *) echo "unknown arg $1 (--auto|--demo|--keys|--algo|--circle|--curve|--straight|--zigzag|--field|--x|--y|--yaw|--laps|--spawn|--row-change|--max-lanes|--turn-mode|--line|--coverage|--world)"; exit 1 ;;
+    *) echo "unknown arg $1 (--auto|--demo|--keys|--algo|--circle|--curve|--straight|--zigzag|--field|--x|--y|--yaw|--laps|--spawn|--row-change|--max-lanes|--turn-mode|--line|--coverage|--tof|--tof-min|--tof-gain|--tof-max-w|--tof-v|--world)"; exit 1 ;;
   esac
 done
 
@@ -235,4 +247,11 @@ source install/setup.bash
 echo "== launching Gazebo GUI + mode=${MODE} (Ctrl-C stops) =="
 ARGS=(mode:="${MODE}" gui:=true log_dir:="${LOG_DIR}" max_laps:="${LAPS}")
 [ -n "${DEMO_KEYS}" ] && ARGS+=(demo_keys:="${DEMO_KEYS}")
-ros2 launch mrsim farm.launch.py "${ARGS[@]}" "${FIELD_ARG[@]}" "${WORLD_ARG[@]}" "${SPAWN_ARGS[@]}" "${EXTRA_ARGS[@]}"
+if [[ " ${TOF_ARGS[*]} " == *"tof:=true"* ]]; then
+  echo "-- ToF crop-safety guard ON (${TOF_ARGS[*]})"
+  if [[ "${MODE}" == "teleop" ]]; then
+    echo "-- manual teleop must publish raw cmds for the guard to protect:"
+    echo "   MRSIM_CMD_TOPIC=/cmd_vel_raw python3 src/mrsim/mrsim/teleop_node.py"
+  fi
+fi
+ros2 launch mrsim farm.launch.py "${ARGS[@]}" "${FIELD_ARG[@]}" "${WORLD_ARG[@]}" "${SPAWN_ARGS[@]}" "${EXTRA_ARGS[@]}" "${TOF_ARGS[@]}"

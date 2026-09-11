@@ -39,6 +39,11 @@
 #     anchors the driven furrow when identical corridors compete).
 #   --lambdax/--lambdat/--gate/--ki/--ff  servo tuning (validated defaults;
 #     see farm.launch.py descriptions).
+#   --tof          crop-safety guard: side + angled-front ToF rangers override vision
+#     steering when closer than --tof-min (default 0.35 m). High priority:
+#     the guard angular command replaces the servo output while violated.
+#   --tof-min M / --tof-gain G / --tof-max-w W / --tof-v V  guard tuning
+#     (min clearance m, yaw gain rad/s per m, |w| clamp, linear cap m/s).
 set -eo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -50,6 +55,7 @@ WORLD_ARG=()
 LAPS_ARG=()
 GAIN_ARGS=()
 EXTRA_ARGS=()
+TOF_ARGS=()
 PROBE=0
 SPAWN_ARGS=()
 HAVE_RC=0
@@ -139,6 +145,11 @@ while [[ $# -gt 0 ]]; do
     --gate) GAIN_ARGS+=(heading_gate:="$2"); shift 2 ;;
     --ki) GAIN_ARGS+=(ki:="$2"); shift 2 ;;
     --ff) GAIN_ARGS+=(ff_gain:="$2"); shift 2 ;;
+    --tof) TOF_ARGS+=(tof:=true); shift ;;
+    --tof-min) TOF_ARGS+=(tof_min:="$2"); shift 2 ;;
+    --tof-gain) TOF_ARGS+=(tof_gain:="$2"); shift 2 ;;
+    --tof-max-w) TOF_ARGS+=(tof_max_w:="$2"); shift 2 ;;
+    --tof-v) TOF_ARGS+=(tof_v:="$2"); shift 2 ;;
     *) echo "unknown arg $1"; exit 1 ;;
   esac
 done
@@ -221,7 +232,7 @@ else
   echo "== closed loop: nav node drives the furrow =="
   timeout "${SIM_TIMEOUT:-600}" ros2 launch mrsim farm.launch.py \
     log_dir:="${LOG_DIR}" \
-    ${SECONDS_ARG:+${SECONDS_ARG}} "${FIELD_ARG[@]}" "${WORLD_ARG[@]}" "${SPAWN_ARGS[@]}" "${LAPS_ARG[@]}" "${GAIN_ARGS[@]}" "${EXTRA_ARGS[@]}" || true
+    ${SECONDS_ARG:+${SECONDS_ARG}} "${FIELD_ARG[@]}" "${WORLD_ARG[@]}" "${SPAWN_ARGS[@]}" "${LAPS_ARG[@]}" "${GAIN_ARGS[@]}" "${EXTRA_ARGS[@]}" "${TOF_ARGS[@]}" || true
 fi
 
 echo
