@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 # Run the sim with a live Gazebo GUI AND interactive keyboard teleop, for use
-# at the machine's real display (see README.md).
-# Same test as run_sim.sh but with the Gazebo window open. In teleop mode
-# the nav node idles (detection + overlay keep running, no /cmd_vel); drive
-# with the keyboard node in a second terminal:
-#   python3 src/fftsim/fftsim/teleop_node.py
-# (w/s = fwd/back, a/d = turn, space = stop, x = quit).
+# at the machine's real display (see README.md).# Same test as run_sim.sh but with the Gazebo window open. In teleop mode
+# the nav node idles (detection + overlay keep running, no /cmd_vel) and the
+# keyboard teleop node starts automatically with the launch - type into this
+# terminal to drive:
+# (w/s = fwd/back, a/d = turn, space = stop, x = quit; 'r' respawns the rover
+#  at the initial spawn pose, no relaunch needed).
 #
 #   ./run_sim_gui.sh               # GUI + teleop (nav node idles)
 #   ./run_sim_gui.sh --auto        # GUI + autonomous FFT driving
@@ -26,9 +26,12 @@
 #   --x/--y/--yaw  spawn pose override (defaults follow the field sidecar).
 #   --laps N       ring-field laps before auto-stop, 0 = loop forever.
 #   --world PATH   custom world file (sibling .spawn.json seeds defaults).
+#   --tof / --tof-min M / --tof-gain G / --tof-max-w W / --tof-v V:
+#     crop-safety guard (side + angled-front ToF rangers override vision steering when
+#     closer than the min clearance; high priority).
 #
-# The teleop keys are typed into the teleop terminal
-# (w/s = fwd/back, a/d = turn, space = stop, x = quit).
+# The teleop keys are typed into this launch terminal
+# (w/s = fwd/back, a/d = turn, space = stop, x = quit; 'r' = respawn at start).
 set -e
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -41,6 +44,7 @@ LAPS="0.5"
 FIELD_ARG=()
 SPAWN_ARGS=()
 WORLD_ARG=()
+TOF_ARGS=()
 
 # resolve_row_field <shape> <n>: committed snapshot for N=2/N=5, generated
 # cache world otherwise. Sets FIELD_ARG and/or WORLD_ARG. Generation reuses
@@ -109,7 +113,12 @@ while [[ $# -gt 0 ]]; do
     --yaw) SPAWN_ARGS+=(robot_yaw:="$2") ; shift 2 ;;
     --laps) LAPS="$2" ; shift 2 ;;
     --world) WORLD_ARG=(world:="$2") ; shift 2 ;;
-    *) echo "unknown arg $1 (--auto|--demo|--keys|--circle|--curve|--straight|--zigzag|--field|--x|--y|--yaw|--laps|--world)"; exit 1 ;;
+    --tof) TOF_ARGS+=(tof:=true) ; shift ;;
+    --tof-min) TOF_ARGS+=(tof_min:="$2") ; shift 2 ;;
+    --tof-gain) TOF_ARGS+=(tof_gain:="$2") ; shift 2 ;;
+    --tof-max-w) TOF_ARGS+=(tof_max_w:="$2") ; shift 2 ;;
+    --tof-v) TOF_ARGS+=(tof_v:="$2") ; shift 2 ;;
+    *) echo "unknown arg $1 (--auto|--demo|--keys|--circle|--curve|--straight|--zigzag|--field|--x|--y|--yaw|--laps|--world|--tof|--tof-min|--tof-gain|--tof-max-w|--tof-v)"; exit 1 ;;
   esac
 done
 
@@ -127,4 +136,5 @@ source install/setup.bash
 echo "== launching Gazebo GUI + mode=${MODE} (Ctrl-C stops) =="
 ARGS=(mode:="${MODE}" gui:=true log_dir:="${LOG_DIR}" max_laps:="${LAPS}")
 [ -n "${DEMO_KEYS}" ] && ARGS+=(demo_keys:="${DEMO_KEYS}")
-ros2 launch fftsim farm.launch.py "${ARGS[@]}" "${FIELD_ARG[@]}" "${WORLD_ARG[@]}" "${SPAWN_ARGS[@]}"
+[[ " ${TOF_ARGS[*]} " == *"tof:=true"* ]] && echo "-- ToF crop-safety guard ON (${TOF_ARGS[*]})"
+ros2 launch fftsim farm.launch.py "${ARGS[@]}" "${FIELD_ARG[@]}" "${WORLD_ARG[@]}" "${SPAWN_ARGS[@]}" "${TOF_ARGS[@]}"
