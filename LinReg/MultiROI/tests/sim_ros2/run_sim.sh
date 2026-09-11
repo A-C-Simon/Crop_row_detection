@@ -17,6 +17,8 @@
 #     frames through the detector and print diagnostics (no driving).
 #   --seconds N    stop after N sim-seconds (0 = off; lane end/laps stop first).
 #   --out DIR      log dir for nav_run.csv + overlay PNGs.
+#   Reset in any mode (no relaunch): press r in the teleop terminal, or run
+#     ros2 topic pub --once /reset_rover std_msgs/msg/Empty "{}"
 #   --x/--y/--yaw  spawn pose override (defaults follow the field sidecar).
 #   --spawn N      drive the Nth furrow from the left, 1-based (default
 #     lane 1; overrides the sidecar spawn/lane unless --x/--y/--lane-y

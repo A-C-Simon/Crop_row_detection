@@ -5,7 +5,7 @@
 # the nav node idles (detection + overlay keep running, no /cmd_vel); drive
 # with the keyboard node in a second terminal:
 #   python3 src/mrsim/mrsim/teleop_node.py
-# (w/s = fwd/back, a/d = turn, space = stop, x = quit).
+# (w/s = fwd/back, a/d = turn, space = stop, x = quit, r = respawn at start).
 #
 #   ./run_sim_gui.sh               # GUI + teleop (nav node idles)
 #   ./run_sim_gui.sh --auto        # GUI + autonomous MultiROI driving
@@ -42,11 +42,13 @@
 #     guard still protects you:
 #       MRSIM_CMD_TOPIC=/cmd_vel_raw python3 src/mrsim/mrsim/teleop_node.py
 #   --laps N       ring-field laps before auto-stop, 0 = loop forever.
+#   Reset in any mode (no relaunch): press r in the teleop terminal, or run
+#     ros2 topic pub --once /reset_rover std_msgs/msg/Empty "{}"
 #   --line         straight nav-line fit instead of the spline.
 #   --coverage F / --init-window F / --world PATH  see run_sim.sh header.
 #
 # The teleop keys are typed into the teleop terminal
-# (w/s = fwd/back, a/d = turn, space = stop, x = quit).
+# (w/s = fwd/back, a/d = turn, space = stop, x = quit, r = respawn at start).
 set -e
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
