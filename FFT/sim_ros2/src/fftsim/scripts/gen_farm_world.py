@@ -233,15 +233,27 @@ def main():
     body.append("        </visual>\n")
     body.append("      </link>\n")
     body.append("    </model>\n")
-    # plants: direct visual meshes (fast, static, no physics). The agribot
-    # big_plant STL is only ~0.15 m tall; scale it up so rows read clearly
-    # from the rover camera (~0.5 m high).
+    # plants: visual mesh + a thin static stem collision (cheap cylinder).
+    # The visual mesh alone is invisible to ray sensors (no <collision>),
+    # which left the side ToF rangers blind; the stem (r=5 cm, z 0..0.6 m)
+    # makes plants ray-visible and gives real bump contact, while the wide
+    # leaf canopy stays visual-only so normal tracking never snags. The
+    # agribot big_plant STL is only ~0.15 m tall; scale it up so rows read
+    # clearly from the rover camera (~0.5 m high).
     for m, i, x, y in plants:
         body.append(
             f"    <model name='pl_{i}'>\n"
             f"      <static>1</static>\n"
             f"      <pose>{fmt(x)} {fmt(y)} 0 0 0 0</pose>\n"
             f"      <link name='l'>\n"
+            f"        <collision name='stem'>\n"
+            f"          <pose>0 0 0.30 0 0 0</pose>\n"
+            f"          <geometry><cylinder><radius>0.05</radius>"
+            f"<length>0.60</length></cylinder></geometry>\n"
+            f"          <surface><friction><ode><mu>0.9</mu><mu2>0.8</mu2></ode>"
+            f"</friction></surface>\n"
+            f"          <max_contacts>4</max_contacts>\n"
+            f"        </collision>\n"
             f"        <visual name='v'>\n"
             f"          <geometry>\n"
             f"            <mesh>\n"
