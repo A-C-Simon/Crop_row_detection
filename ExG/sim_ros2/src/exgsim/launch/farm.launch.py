@@ -79,7 +79,8 @@ _EXGSIM_SRC = _exgsim_src()
 _BRIDGE_PY = _EXGSIM_SRC / "exgsim" / "bridge.py"
 _MONITOR_PY = _EXGSIM_SRC / "exgsim" / "monitor.py"
 _TELEOP_PY = _EXGSIM_SRC / "exgsim" / "teleop_node.py"
-for _p in (_BRIDGE_PY, _MONITOR_PY, _TELEOP_PY):
+_TOF_PY = _EXGSIM_SRC / "exgsim" / "tof_guard.py"
+for _p in (_BRIDGE_PY, _MONITOR_PY, _TELEOP_PY, _TOF_PY):
     if not _p.exists():
         raise RuntimeError(f"exgsim nodes not found under {_EXGSIM_SRC}")
 
@@ -183,6 +184,15 @@ def _setup(context):
     sim_mode = os.environ.get("MRSIM_SIM_MODE", "auto")
     idle = sim_mode != "auto"  # teleop/demo: C++ stack must not drive
 
+    # ToF crop-safety guard: when tof:=true the C++ stack (remapped below)
+    # and the teleop/demo nodes publish the raw command on /cmd_vel_raw and
+    # tof_guard.py republishes the safety-overridden command on /cmd_vel
+    # (side + angled-front ToF rangers in the rover URDF). The guard wins over
+    # vision servoing whenever a side clearance drops below tof_min.
+    tof_on = str(cfg.get("tof", "false")).lower() in ("1", "true", "yes")
+    cmd_topic = "/cmd_vel_raw" if tof_on else "/cmd_vel"
+    log_dir = cfg.get("log_dir", "/tmp/exgsim_log")
+
     monitor = ExecuteProcess(
         cmd=[sys.executable, str(_MONITOR_PY)],
         output="screen",
@@ -193,7 +203,7 @@ def _setup(context):
             "MRSIM_CIRCLE_CY": circle_cy,
             "MRSIM_CIRCLE_R": circle_r,
             "MRSIM_CIRCLE_LAPS": max_laps,
-            "MRSIM_LOG_DIR": cfg.get("log_dir", "/tmp/exgsim_log"),
+            "MRSIM_LOG_DIR": log_dir,
             "MRSIM_MAX_SECONDS": cfg.get("max_seconds", "0"),
         })
 
@@ -204,6 +214,9 @@ def _setup(context):
     vs_node = Node(
         package=EXG_PKG, executable="agribot_vs_node",
         output="screen",
+        # with tof:=true the C++ /cmd_vel is remapped to /cmd_vel_raw so
+        # the guard owns the wheels; otherwise it drives directly.
+        remappings=[("/cmd_vel", cmd_topic)] if tof_on else [],
         # imshow() needs a live X server; virtual one unless the real
         # display is reachable
         prefix=["xvfb-run", "-a"] if _NEED_XVFB else [],
@@ -212,13 +225,31 @@ def _setup(context):
                      "publish_cmd_vel": (not idle)}],
     )
 
+    # ToF guard: raw stack/teleop commands in, safety-overridden command
+    # out. Only launched with tof:=true.
+    guard = ExecuteProcess(
+        cmd=[sys.executable, str(_TOF_PY)],
+        output="screen",
+        additional_env={
+            "MRSIM_TOF_MIN": cfg.get("tof_min", "0.35"),
+            "MRSIM_TOF_GAIN": cfg.get("tof_gain", "2.0"),
+            "MRSIM_TOF_MAX_W": cfg.get("tof_max_w", "0.6"),
+            "MRSIM_TOF_V": cfg.get("tof_v", "0.12"),
+            "MRSIM_TOF_IN": cmd_topic,
+            "MRSIM_TOF_OUT": "/cmd_vel",
+            "MRSIM_LOG_DIR": log_dir,
+        }) if tof_on else None
+
     demo = ExecuteProcess(
         cmd=[sys.executable, str(_TELEOP_PY)],
         output="screen",
         condition=IfCondition("1" if sim_mode == "demo" else "0"),
-        additional_env={"MRSIM_DEMO_KEYS": cfg.get("demo_keys", "w w w a a s s")})
+        additional_env={"MRSIM_DEMO_KEYS": cfg.get("demo_keys", "w w w a a s s"),
+                        "MRSIM_CMD_TOPIC": cmd_topic})
 
-    return [
+
+
+    actions = [
         IncludeLaunchDescription(
             PythonLaunchDescriptionSource(
                 os.path.join(gazebo_share, "launch", "gazebo.launch.py")),
@@ -247,6 +278,9 @@ def _setup(context):
 
         bridge,
         vs_node,
+        # ToF crop-safety guard (only with tof:=true): overrides the C++
+        # vision servo whenever a side ranger is closer than tof_min
+        *([guard] if guard is not None else []),
         monitor,
         demo,
         RegisterEventHandler(OnProcessExit(target_action=monitor,
@@ -254,6 +288,7 @@ def _setup(context):
         RegisterEventHandler(OnProcessExit(target_action=demo,
                                            on_exit=[Shutdown(reason="demo done")])),
     ]
+    return actions
 
 
 def generate_launch_description():
@@ -296,5 +331,21 @@ def generate_launch_description():
                                           "<=0 = loop forever (empty = field default)"),
         DeclareLaunchArgument("max_seconds", default_value="0"),
         DeclareLaunchArgument("log_dir", default_value="/tmp/exgsim_log"),
+        DeclareLaunchArgument("tof", default_value="false",
+                              description="crop-safety guard: side + angled-front ToF rangers "
+                                          "override vision steering below "
+                                          "tof_min (same switch as --tof)"),
+        DeclareLaunchArgument("tof_min", default_value="0.35",
+                              description="minimum side clearance in m; "
+                                          "closer steers away (override)"),
+        DeclareLaunchArgument("tof_gain", default_value="2.0",
+                              description="guard yaw gain rad/s per m "
+                                          "of clearance deficit"),
+        DeclareLaunchArgument("tof_max_w", default_value="0.6",
+                              description="guard |angular| clamp while "
+                                          "overriding"),
+        DeclareLaunchArgument("tof_v", default_value="0.12",
+                              description="guard linear cap (m/s) while "
+                                          "overriding"),
         OpaqueFunction(function=_setup),
     ])
