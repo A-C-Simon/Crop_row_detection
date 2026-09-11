@@ -26,6 +26,11 @@
 #   --x/--y/--yaw  spawn pose override (defaults follow the field sidecar).
 #   --laps N       ring-field laps before auto-stop, 0 = loop forever.
 #   --world PATH   custom world file (sibling .spawn.json seeds defaults).
+#   --tof / --tof-min M / --tof-gain G / --tof-max-w W / --tof-v V:
+#     crop-safety guard (side + angled-front ToF rangers override vision steering when
+#     closer than the min clearance; high priority). In teleop mode drive
+#     the manual keyboard node with MRSIM_CMD_TOPIC=/cmd_vel_raw so the
+#     guard still protects you.
 #
 # In teleop mode run the keyboard driver by hand in this terminal after the
 # sim is up:  source install/setup.bash && ros2 run exgsim exg_teleop
@@ -42,6 +47,7 @@ LAPS="0.5"
 FIELD_ARG=()
 SPAWN_ARGS=()
 WORLD_ARG=()
+TOF_ARGS=()
 
 # resolve_row_field <shape> <n>: committed snapshot for N=2/N=5, generated
 # cache world otherwise. Sets FIELD_ARG and/or WORLD_ARG. Generation reuses
@@ -109,7 +115,12 @@ while [[ $# -gt 0 ]]; do
     --yaw) SPAWN_ARGS+=(robot_yaw:="$2") ; shift 2 ;;
     --laps) LAPS="$2" ; shift 2 ;;
     --world) WORLD_ARG=(world:="$2") ; shift 2 ;;
-    *) echo "unknown arg $1 (--auto|--demo|--keys|--circle|--curve|--straight|--zigzag|--field|--x|--y|--yaw|--laps|--world)"; exit 1 ;;
+    --tof) TOF_ARGS+=(tof:=true) ; shift ;;
+    --tof-min) TOF_ARGS+=(tof_min:="$2") ; shift 2 ;;
+    --tof-gain) TOF_ARGS+=(tof_gain:="$2") ; shift 2 ;;
+    --tof-max-w) TOF_ARGS+=(tof_max_w:="$2") ; shift 2 ;;
+    --tof-v) TOF_ARGS+=(tof_v:="$2") ; shift 2 ;;
+    *) echo "unknown arg $1 (--auto|--demo|--keys|--circle|--curve|--straight|--zigzag|--field|--x|--y|--yaw|--laps|--world|--tof|--tof-min|--tof-gain|--tof-max-w|--tof-v)"; exit 1 ;;
   esac
 done
 
@@ -134,4 +145,11 @@ source install/setup.bash
 echo "== launching Gazebo GUI + mode=${MODE} (Ctrl-C stops) =="
 ARGS=(mode:="${MODE}" gui:=true log_dir:="${LOG_DIR}" max_laps:="${LAPS}")
 [ -n "${DEMO_KEYS}" ] && ARGS+=(demo_keys:="${DEMO_KEYS}")
-ros2 launch exgsim farm.launch.py "${ARGS[@]}" "${FIELD_ARG[@]}" "${WORLD_ARG[@]}" "${SPAWN_ARGS[@]}"
+if [[ " ${TOF_ARGS[*]} " == *"tof:=true"* ]]; then
+  echo "-- ToF crop-safety guard ON (${TOF_ARGS[*]})"
+  if [[ "${MODE}" == "teleop" ]]; then
+    echo "-- manual teleop must publish raw cmds for the guard to protect:"
+    echo "   MRSIM_CMD_TOPIC=/cmd_vel_raw ros2 run exgsim exg_teleop"
+  fi
+fi
+ros2 launch exgsim farm.launch.py "${ARGS[@]}" "${FIELD_ARG[@]}" "${WORLD_ARG[@]}" "${SPAWN_ARGS[@]}" "${TOF_ARGS[@]}"

@@ -20,6 +20,11 @@
 #   --x/--y/--yaw  spawn pose override (defaults follow the field sidecar).
 #   --laps N       ring-field laps before auto-stop, 0 = loop forever.
 #   --world PATH   custom world file (sibling .spawn.json seeds defaults).
+#   --tof          crop-safety guard: side + angled-front ToF rangers override vision
+#     steering when closer than --tof-min (default 0.35 m). High priority:
+#     the guard angular command replaces the stack output while violated.
+#   --tof-min M / --tof-gain G / --tof-max-w W / --tof-v V  guard tuning
+#     (min clearance m, yaw gain rad/s per m, |w| clamp, linear cap m/s).
 # The C++ stack drives in auto mode; gains live in
 # src/exgsim/params/exgsim_run.yaml (copied from the vendor defaults).
 set -eo pipefail
@@ -33,6 +38,7 @@ SECONDS_ARG=""
 FIELD_ARG=()
 WORLD_ARG=()
 LAPS_ARG=()
+TOF_ARGS=()
 PROBE=0
 SPAWN_ARGS=()
 
@@ -101,6 +107,11 @@ while [[ $# -gt 0 ]]; do
     --y) SPAWN_ARGS+=(robot_y:="$2"); shift 2 ;;
     --yaw) SPAWN_ARGS+=(robot_yaw:="$2"); shift 2 ;;
     --laps) LAPS_ARG=(max_laps:="$2"); shift 2 ;;
+    --tof) TOF_ARGS+=(tof:=true); shift ;;
+    --tof-min) TOF_ARGS+=(tof_min:="$2"); shift 2 ;;
+    --tof-gain) TOF_ARGS+=(tof_gain:="$2"); shift 2 ;;
+    --tof-max-w) TOF_ARGS+=(tof_max_w:="$2"); shift 2 ;;
+    --tof-v) TOF_ARGS+=(tof_v:="$2"); shift 2 ;;
     *) echo "unknown arg $1"; exit 1 ;;
   esac
 done
@@ -131,7 +142,7 @@ else
   echo "== closed loop: ExG stack drives the furrow =="
   timeout "${SIM_TIMEOUT:-600}" ros2 launch exgsim farm.launch.py \
     log_dir:="${LOG_DIR}" \
-    ${SECONDS_ARG:+${SECONDS_ARG}} "${FIELD_ARG[@]}" "${WORLD_ARG[@]}" "${SPAWN_ARGS[@]}" "${LAPS_ARG[@]}" || true
+    ${SECONDS_ARG:+${SECONDS_ARG}} "${FIELD_ARG[@]}" "${WORLD_ARG[@]}" "${SPAWN_ARGS[@]}" "${LAPS_ARG[@]}" "${TOF_ARGS[@]}" || true
 fi
 
 echo
