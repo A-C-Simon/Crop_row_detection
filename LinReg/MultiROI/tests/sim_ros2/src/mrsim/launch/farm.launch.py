@@ -89,7 +89,9 @@ _SIM_SRC = Path(_MULTIROI) / "tests" / "sim_ros2" / "src" / "mrsim"
 _NAV_PY = _SIM_SRC / "mrsim" / "nav_node.py"
 _TELEOP_PY = _SIM_SRC / "mrsim" / "teleop_node.py"
 _TOF_PY = _SIM_SRC / "mrsim" / "tof_guard.py"
-if not (_NAV_PY.exists() and _TELEOP_PY.exists() and _TOF_PY.exists()):
+_RESET_PY = _SIM_SRC / "mrsim" / "rover_reset.py"
+if not (_NAV_PY.exists() and _TELEOP_PY.exists() and _TOF_PY.exists()
+        and _RESET_PY.exists()):
     raise RuntimeError(f"mrsim nodes not found under {_SIM_SRC}")
 
 
@@ -255,9 +257,30 @@ def _setup(context):
         output="screen",
         condition=IfCondition("1" if os.environ.get("MRSIM_SIM_MODE", "auto") == "demo" else "0"),
         additional_env={"MRSIM_DEMO_KEYS": cfg.get("demo_keys", "w w w a a s s"),
-                        "MRSIM_CMD_TOPIC": cmd_topic})
+                        "MRSIM_CMD_TOPIC": cmd_topic,
+                        "MRSIM_SPAWN": f"{robot_x},{robot_y},{robot_yaw}"})
 
+    # Rover reset listener (all modes): `ros2 topic pub --once
+    # /reset_rover std_msgs/msg/Empty {}` teleports the rover back to the
+    # initial spawn pose - no relaunch needed after a mistake. The manual
+    # keyboard teleop has the same action on its 'r' key.
+    reset = ExecuteProcess(
+        cmd=[sys.executable, str(_RESET_PY)],
+        output="screen",
+        additional_env={
+            "MRSIM_SPAWN": f"{robot_x},{robot_y},{robot_yaw}",
+            "MRSIM_CMD_TOPIC": cmd_topic,
+            "MRSIM_LOG_DIR": log_dir,
+        })
 
+    if os.environ.get("MRSIM_SIM_MODE", "auto") == "teleop":
+        raw_hint = ("MRSIM_CMD_TOPIC=/cmd_vel_raw "
+                    if tof_on else "")
+        print(f"[mrsim] manual teleop keys, run in a second terminal:\n"
+              f"  {raw_hint}MRSIM_SPAWN={robot_x},{robot_y},{robot_yaw} "
+              f"python3 src/mrsim/mrsim/teleop_node.py\n"
+              f"  (w/s fwd, a/d turn, space stop, r respawn at start, x quit)",
+              flush=True)
 
     # ToF guard: raw nav/teleop commands in, safety-overridden command out.
     # Only launched with tof:=true; otherwise nav drives /cmd_vel directly.
@@ -320,6 +343,9 @@ def _setup(context):
         # 4b) ToF crop-safety guard (only with tof:=true): overrides the
         #     vision servo whenever a side ranger is closer than tof_min
         *([guard] if guard is not None else []),
+        # 4c) reset listener (all modes): /reset_rover teleports the rover
+        #     back to the spawn pose without relaunching
+        reset,
         # 5) mode:=demo - scripted teleop keys (headless check); its exit
         #    shuts the launch down (second handler below)
         demo,
