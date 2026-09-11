@@ -8,6 +8,8 @@ focus, then press keys to drive:
     a / left-arrow   turn left      d / right-arrow turn right
     q / e            strafe-left/right  (diff-drive: same as a/d)
     space            stop            x / ctrl-c      quit
+    r                respawn the rover at the initial spawn pose
+                     (MRSIM_SPAWN "x,y,yaw"; no relaunch needed)
 
 Keys ramp speed smoothly (up to v_max / omega_max). Auto-repeat keeps the
 rover moving while a key is held; release = stop.
@@ -32,6 +34,14 @@ import tty
 import rclpy
 from rclpy.node import Node
 from geometry_msgs.msg import Twist
+
+# rover_reset lives next to this file. Direct script runs
+# (python3 .../teleop_node.py) import it as a sibling; `ros2 run`
+# console scripts import it through the installed package instead.
+try:
+    from rover_reset import Respawn, spawn_pose
+except ImportError:  # pragma: no cover - ros2 run package context
+    from exgsim.rover_reset import Respawn, spawn_pose
 
 KEYMAP = {
     "w": ("fwd", 1.0), "W": ("fwd", 1.0),
@@ -58,8 +68,10 @@ class TeleopNode(Node):
         self.lin = 0.0
         self.ang = 0.0
         self.last_t = time.time()
+        self._respawn = None  # lazy: service wait happens on first 'r'
         self.get_logger().info(
-            f"teleop ready on '{topic}' | keys: w/s fwd, a/d turn, space stop, x quit "
+            f"teleop ready on '{topic}' | keys: w/s fwd, a/d turn, space stop, "
+            f"r respawn at start, x quit "
             f"(v_max={MAX_LIN}, w_max={MAX_ANG})")
 
     def publish(self, lin: float, ang: float):
@@ -144,6 +156,23 @@ def main(args=None):
                     held.clear()
                 elif ch in KEYMAP:
                     held.add(ch)
+                elif ch in ("r", "R"):
+                    # 'r' = respawn at the initial spawn pose (discrete action)
+                    held.clear()  # land stopped, not still driving
+                    try:
+                        if node._respawn is None:
+                            node._respawn = Respawn(node)
+                        x, y, yaw = spawn_pose()
+                        node.get_logger().info(
+                            f"respawn: returning rover to start "
+                            f"({x:.2f},{y:.2f})")
+                        if node._respawn.respawn(x, y, yaw):
+                            node.lin = 0.0
+                            node.ang = 0.0
+                            node.publish(0.0, 0.0)
+                    except Exception as e:
+                        node.get_logger().warn(f"respawn failed: {e}")
+                    continue
             now = time.time()
             node.step(held, min(0.2, now - last))
             last = now
