@@ -18,6 +18,7 @@
   <material name="grey"><color rgba="0.62 0.62 0.62 1"/></material>
   <material name="dark"><color rgba="0.25 0.25 0.28 1"/></material>
   <material name="green"><color rgba="0.1 0.5 0.15 1"/></material>
+  <material name="tof_orange"><color rgba="1.0 0.45 0.1 1"/></material>
 
   <!-- ============ BASE ============ -->
   <link name="base_footprint"/>
@@ -207,6 +208,84 @@
     <origin xyz="0 0 0" rpy="-1.57079632679 0 -1.57079632679"/>
   </joint>
 
+  <!-- ============ ToF SIDE RANGERS (crop-safety guard) ============
+       Sideways single-beam ray sensors publishing sensor_msgs/Range on
+       /tof/left and /tof/right. Rays fire along the link +X axis, so the
+       joints yaw +/-90 deg to face the left (+Y) / right (-Y) crop rows.
+       Enable with farm.launch.py tof:=true / run_sim.sh flag tof. -->
+  <link name="tof_left_link">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry><box size="0.07 0.05 0.04"/></geometry>
+      <material name="tof_orange"/>
+    </visual>
+    <visual>
+      <origin xyz="0 0 -0.10" rpy="0 0 0"/>
+      <geometry><box size="0.03 0.03 0.20"/></geometry>
+      <material name="dark"/>
+    </visual>
+  </link>
+  <joint name="tof_left_joint" type="fixed">
+    <parent link="base_link"/><child link="tof_left_link"/>
+    <origin xyz="0.10 0.24 0.30" rpy="0 0 1.57079632679"/>
+  </joint>
+
+  <link name="tof_right_link">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry><box size="0.07 0.05 0.04"/></geometry>
+      <material name="tof_orange"/>
+    </visual>
+    <visual>
+      <origin xyz="0 0 -0.10" rpy="0 0 0"/>
+      <geometry><box size="0.03 0.03 0.20"/></geometry>
+      <material name="dark"/>
+    </visual>
+  </link>
+  <joint name="tof_right_joint" type="fixed">
+    <parent link="base_link"/><child link="tof_right_link"/>
+    <origin xyz="0.10 -0.24 0.30" rpy="0 0 -1.57079632679"/>
+  </joint>
+
+  <!-- ============ FRONT ToF RANGERS (bend lookahead) ============
+       Headlamp-style modules angled outward: beams fire along link +X
+       yawed +/-35 deg toward the crop rows, so head-on drift into plants
+       at bends is seen ~0.7 m ahead, before the side rangers react.
+       Small orange boxes make the modules visible (visual only). -->
+  <link name="tof_fl_link">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry><box size="0.07 0.05 0.04"/></geometry>
+      <material name="tof_orange"/>
+    </visual>
+    <visual>
+      <origin xyz="0 0 -0.10" rpy="0 0 0"/>
+      <geometry><box size="0.03 0.03 0.20"/></geometry>
+      <material name="dark"/>
+    </visual>
+  </link>
+  <joint name="tof_fl_joint" type="fixed">
+    <parent link="base_link"/><child link="tof_fl_link"/>
+    <origin xyz="0.24 0.18 0.30" rpy="0 0 0.6108652382"/>
+  </joint>
+
+  <link name="tof_fr_link">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry><box size="0.07 0.05 0.04"/></geometry>
+      <material name="tof_orange"/>
+    </visual>
+    <visual>
+      <origin xyz="0 0 -0.10" rpy="0 0 0"/>
+      <geometry><box size="0.03 0.03 0.20"/></geometry>
+      <material name="dark"/>
+    </visual>
+  </link>
+  <joint name="tof_fr_joint" type="fixed">
+    <parent link="base_link"/><child link="tof_fr_link"/>
+    <origin xyz="0.24 -0.18 0.30" rpy="0 0 -0.6108652382"/>
+  </joint>
+
   <!-- ============ GAZEBO PLUGINS ============ -->
   <gazebo>
     <plugin name="diff_drive" filename="libgazebo_ros_diff_drive.so">
@@ -279,6 +358,164 @@
         <camera_name>camera_back</camera_name>
         <frame_name>camera_back_optical</frame_name>
         <image_rate>20.0</image_rate>
+      </plugin>
+    </sensor>
+  </gazebo>
+
+  <!-- ============ ToF SIDE RANGERS (crop-safety guard) ============
+       5-ray fan (+/-0.1 rad) per side; the ray plugin publishes the
+       minimum range as sensor_msgs/Range (infrared). -->
+  <gazebo reference="tof_left_link">
+    <sensor name="tof_left" type="ray">
+      <always_on>1</always_on>
+      <update_rate>20</update_rate>
+      <visualize>false</visualize>
+      <ray>
+        <scan>
+          <horizontal>
+            <samples>5</samples>
+            <resolution>1</resolution>
+            <min_angle>-0.100000</min_angle>
+            <max_angle>0.100000</max_angle>
+          </horizontal>
+          <vertical>
+            <samples>1</samples>
+            <resolution>1</resolution>
+            <min_angle>0</min_angle>
+            <max_angle>0</max_angle>
+          </vertical>
+        </scan>
+        <range>
+          <min>0.050000</min>
+          <max>4.000000</max>
+          <resolution>0.010000</resolution>
+        </range>
+      </ray>
+      <plugin name="tof_left_ros" filename="libgazebo_ros_ray_sensor.so">
+        <ros>
+          <namespace>/</namespace>
+          <remapping>~/out:=tof/left</remapping>
+        </ros>
+        <output_type>sensor_msgs/Range</output_type>
+        <frame_name>tof_left_link</frame_name>
+        <radiation_type>infrared</radiation_type>
+      </plugin>
+    </sensor>
+  </gazebo>
+
+  <gazebo reference="tof_right_link">
+    <sensor name="tof_right" type="ray">
+      <always_on>1</always_on>
+      <update_rate>20</update_rate>
+      <visualize>false</visualize>
+      <ray>
+        <scan>
+          <horizontal>
+            <samples>5</samples>
+            <resolution>1</resolution>
+            <min_angle>-0.100000</min_angle>
+            <max_angle>0.100000</max_angle>
+          </horizontal>
+          <vertical>
+            <samples>1</samples>
+            <resolution>1</resolution>
+            <min_angle>0</min_angle>
+            <max_angle>0</max_angle>
+          </vertical>
+        </scan>
+        <range>
+          <min>0.050000</min>
+          <max>4.000000</max>
+          <resolution>0.010000</resolution>
+        </range>
+      </ray>
+      <plugin name="tof_right_ros" filename="libgazebo_ros_ray_sensor.so">
+        <ros>
+          <namespace>/</namespace>
+          <remapping>~/out:=tof/right</remapping>
+        </ros>
+        <output_type>sensor_msgs/Range</output_type>
+        <frame_name>tof_right_link</frame_name>
+        <radiation_type>infrared</radiation_type>
+      </plugin>
+    </sensor>
+  </gazebo>
+
+  <!-- ============ FRONT ToF RANGERS (bend lookahead, +/-35 deg) ============
+       Same 5-ray fan as the sides; the plugin publishes the minimum range
+       as sensor_msgs/Range (infrared) on /tof/front_left /tof/front_right. -->
+  <gazebo reference="tof_fl_link">
+    <sensor name="tof_front_left" type="ray">
+      <always_on>1</always_on>
+      <update_rate>20</update_rate>
+      <visualize>false</visualize>
+      <ray>
+        <scan>
+          <horizontal>
+            <samples>5</samples>
+            <resolution>1</resolution>
+            <min_angle>-0.100000</min_angle>
+            <max_angle>0.100000</max_angle>
+          </horizontal>
+          <vertical>
+            <samples>1</samples>
+            <resolution>1</resolution>
+            <min_angle>0</min_angle>
+            <max_angle>0</max_angle>
+          </vertical>
+        </scan>
+        <range>
+          <min>0.050000</min>
+          <max>4.000000</max>
+          <resolution>0.010000</resolution>
+        </range>
+      </ray>
+      <plugin name="tof_front_left_ros" filename="libgazebo_ros_ray_sensor.so">
+        <ros>
+          <namespace>/</namespace>
+          <remapping>~/out:=tof/front_left</remapping>
+        </ros>
+        <output_type>sensor_msgs/Range</output_type>
+        <frame_name>tof_fl_link</frame_name>
+        <radiation_type>infrared</radiation_type>
+      </plugin>
+    </sensor>
+  </gazebo>
+
+  <gazebo reference="tof_fr_link">
+    <sensor name="tof_front_right" type="ray">
+      <always_on>1</always_on>
+      <update_rate>20</update_rate>
+      <visualize>false</visualize>
+      <ray>
+        <scan>
+          <horizontal>
+            <samples>5</samples>
+            <resolution>1</resolution>
+            <min_angle>-0.100000</min_angle>
+            <max_angle>0.100000</max_angle>
+          </horizontal>
+          <vertical>
+            <samples>1</samples>
+            <resolution>1</resolution>
+            <min_angle>0</min_angle>
+            <max_angle>0</max_angle>
+          </vertical>
+        </scan>
+        <range>
+          <min>0.050000</min>
+          <max>4.000000</max>
+          <resolution>0.010000</resolution>
+        </range>
+      </ray>
+      <plugin name="tof_front_right_ros" filename="libgazebo_ros_ray_sensor.so">
+        <ros>
+          <namespace>/</namespace>
+          <remapping>~/out:=tof/front_right</remapping>
+        </ros>
+        <output_type>sensor_msgs/Range</output_type>
+        <frame_name>tof_fr_link</frame_name>
+        <radiation_type>infrared</radiation_type>
       </plugin>
     </sensor>
   </gazebo>
