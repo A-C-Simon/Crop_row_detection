@@ -80,7 +80,8 @@ _BRIDGE_PY = _EXGSIM_SRC / "exgsim" / "bridge.py"
 _MONITOR_PY = _EXGSIM_SRC / "exgsim" / "monitor.py"
 _TELEOP_PY = _EXGSIM_SRC / "exgsim" / "teleop_node.py"
 _TOF_PY = _EXGSIM_SRC / "exgsim" / "tof_guard.py"
-for _p in (_BRIDGE_PY, _MONITOR_PY, _TELEOP_PY, _TOF_PY):
+_RESET_PY = _EXGSIM_SRC / "exgsim" / "rover_reset.py"
+for _p in (_BRIDGE_PY, _MONITOR_PY, _TELEOP_PY, _TOF_PY, _RESET_PY):
     if not _p.exists():
         raise RuntimeError(f"exgsim nodes not found under {_EXGSIM_SRC}")
 
@@ -245,7 +246,30 @@ def _setup(context):
         output="screen",
         condition=IfCondition("1" if sim_mode == "demo" else "0"),
         additional_env={"MRSIM_DEMO_KEYS": cfg.get("demo_keys", "w w w a a s s"),
-                        "MRSIM_CMD_TOPIC": cmd_topic})
+                        "MRSIM_CMD_TOPIC": cmd_topic,
+                        "MRSIM_SPAWN": f"{robot_x},{robot_y},{robot_yaw}"})
+
+    # Rover reset listener (all modes): `ros2 topic pub --once
+    # /reset_rover std_msgs/msg/Empty {}` teleports the rover back to the
+    # initial spawn pose - no relaunch needed after a mistake. The manual
+    # keyboard teleop has the same action on its 'r' key.
+    reset = ExecuteProcess(
+        cmd=[sys.executable, str(_RESET_PY)],
+        output="screen",
+        additional_env={
+            "MRSIM_SPAWN": f"{robot_x},{robot_y},{robot_yaw}",
+            "MRSIM_CMD_TOPIC": cmd_topic,
+            "MRSIM_LOG_DIR": log_dir,
+        })
+
+    if sim_mode == "teleop":
+        print(f"[exgsim] manual teleop keys, run in a second terminal:\n"
+              f"  source install/setup.bash && "
+              f"{'MRSIM_CMD_TOPIC=/cmd_vel_raw ' if tof_on else ''}"
+              f"MRSIM_SPAWN={robot_x},{robot_y},{robot_yaw} "
+              f"ros2 run exgsim exg_teleop\n"
+              f"  (w/s fwd, a/d turn, space stop, r respawn at start, x quit)",
+              flush=True)
 
 
 
@@ -281,6 +305,9 @@ def _setup(context):
         # ToF crop-safety guard (only with tof:=true): overrides the C++
         # vision servo whenever a side ranger is closer than tof_min
         *([guard] if guard is not None else []),
+        # reset listener (all modes): /reset_rover teleports the rover
+        # back to the spawn pose without relaunching
+        reset,
         monitor,
         demo,
         RegisterEventHandler(OnProcessExit(target_action=monitor,
