@@ -23,6 +23,17 @@ cd FFT/sim_ros2
 ./run_sim_gui.sh --auto                     # GUI + autonomous driving
 ```
 
+### Manual driving + respawn (`r`)
+
+`run_sim_gui.sh` without `--auto` starts in teleop mode: the keyboard node
+(`teleop_node.py`) starts automatically with the launch and reads the
+launch terminal itself, so just type into that terminal: w/s/a/d drive,
+space stops, x quits, and `r` respawns the rover at the initial spawn pose
+(delete_entity + spawn_entity at the MRSIM_SPAWN pose; handy after driving
+into the crops, no relaunch needed). Manual driving routes through the ToF
+guard when `--tof` is on. The same reset is available in every mode via
+`ros2 topic pub --once /reset_rover std_msgs/msg/Empty "{}"`.
+
 Fields work like the MultiROI rig: `--circle` (default), `--curve[N]`,
 `--straight[N]`, `--zigzag[N]` (bare flag: N=2, N=5 for zigzag; other
 counts generate on demand into a shared fields cache). Explicit
