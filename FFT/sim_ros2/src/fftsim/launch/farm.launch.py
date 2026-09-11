@@ -77,10 +77,9 @@ if not (Path(_AGRIBOT_MODELS) / "big_plant").is_dir():
 _SIM_SRC = Path(_FFT) / "sim_ros2" / "src" / "fftsim"
 _NAV_PY = _SIM_SRC / "fftsim" / "nav_node.py"
 _TELEOP_PY = _SIM_SRC / "fftsim" / "teleop_node.py"
-_TELEPORT_PY = _SIM_SRC / "fftsim" / "teleport_node.py"
 _TOF_PY = _SIM_SRC / "fftsim" / "tof_guard.py"
 _RESET_PY = _SIM_SRC / "fftsim" / "rover_reset.py"
-if not (_NAV_PY.exists() and _TELEOP_PY.exists() and _TELEPORT_PY.exists()
+if not (_NAV_PY.exists() and _TELEOP_PY.exists()
         and _TOF_PY.exists() and _RESET_PY.exists()):
     raise RuntimeError(f"fftsim nodes not found under {_SIM_SRC}")
 
@@ -215,15 +214,17 @@ def _setup(context):
         additional_env={"MRSIM_DEMO_KEYS": cfg.get("demo_keys", "w w w a a s s"),
                         "MRSIM_CMD_TOPIC": cmd_topic})
     # mode:=teleop - keyboard teleop with the 'r' respawn-to-start key.
-    # Starts automatically in teleop mode; stdin is the launch terminal, so
-    # drive (and press 'r') right there. MRSIM_SPAWN carries the initial
-    # spawn pose so 'r' can return the rover to it.
+    # The teleop node reads the launch terminal itself (/dev/tty), so drive
+    # (and press 'r') right there. MRSIM_SPAWN carries the initial spawn
+    # pose so 'r' can return the rover to it; MRSIM_CMD_TOPIC routes manual
+    # driving through the ToF guard when it is on.
     teleop = ExecuteProcess(
-        cmd=[sys.executable, str(_TELEPORT_PY)],
+        cmd=[sys.executable, str(_TELEOP_PY)],
         output="screen",
         condition=IfCondition(
             "1" if os.environ.get("MRSIM_SIM_MODE", "auto") == "teleop" else "0"),
-        additional_env={"MRSIM_SPAWN": f"{robot_x},{robot_y},{robot_yaw}"})
+        additional_env={"MRSIM_SPAWN": f"{robot_x},{robot_y},{robot_yaw}",
+                        "MRSIM_CMD_TOPIC": cmd_topic})
 
     # Rover reset listener (all modes): `ros2 topic pub --once
     # /reset_rover std_msgs/msg/Empty {}` teleports the rover back to the
