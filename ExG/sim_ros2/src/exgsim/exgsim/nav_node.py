@@ -113,6 +113,27 @@ class ExGNavNode(Node):
                                                _p("lane_end_x", 9.0)))
         self.max_seconds = float(os.environ.get("MRSIM_MAX_SECONDS",
                                                 _p("max_seconds", 0.0)))
+        # circle-lane mode (concentric ring field): the diff-drive plugin
+        # initializes odometry at the spawn (world) pose, so odom doubles as
+        # world xy; cross-track becomes radial error and the run ends after
+        # max_laps angle swept around (cx, cy). R<=0 keeps straight behavior
+        # (lane ends at lane_end_x). Without this the default ring field
+        # (spawn x=12 past lane_end_x=9) would stop on the first frame.
+        self.circle_cx = float(os.environ.get("MRSIM_CIRCLE_CX",
+                                              _p("circle_cx", 0.0)))
+        self.circle_cy = float(os.environ.get("MRSIM_CIRCLE_CY",
+                                              _p("circle_cy", 0.0)))
+        self.circle_r = float(os.environ.get("MRSIM_CIRCLE_R",
+                                             _p("circle_r", 0.0)))
+        self.max_laps = float(os.environ.get("MRSIM_CIRCLE_LAPS",
+                                             _p("max_laps", 1.0)))
+        self._lap_angle = 0.0
+        self._lap_prev = None
+        if self.circle_r > 0:
+            self.get_logger().info(
+                f"circle lane: center=({self.circle_cx:.2f},{self.circle_cy:.2f}) "
+                f"R={self.circle_r:.2f} max_laps={self.max_laps:g} "
+                f"(cross_track=radial error)")
         # teleop/demo: keep detection alive but never publish /cmd_vel
         self.idle = str(os.environ.get("MRSIM_NAV_IDLE", _p("nav_idle", ""))) == "1"
         if self.idle:
@@ -183,8 +204,22 @@ class ExGNavNode(Node):
     def _on_odom(self, msg: Odometry):
         self.odom_x = msg.pose.pose.position.x
         self.odom_y = msg.pose.pose.position.y
+        if self.circle_r > 0:
+            ang = math.atan2(self.odom_y - self.circle_cy,
+                             self.odom_x - self.circle_cx)
+            if self._lap_prev is not None:
+                d = ang - self._lap_prev
+                while d > math.pi:
+                    d -= 2.0 * math.pi
+                while d < -math.pi:
+                    d += 2.0 * math.pi
+                self._lap_angle += d
+            self._lap_prev = ang
 
     def _cross_track(self):
+        if self.circle_r > 0:
+            return math.hypot(self.odom_x - self.circle_cx,
+                              self.odom_y - self.circle_cy) - self.circle_r
         return self.odom_y - self.lane_y
 
     def _decode_bgr(self, msg: Image):
@@ -396,6 +431,13 @@ class ExGNavNode(Node):
             return
         if self.max_seconds > 0 and (t_now - self.t0) >= self.max_seconds:
             self._stop(f"reached max_seconds={self.max_seconds}")
+        elif self.circle_r > 0:
+            if self.max_laps > 0 and abs(self._lap_angle) >= self.max_laps * 2.0 * math.pi:
+                self._stop(
+                    f"completed {self.max_laps:g} lap(s) "
+                    f"(radial err {self._cross_track():+.2f} m)")
+            elif self.frame_idx > 60000:
+                self._stop("frame cap")
         elif self.odom_x >= self.lane_end_x:
             self._stop(f"reached end of lane (x={self.odom_x:.2f})")
         elif (self._lost_since is not None
