@@ -15,8 +15,10 @@ Keys ramp speed smoothly (up to v_max / omega_max). Auto-repeat keeps the
 rover moving while a key is held; release = stop.
 
 Modes:
-  normal : reads keys from the terminal (raw tty) - launch via farm.launch.py
-           with mode:=teleop.
+  normal : reads keys from the terminal - prefers stdin when it is a tty
+           (standalone run), else the controlling terminal /dev/tty, so
+           keys also work as a `ros2 launch` child (which does not forward
+           stdin).
   demo   : MRSIM_DEMO_KEYS="w w a" (space-separated, each held 1 s) plays a
            scripted key sequence - used for headless tests.
 
@@ -29,7 +31,6 @@ import select
 import sys
 import termios
 import time
-import tty
 
 import rclpy
 from rclpy.node import Node
@@ -135,22 +136,76 @@ def main(args=None):
                 rclpy.shutdown()
         return
 
-    # interactive keyboard loop (raw tty)
-    fd = sys.stdin.fileno()
-    old = termios.tcgetattr(fd)
+    # interactive keyboard loop. Preferred input is stdin when it is a tty
+    # (standalone run); otherwise the controlling terminal /dev/tty, which
+    # is how keys keep working as a `ros2 launch` child (launch does not
+    # forward stdin). Piped stdin without a terminal still works for
+    # scripted input; with no terminal at all the node idles.
+    src = None
+    if sys.stdin.isatty():
+        src = sys.stdin
+    else:
+        try:
+            src = open("/dev/tty", "rb", buffering=0)
+        except OSError:
+            if not sys.stdin.closed:
+                src = sys.stdin
+    if src is None:
+        node.get_logger().warn(
+            "teleop: no terminal for keyboard input; keys unavailable")
+        try:
+            while rclpy.ok():
+                time.sleep(0.5)
+        except KeyboardInterrupt:
+            pass
+        node.publish(0.0, 0.0)
+        node.destroy_node()
+        if rclpy.ok():
+            rclpy.shutdown()
+        return
+
+    fd = src.fileno()
+    old = None
+    raw = False
     try:
-        tty.setraw(fd)
+        # raw INPUT (per-key, unbuffered) but cooked OUTPUT: when this node
+        # shares the launch terminal (via /dev/tty), gzserver/launch output
+        # keeps its newline translation and Ctrl-C keeps working. ECHO off
+        # so held keys do not spam the shared terminal.
+        old = termios.tcgetattr(fd)
+        a = termios.tcgetattr(fd)
+        a[0] &= ~(termios.BRKINT | termios.ICRNL | termios.INPCK
+                  | termios.ISTRIP | termios.IXON)
+        a[1] |= (termios.OPOST | termios.ONLCR)
+        a[3] &= ~(termios.ECHO | termios.ICANON | termios.IEXTEN)
+        a[3] |= termios.ISIG  # keep Ctrl-C live: SIGINT reaches the launch
+        a[6][termios.VMIN] = 1
+        a[6][termios.VTIME] = 0
+        termios.tcsetattr(fd, termios.TCSADRAIN, a)
+        raw = True
+    except termios.error:
+        pass  # piped stdin: no terminal control, keys still parse
+    try:
         held = set()
         last = time.time()
         while True:
-            # read any pending keys
-            while select.select([sys.stdin], [], [], 0)[0]:
-                ch = sys.stdin.read(1)
+            # read any pending keys (os.read: no buffering surprises)
+            while select.select([fd], [], [], 0)[0]:
+                try:
+                    ch = os.read(fd, 1).decode("utf-8", "ignore")
+                except OSError:
+                    break
+                if ch == "":  # EOF (closed pipe): idle instead of spinning
+                    time.sleep(0.1)
+                    break
                 if ch == "\x1b":  # escape sequence (arrows)
-                    more = sys.stdin.read(2) if select.select([sys.stdin], [], [], 0.05)[0] else ""
+                    more = os.read(fd, 2).decode("utf-8", "ignore") \
+                        if select.select([fd], [], [], 0.05)[0] else ""
                     ch += more
-                if ch in ("x", "X", "\x03"):  # x / ctrl-c quit
+                if ch in ("x", "X", "\x04"):  # x / ctrl-d quit
                     node.get_logger().info("teleop quit")
+                    raise KeyboardInterrupt
+                if ch == "\x03":  # ctrl-c (only seen without ISIG)
                     raise KeyboardInterrupt
                 if ch == " ":
                     held.clear()
@@ -180,7 +235,13 @@ def main(args=None):
     except KeyboardInterrupt:
         pass
     finally:
-        termios.tcsetattr(fd, termios.TCSADRAIN, old)
+        if raw and old is not None:
+            termios.tcsetattr(fd, termios.TCSADRAIN, old)
+        if src is not sys.stdin:
+            try:
+                src.close()
+            except Exception:
+                pass
         node.publish(0.0, 0.0)
         node.destroy_node()
         if rclpy.ok():
