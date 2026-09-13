@@ -81,7 +81,8 @@ _MONITOR_PY = _EXGSIM_SRC / "exgsim" / "monitor.py"
 _TELEOP_PY = _EXGSIM_SRC / "exgsim" / "teleop_node.py"
 _TOF_PY = _EXGSIM_SRC / "exgsim" / "tof_guard.py"
 _RESET_PY = _EXGSIM_SRC / "exgsim" / "rover_reset.py"
-for _p in (_BRIDGE_PY, _MONITOR_PY, _TELEOP_PY, _TOF_PY, _RESET_PY):
+_NAV_PY = _EXGSIM_SRC / "exgsim" / "nav_node.py"
+for _p in (_BRIDGE_PY, _MONITOR_PY, _TELEOP_PY, _TOF_PY, _RESET_PY, _NAV_PY):
     if not _p.exists():
         raise RuntimeError(f"exgsim nodes not found under {_EXGSIM_SRC}")
 
@@ -162,22 +163,42 @@ def _setup(context):
     robot_y = val("robot_y", "robot_y", "0.0")
     robot_yaw = val("robot_yaw", "robot_yaw", "0.0")
     lane_y = val("lane_y", "lane_y", "0.0")
-    # default start is lane 1 (first furrow of the sidecar) unless the
-    # rover is placed explicitly.
-    if cfg.get("robot_y", "") == "" and cfg.get("lane_y", "") == "":
-        try:
-            sib = str(Path(world_file).with_suffix("")) + ".spawn.json"
-            furrows = [float(c) for c in
-                       json.loads(Path(sib).read_text()).get("furrows", [])]
-            if furrows:
-                robot_y = lane_y = f"{furrows[0]:.3f}"
-        except Exception:
-            pass
     lane_end_x = val("lane_end_x", "lane_end_x", "9.0")
     circle_cx = val("circle_cx", "circle_cx", "0.0")
     circle_cy = val("circle_cy", "circle_cy", "0.0")
     circle_r = val("circle_r", "circle_r", "0.0")
     max_laps = val("max_laps", "max_laps_default", "1")
+
+    # navigation algorithm: 'exg' (default) runs the Python ExG pipeline in
+    # results/ (base-anchored column-aware window, nav_node.py); 'vendor'
+    # keeps the C++ agribot_vs_node. Only one of the two is launched.
+    nav_kind = str(cfg.get("nav", "vendor")).lower()
+    use_exg_nav = nav_kind != "vendor"
+
+    # Default start when the rover is not placed explicitly. The ExG
+    # algorithm rides ABOVE the crop rows - its window latches a crop
+    # column - so nav:=exg defaults to the crop row nearest the first
+    # sidecar furrow (rows sit halfway between furrows). nav:=vendor keeps
+    # the historical furrow start, and the ring world always keeps its
+    # radius/furrow start.
+    if cfg.get("robot_y", "") == "" and cfg.get("lane_y", "") == "":
+        try:
+            sib = str(Path(world_file).with_suffix("")) + ".spawn.json"
+            sc = json.loads(Path(sib).read_text())
+            furrows = [float(c) for c in sc.get("furrows", [])]
+            row_y = None
+            if furrows and use_exg_nav and float(circle_r) <= 0.0:
+                n = int(sc.get("n_rows", 0) or 0)
+                sp = float(sc.get("row_spacing", 0.0) or 0.0)
+                if n >= 2 and sp > 0.0:
+                    rows = [(i - (n - 1) / 2.0) * sp for i in range(n)]
+                    row_y = min(rows, key=lambda y: abs(y - furrows[0]))
+            if row_y is not None:
+                robot_y = lane_y = f"{row_y:.3f}"
+            elif furrows:
+                robot_y = lane_y = f"{furrows[0]:.3f}"
+        except Exception:
+            pass
 
     # sim-tuned params ship with THIS package (vendor file keeps upstream values)
     param_file = str(Path(pkg_share) / "params" / "exgsim_run.yaml")
@@ -215,6 +236,7 @@ def _setup(context):
     vs_node = Node(
         package=EXG_PKG, executable="agribot_vs_node",
         output="screen",
+        condition=IfCondition("0" if use_exg_nav else "1"),
         # with tof:=true the C++ /cmd_vel is remapped to /cmd_vel_raw so
         # the guard owns the wheels; otherwise it drives directly.
         remappings=[("/cmd_vel", cmd_topic)] if tof_on else [],
@@ -225,6 +247,28 @@ def _setup(context):
                     {"mask_tune": idle,
                      "publish_cmd_vel": (not idle)}],
     )
+
+    # Python ExG nav node: the results/ pipeline (exg_window base-anchored,
+    # column-aware window) drives /cmd_vel. It idles in teleop/demo mode and
+    # publishes /vs_msg so the monitor logs unchanged.
+    exg_nav = ExecuteProcess(
+        cmd=[sys.executable, str(_NAV_PY)],
+        output="screen",
+        condition=IfCondition("1" if use_exg_nav else "0"),
+        additional_env={
+            "EXG_DIR": os.environ.get("EXG_DIR", ""),
+            "MRSIM_CMD_TOPIC": cmd_topic,
+            "MRSIM_NAV_IDLE": "1" if idle else "",
+            "MRSIM_LANE_Y": lane_y,
+            "MRSIM_LANE_END_X": lane_end_x,
+            "MRSIM_CIRCLE_CX": circle_cx,
+            "MRSIM_CIRCLE_CY": circle_cy,
+            "MRSIM_CIRCLE_R": circle_r,
+            "MRSIM_CIRCLE_LAPS": max_laps,
+            "MRSIM_EXG_PARAMS": param_file,
+            "MRSIM_LOG_DIR": log_dir,
+            "MRSIM_MAX_SECONDS": cfg.get("max_seconds", "0"),
+        })
 
     # ToF guard: raw stack/teleop commands in, safety-overridden command
     # out. Only launched with tof:=true.
@@ -301,6 +345,8 @@ def _setup(context):
              ]),
 
         bridge,
+        # navigation: Python ExG pipeline (default) or the vendor C++ node
+        exg_nav,
         vs_node,
         # ToF crop-safety guard (only with tof:=true): overrides the C++
         # vision servo whenever a side ranger is closer than tof_min
@@ -336,6 +382,11 @@ def generate_launch_description():
                                           "demo=scripted keys (headless test)"),
         DeclareLaunchArgument("demo_keys", default_value="w w w a a s s",
                               description="scripted key sequence for mode:=demo"),
+        DeclareLaunchArgument("nav", default_value="vendor",
+                              choices=["exg", "vendor"],
+                              description="exg=Python results/ pipeline drives "
+                                          "(base-anchored column-aware window); "
+                                          "vendor=the C++ agribot_vs_node"),
         DeclareLaunchArgument("gui", default_value="false"),
         DeclareLaunchArgument("robot_x", default_value="",
                               description="spawn x (empty = field default)"),
