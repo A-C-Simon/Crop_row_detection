@@ -2,10 +2,9 @@
 # Run the ExG sim with a live Gazebo GUI AND interactive keyboard teleop, for
 # use at the machine's real display.
 # Same test as run_sim.sh but with the Gazebo window open. In teleop mode
-# the C++ stack idles (mask_tune on, nothing published); drive with the
-# keyboard node in a second terminal:
-#   source install/setup.bash && ros2 run exgsim exg_teleop
-# (w/s = fwd/back, a/d = turn, space = stop, x = quit, r = respawn at start).
+# the C++ stack idles (mask_tune on, nothing published) and the keyboard
+# node starts automatically, reading this launch terminal - just type:
+# w/s = fwd/back, a/d = turn, space = stop, x = quit, r = respawn at start.
 #
 #   ./run_sim_gui.sh               # GUI + teleop (C++ stack idles)
 #   ./run_sim_gui.sh --auto        # GUI + autonomous ExG driving
@@ -38,9 +37,8 @@
 #     the manual keyboard node with MRSIM_CMD_TOPIC=/cmd_vel_raw so the
 #     guard still protects you.
 #
-# In teleop mode run the keyboard driver by hand in this terminal after the
-# sim is up:  source install/setup.bash && ros2 run exgsim exg_teleop
-# (w/s = fwd/back, a/d = turn, space = stop, x = quit, r = respawn at start).
+# In teleop mode the keyboard driver starts with the launch and reads this
+# terminal: w/s = fwd/back, a/d = turn, space = stop, x = quit, r = respawn.
 set -e
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
