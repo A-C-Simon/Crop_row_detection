@@ -21,9 +21,10 @@ Custom world file: world:=/path/to.world (sibling .spawn.json used when
 present, else the field sidecar).
 
 Modes (MRSIM_SIM_MODE env, set by run scripts):
-  auto   - C++ stack drives (mask_tune false)
+  auto   - the navigation stack drives (mask_tune false)
   teleop - C++ stack idles (mask_tune true, no cmd), keyboard teleop owns
-           /cmd_vel (run exg_teleop by hand in the GUI terminal)
+           /cmd_vel; teleop_node starts with the launch and reads this
+           terminal (w/s/a/d, space, r respawn, x quit)
   demo   - scripted teleop keys (headless check), C++ stack idles
 """
 import os
@@ -293,6 +294,19 @@ def _setup(context):
                         "MRSIM_CMD_TOPIC": cmd_topic,
                         "MRSIM_SPAWN": f"{robot_x},{robot_y},{robot_yaw}"})
 
+    # mode:=teleop - keyboard teleop with the 'r' respawn-to-start key.
+    # The teleop node reads the launch terminal itself (/dev/tty), so drive
+    # (and press 'r') right in this terminal - no second terminal needed.
+    # MRSIM_SPAWN carries the initial spawn pose so 'r' can return the rover
+    # to it; MRSIM_CMD_TOPIC routes manual driving through the ToF guard
+    # when it is on.
+    teleop = ExecuteProcess(
+        cmd=[sys.executable, str(_TELEOP_PY)],
+        output="screen",
+        condition=IfCondition("1" if sim_mode == "teleop" else "0"),
+        additional_env={"MRSIM_SPAWN": f"{robot_x},{robot_y},{robot_yaw}",
+                        "MRSIM_CMD_TOPIC": cmd_topic})
+
     # Rover reset listener (all modes): `ros2 topic pub --once
     # /reset_rover std_msgs/msg/Empty {}` teleports the rover back to the
     # initial spawn pose - no relaunch needed after a mistake. The manual
@@ -305,17 +319,6 @@ def _setup(context):
             "MRSIM_CMD_TOPIC": cmd_topic,
             "MRSIM_LOG_DIR": log_dir,
         })
-
-    if sim_mode == "teleop":
-        print(f"[exgsim] manual teleop keys, run in a second terminal:\n"
-              f"  source install/setup.bash && "
-              f"{'MRSIM_CMD_TOPIC=/cmd_vel_raw ' if tof_on else ''}"
-              f"MRSIM_SPAWN={robot_x},{robot_y},{robot_yaw} "
-              f"ros2 run exgsim exg_teleop\n"
-              f"  (w/s fwd, a/d turn, space stop, r respawn at start, x quit)",
-              flush=True)
-
-
 
     actions = [
         IncludeLaunchDescription(
@@ -354,6 +357,8 @@ def _setup(context):
         # reset listener (all modes): /reset_rover teleports the rover
         # back to the spawn pose without relaunching
         reset,
+        # mode:=teleop - keyboard teleop + 'r' respawn (reads this terminal)
+        teleop,
         monitor,
         demo,
         RegisterEventHandler(OnProcessExit(target_action=monitor,
