@@ -60,6 +60,21 @@ agribot_vs:
     # Column-aware window spawning (dynamic Xc/L near chassis)
     colaware_enabled: true
     colaware_y0_frac: 0.55
+    # Base-anchored latched window (results/exg_window.py): the window sits on
+    # the chassis-forward base of the frame (bottom edge at height-base_margin,
+    # the MultiROI blue marker), latches the nearest crop column, steers while
+    # driving until that column is centred, then locks at bottom-centre; it
+    # re-latches when the column ends (end of the crop column / lane change).
+    base_margin: 10          # marker height above the frame bottom (px)
+    latch_tol_px: 24         # |column - centre| counted as chassis-aligned
+    lock_frames: 3           # aligned frames before locking at centre
+    lost_frames: 8           # column-less frames before re-latching
+    lock_search_px: 120      # a locked window looks for its column this near
+    min_nh_points: 5         # empty-window threshold while locked
+    # Chassis-base servo (results/exg_window.py line_base_error)
+    base_kx: 0.9             # yaw gain on the base lateral error (px/W)
+    base_kth: 1.0            # yaw gain on the row heading error (rad)
+    base_w_max: 0.6          # |w| clamp for the base servo
     # Gap-based multi-row filter inside window (keep central cluster) - DISABLED per user request, stick to Isolation Forest only
     gap_enabled: false
     gap_eps: 14

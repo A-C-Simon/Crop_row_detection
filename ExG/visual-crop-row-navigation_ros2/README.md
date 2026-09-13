@@ -147,11 +147,20 @@ Original `results/README.txt` overlays (`green dots` centres `red` steering line
 
 **2. Isolation Forest inside window only:** `IsolationForest contamination0.15 n_estimators100` (`params:55`) on `nh_points` `x,y` inside window `n>=12`. Removes sparse weed/outlier `~15%` (e.g. `bev` `33/218`, `photo_3` `33/215` red) before `fitLine`. Skipped if `n<12`. Visualized `12` `YELLOW` inliers `RED` outliers, logged `IsolationForest inside window: removed X/Y`.
 
-**3. Column-aware dynamic spawning - window locks onto a row:** fixed `Xc320` misses rows when robot off-centre (`photo_11` `0` points at `320` vs `5` at `162`) or sits in furrow scraping two rows. New `detect_column_aware_window()` `run_vcrn_debug.py:150` computes `profile[x]=sum(combined[y0:,x])` `y0=0.55*H` bottom `45%`, smooths, `find_peaks distance28`, `median_gap -> L_dyn=clip(median_gap*0.65,60,110)`, chooses `peak closest to image centre 320` weighted by prominence `score=|x-320|-30*prom`. `Xc=clip(chosen, L/2, W-L/2)`. `09` shows white profile, red peaks green chosen, cyan band. `photo_11` now `3 peaks gap266 chosen162 -> 80x180 @162,380` `5` points recovered `YES` vs `0` before; `bev` `12 peaks gap51 chosen304 -> 60x180 @304,380`. Fallback to static `Xc320` if no peaks.
+**3. Base-anchored, column-aware window state machine (`results/exg_window.py`):** the window is pinned to the **base of the frame** (its bottom edge on the chassis-forward reference, `Yc = H - base_margin - nh_H/2`, the MultiROI blue-star row) and never drifts up the image; upstream re-centred `Xc/Yc` to the in-window points every frame. It then runs a temporal state machine shared by `run_vcrn_debug.py`, `run_exg_video.py` and the Gazebo driver (`ExG/sim_ros2`):
+
+  * **acquire** - latch the crop column nearest the image centre: `profile[x]=sum(combined[y0:,x])` `y0=0.55*H` bottom band, smoothed, `find_peaks distance~28 prominence0.12`, `median_gap -> L_dyn=clip(median_gap*0.65,60,110)`, choose the peak closest to centre weighted by prominence (`score=|x-320|-30*prom`), `Xc=clip(chosen, L/2, W-L/2)`;
+  * **align** - while driving forward, steer so the latched column slides to the bottom-centre reference (chassis turns onto the column);
+  * **lock** - after `lock_frames` aligned frames `Xc` becomes the image centre permanently (the blue-marker behaviour);
+  * **re-latch** - when the column leaves the base band (`|column - centre| > lock_search_px`, i.e. the end of the crop column / headland transition) or the window runs empty for `lost_frames`, reset to acquire for the next column.
+
+  `09` shows the profile (white), peaks (red), chosen (green). `photo_11` `3 peaks gap266 chosen162 -> 80x180 @162` `5` points recovered vs `0` with a static `Xc320`; `bev` `12 peaks gap51 chosen304 -> 60x180`. Fallback to the static `ex_Xc` if no peaks.
 
 **4. Gap-based multi-row filter inside window - evaluated and removed:** `KMeans K=2` on `x` with gap significance `gap>thresh` was tested for `photo_3` `2` dense rows `28px` `kept 73/140` vs `DBSCAN eps14`. It correctly split `2` rows when window was wide `120`, but with the tuned thin column-aware `60-80` window it consistently yielded `1` cluster for all `23` images (`gap 8 < thresh 24` `bev`), safety net not needed. Per user request the `KMeans` gap filter was removed and disabled `gap_enabled false:63`, `IsolationForest` remains the sole anomaly filter inside window. The `filter_gap_clusters()` code is retained dormant for future use. Timings now `resize/hsv/contours/centers/win/iso/fit` `gap 0`.
 
-All filters **inside window only** (`gray` outside never scored), `Yc380` base retained.
+**5. Chassis-base servoing (ExG rides *above* the rows):** steering no longer uses the image-middle `F_des=(0,H/2,0)`. `line_base_error()` evaluates the fitted row at the base reference (`y_ref = H - base_margin`, the blue-marker row) and returns `(err_x, err_theta)`; `steer_from_base()` turns that into `w = -kx*err_x/W + kth*err_theta` clamped to `base_w_max` with a deadband. The heading sign follows `err_theta` (a row leaning up-left means yaw left); negating it made the two terms cancel on a bend.
+
+All filters **inside window only** (`gray` outside never scored), base anchoring retained.
 
 ### Params (`params/agribot_vs_run.yaml`)
 
@@ -167,6 +176,19 @@ iso_contamination: 0.15
 iso_min_points: 12
 colaware_enabled: true
 colaware_y0_frac: 0.55
+# base-anchored latched window (results/exg_window.py): acquire -> align ->
+# lock at bottom-centre -> re-latch when the column ends
+base_margin: 10.0     # blue-marker row above the frame bottom (px)
+latch_tol_px: 24.0    # |column - centre| counted as aligned
+lock_frames: 3        # aligned frames before locking at centre
+lost_frames: 8        # empty/absent-column frames before re-latching
+lock_search_px: 120.0 # a locked window looks for its column this near
+min_nh_points: 5      # empty-window threshold while locked
+# chassis-base servoing (line_base_error / steer_from_base)
+base_kx: 0.9          # lateral gain on err_x at the base reference
+base_kth: 1.0         # heading gain on the row lean from vertical
+base_w_max: 0.6       # |w| clamp
+vf_des: 0.2           # forward speed (m/s)
 gap_enabled: false  # KMeans removed per request, stick to IsolationForest only
 gap_eps: 14
 gap_min_samples: 6
@@ -180,6 +202,10 @@ Upstream `filterContures` remains degenerate `center_min_off=0:38` noted in debu
 `results/*_debug.png` (`23` images `Photos/bev*.png` `photo_*.png`) `5×4` `15+2` composites `09` column profile `12` IsolationForest, gap disabled. e.g. `bev_debug.png` `12 peaks gap51 Xc304 L60 102->86 IF->86` `photo_3` `7 peaks gap60 Xc326 L60 165->140 IF->140` `photo_11` `3 peaks gap266 Xc162 L80 5` recovered. Only `bev6` `0` (`H40-80` empty). Average `nh` `272->102` single-row purity.
 
 `results/run_exg_video.py` on `Photos/test_video1.mp4` `700x370 480` frames and `test_video2.mp4` `960x540 558` frames with same pipeline `640x480` `~150ms` per frame `~30ms` after `IsolationForest` `~20ms` for `bev`, outputs `*_exg_nav.mp4` `640x480` overlay `v,w,err` and `*_exg_nav.csv`.
+
+### Closed-loop in Gazebo
+
+The same window/servo code drives the test rig (`ExG/sim_ros2`, `nav:=exg`, the default): `exgsim/nav_node.py` subscribes to the simulated front camera, runs this pipeline, and publishes `/cmd_vel`. Straight 5-row field: 15.9 m traversed, mean `|cross-track|` 0.063 m; S-bend: full lane (`-8.0 -> +8.4`) then the end-of-lane stop when the column is lost. See `ExG/sim_ros2/README.md`.
 
 ### Usage
 

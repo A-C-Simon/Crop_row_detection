@@ -32,6 +32,13 @@ import yaml
 from sklearn.ensemble import IsolationForest
 from sklearn.cluster import DBSCAN, KMeans
 
+try:  # sibling module when the script is run directly
+    from exg_window import (BaseColumnWindow, ACQUIRE, LOCKED,
+                            column_profile, pick_column)
+except ImportError:  # imported as part of a package
+    from .exg_window import (BaseColumnWindow, ACQUIRE, LOCKED,
+                             column_profile, pick_column)
+
 # ---------------------------------------------------------------------------
 # params
 # ---------------------------------------------------------------------------
@@ -66,6 +73,21 @@ def load_params(yaml_path: Path):
         # Column-aware window spawning (dynamic Xc/L near chassis)
         "colaware_enabled": bool(p.get("colaware_enabled", True)),
         "colaware_y0_frac": float(p.get("colaware_y0_frac", 0.55)),
+        # Base-anchored latched window (exg_window.BaseColumnWindow): the
+        # window sits on the chassis-forward base of the frame, latches the
+        # nearest crop column, locks at bottom-centre once aligned, and
+        # re-latches when the column ends.
+        "base_margin": float(p.get("base_margin", 10.0)),
+        "latch_tol_px": float(p.get("latch_tol_px", 24.0)),
+        "lock_frames": int(p.get("lock_frames", 3)),
+        "lost_frames": int(p.get("lost_frames", 5)),
+        "lock_search_px": float(p.get("lock_search_px", 60.0)),
+        "min_nh_points": int(p.get("min_nh_points", 5)),
+        # chassis-base servo gains (video runner / sim nav node)
+        "base_kx": float(p.get("base_kx", 0.9)),
+        "base_kth": float(p.get("base_kth", 1.0)),
+        "base_w_max": float(p.get("base_w_max", 0.6)),
+        "vf_des": float(p.get("vf_des", 0.2)),
         # Gap-based multi-row inside window (keep central cluster)
         "gap_enabled": bool(p.get("gap_enabled", True)),
         "gap_eps": float(p.get("gap_eps", 14)),
@@ -153,75 +175,24 @@ def draw_window(img_bgr, Xc, Yc, L, H, color=(255,204,102), thick=3):
     cv2.rectangle(out, (x,y), (x+L, y+H), color, thick)
     return out
 
-def detect_column_aware_window(combined_mask, centers, params, width, height):
+def detect_column_aware_window(combined_mask, centers, params, width, height,
+                               tracker=None):
+    """Base-anchored, column-aware window (exg_window.BaseColumnWindow).
+
+    The window is pinned to the chassis-forward base of the frame and
+    latches the crop column nearest the image centre; once that column is
+    centred it locks at bottom-centre, and it re-latches when the column
+    disappears (end of the crop column / lane transition).
+
+    Returns the window dict (``Xc Yc L H state locked column_x chosen_idx
+    ref_y peaks median_gap profile smooth y0 n_nh relatched aligned``).
+    Pass a ``tracker`` to carry the temporal state machine; without one a
+    fresh transient tracker runs in acquisition, which is all a single
+    still can express.
     """
-    Column-aware window spawning: find dominant row column via vertical projection,
-    spawn window centered on that column near chassis. Window width dynamic from inter-row gap.
-    Returns (Xc, L, H, profile, peak_xs, chosen_idx, median_gap)
-    """
-    from scipy.signal import find_peaks
-    # ROI near chassis: bottom 40% (y 0.6*H to H) where rows are widest and non-converging
-    # For BEV full height also works, but base ROI still captures rows.
-    y0 = int(height * 0.55)  # 55% from top = bottom 45% (like trace_rows NEAR_FRAC 0.55)
-    # Use combined mask for profile (more robust than sparse centers when n small)
-    roi_mask = combined_mask[y0:height, :]
-    # column profile: sum of white pixels per column
-    profile = roi_mask.sum(axis=0).astype(float)  # 0..(roi_h*255)
-    # also consider centers contribution if mask sparse? we combine both?
-    # Smooth with 1D Gaussian (sigma 5)
-    if profile.max() > 0:
-        prof_smooth = cv2.GaussianBlur(profile.reshape(1, -1), (0,0), 5).ravel()
-    else:
-        prof_smooth = profile
-    # normalize for peak detection
-    if prof_smooth.max() > 0:
-        prof_n = prof_smooth / prof_smooth.max()
-    else:
-        prof_n = prof_smooth
-    # peak distance: assume at least 30px between rows (640/15 rows ~42)
-    peak_dist = max(25, int(width * 0.045))  # ~28 for 640
-    peaks, props = find_peaks(prof_n, distance=peak_dist, prominence=0.12, height=0.15)
-    peak_xs = peaks.tolist()
-    median_gap = None
-    chosen_idx = None
-    chosen_x = None
-    # dynamic L from median gap
-    L_dynamic = params["nh_L"]
-    if len(peak_xs) >= 2:
-        gaps = np.diff(sorted(peak_xs))
-        median_gap = float(np.median(gaps)) if len(gaps)>0 else None
-        if median_gap and 30 <= median_gap <= 180:
-            L_dynamic = int(np.clip(median_gap * 0.65, 60, 110))
-    # choose peak closest to image center (robot center) among prominent peaks
-    if len(peak_xs) > 0:
-        # sort peaks by distance to center, then by prominence/height
-        center = width // 2
-        # prominence and height from props if available
-        prominences = props.get("prominences", np.ones(len(peak_xs)))
-        heights = props.get("peak_heights", np.ones(len(peak_xs)))
-        # score = distance penalty + prominence bonus - choose min distance with high prominence
-        # Rank by distance, but filter weak peaks: keep only top 60% prominence
-        # Simpler: choose closest to center among peaks with height > median height
-        # For now: closest to center
-        distances = [abs(x - center) for x in peak_xs]
-        # If multiple close, pick highest prominence among those within 60px of closest?
-        # Use weighted score: distance - 30*prominence (prominence 0-1)
-        scores = [d - 30*p for d, p in zip(distances, prominences if len(prominences)==len(peak_xs) else distances)]
-        chosen_idx = int(np.argmin(scores))
-        chosen_x = int(peak_xs[chosen_idx])
-    else:
-        chosen_x = width // 2
-    # clamp Xc so window stays fully inside image
-    half = L_dynamic // 2
-    Xc = int(np.clip(chosen_x, half + 2, width - half - 2))
-    # Yc stays at params ex_Yc (chassis base), but we keep it low 380
-    Yc = params["ex_Yc"]
-    H = params["nh_H"]
-    # If no peaks, fallback to params Xc
-    if len(peak_xs) == 0:
-        Xc = params["ex_Xc"]
-        L_dynamic = params["nh_L"]
-    return Xc, L_dynamic, H, profile, prof_smooth, peak_xs, chosen_idx, median_gap, y0
+    if tracker is None:
+        tracker = BaseColumnWindow(params)
+    return tracker.update(combined_mask, centers)
 
 def filter_gap_clusters(points, Xc, Yc, H, params):
     """
@@ -352,7 +323,10 @@ def save_debug_composite(path: Path, bgr_orig: np.ndarray, intermediates: dict,
     gap_s = f"{colaware_median_gap:.0f}" if colaware_median_gap is not None else "0"
     chosen_s = f"{colaware_peaks[colaware_chosen]}" if colaware_chosen is not None and colaware_chosen < len(colaware_peaks) else "none"
     colaware_label = f"09 Column Profile\n{len(colaware_peaks)} peaks gap={gap_s} chosen={chosen_s}"
-    win_label = f"10 Window dynamic\n{L}x{H} @({Xc},{Yc}) orig{L_orig}x{H_orig}@{params['ex_Xc']},{params['ex_Yc']}"
+    win_state = intermediates.get("window_state", "static")
+    pref_y = intermediates.get("window_ref_y", Yc)
+    win_label = (f"10 Window [{win_state}]\n{L}x{H} @({Xc},{Yc}) bottom"
+                 f"@{Yc + H//2} ref@{pref_y}")
     panels = [
         (bgr2rgb(bgr_orig), "01 Original\n(full res)", False),
         (bgr2rgb(bgr_resized), f"02 Resized {width}x{height}\n(pipeline input)", False),
@@ -412,7 +386,8 @@ def save_debug_composite(path: Path, bgr_orig: np.ndarray, intermediates: dict,
     gap_str2 = f"{colaware_median_gap:.0f}" if colaware_median_gap is not None else "0"
     summary = (
         f"{stem}\n"
-        f"W={width} H={height} Scale={params['Scale']}  Win {L}x{H} @({Xc},{Yc}) dyn gap={gap_str2}\n"
+        f"W={width} H={height} Scale={params['Scale']}  Win {L}x{H} @({Xc},{Yc}) "
+        f"[{intermediates.get('window_state', 'static')}] col={intermediates.get('window_column_x')} gap={gap_str2} base={intermediates.get('window_ref_y', Yc)}\n"
         f"HSV: H{params['min_Hue']}-{params['max_Hue']} S{params['min_Saturation']}-{params['max_Saturation']} V{params['min_Value']}-{params['max_Value']}\n"
         f"Contours: {n_contours} | Centers: {n_centers} | Inside: {n_nh} | IF in:{n_iso_in} out:{n_iso_out} | Gap in:{n_gap_in} out:{n_gap_out} clusters={gap_n_clusters}\n"
         f"IF: {'ON' if iso_applied else 'OFF'} cont={params.get('iso_contamination',0.15)} | Gap: {'ON' if params.get('gap_enabled') else 'OFF'} eps={params.get('gap_eps',14)} | col-aware {'ON' if params.get('colaware_enabled') else 'OFF'}\n"
@@ -436,7 +411,7 @@ def save_debug_composite(path: Path, bgr_orig: np.ndarray, intermediates: dict,
     for idx in [17,18,19]:
         axes_flat[idx].axis("off")
 
-    fig.suptitle(f"VCRN DEBUG — {stem}  |  ONE line + IF + column-aware window (KMeans removed)  |  Stage-by-stage",
+    fig.suptitle(f"VCRN DEBUG — {stem}  |  ONE line + IF + base-anchored column-aware window  |  Stage-by-stage",
                  fontsize=13, fontweight="bold", y=1.01)
     fig.savefig(str(path), dpi=130, bbox_inches="tight")
     plt.close(fig)
@@ -516,40 +491,45 @@ def process_image(path: Path, params: dict, out_dir: Path):
     # Actually CropRow_Tracking: src.points = getContureCenters ; src.nh_points = filterContures ; agribotVS.is_in_neigbourhood(src) which clears nh_points and refills based on points? No it iterates I.points, not I.nh_points? Let's check: is_in_neigbourhood:673 iterates I.points, fills I.nh_points. So filterContures is discarded! So we note.
     # We'll still compute filtered for display but window is the real filter.
 
-    # 5 is_in_neigbourhood — column-aware dynamic spawning
+    # 5 is_in_neigbourhood — base-anchored, column-aware window
     t0 = time.perf_counter()
-    # detect column-aware window if enabled
+    # A still has no temporal lock: run a transient tracker in acquisition.
+    tracker = BaseColumnWindow(params)
+    window_state = "static"
+    window_column_x = None
     if params.get("colaware_enabled", True):
-        Xc_dyn, L_dyn, H_dyn, profile_raw, profile_smooth, peak_xs, chosen_idx, median_gap, y0_roi = detect_column_aware_window(combined, centers, params, width, height)
-        # log dynamic choice
-        gap_str = f"{median_gap:.0f}" if median_gap is not None else "0"
-        if peak_xs and chosen_idx is not None:
-            chosen_x = peak_xs[chosen_idx]
-            rejection_log.append(f"Column-aware window: peak at x={chosen_x} (closest to center) from {len(peak_xs)} peaks median_gap={gap_str} -> Xc={Xc_dyn} L={L_dyn} (orig L={params['nh_L']})")
-        elif not peak_xs:
-            rejection_log.append(f"Column-aware window: no peaks found -> fallback Xc={Xc_dyn} L={L_dyn}")
-            # also fallback median_gap
-        Xc, L, H = Xc_dyn, L_dyn, H_dyn
-        # store for debug panel
-        colaware_profile = profile_smooth
-        colaware_peaks = peak_xs
-        colaware_chosen = chosen_idx
-        colaware_median_gap = median_gap
-        colaware_y0 = y0_roi
+        win = detect_column_aware_window(combined, centers, params, width,
+                                         height, tracker)
+        Xc, Yc, L, H = win["Xc"], win["Yc"], win["L"], win["H"]
+        colaware_profile = win["smooth"]
+        colaware_peaks = win["peaks"]
+        colaware_chosen = win["chosen_idx"]
+        colaware_median_gap = win["median_gap"]
+        colaware_y0 = win["y0"]
+        window_state = win["state"]
+        window_column_x = win["column_x"]
+        gap_str = f"{colaware_median_gap:.0f}" if colaware_median_gap is not None else "0"
+        if colaware_peaks and colaware_chosen is not None:
+            chosen_x = colaware_peaks[colaware_chosen]
+            rejection_log.append(
+                f"Base column window [{window_state}]: latched peak x={chosen_x} "
+                f"(nearest centre of {len(colaware_peaks)} peaks, gap={gap_str}) "
+                f"-> {L}x{H} window bottom at chassis ref "
+                f"y={win['ref_y']} (Yc={Yc})")
+        else:
+            rejection_log.append(
+                f"Base column window [{window_state}]: no column peaks -> "
+                f"fallback Xc={Xc} L={L}, base pinned at y={win['ref_y']}")
     else:
-        Xc, Yc, L, H = params["ex_Xc"], params["ex_Yc"], params["nh_L"], params["nh_H"]
+        Xc, L, H = params["ex_Xc"], params["nh_L"], params["nh_H"]
+        Yc = tracker.base_yc(H)
         colaware_profile = np.zeros(width, dtype=float)
         colaware_peaks = []
         colaware_chosen = None
         colaware_median_gap = None
         colaware_y0 = int(height*0.55)
-        # keep Yc from params if not colaware
-        Yc = params["ex_Yc"]
-    # Ensure Yc is still base (from params), but colaware uses detected Xc/L
-    if not params.get("colaware_enabled", True):
-        Yc = params["ex_Yc"]
-    else:
-        Yc = params["ex_Yc"]  # keep base Yc fixed at 380 as tuned
+        rejection_log.append(f"Column-aware off: window {L}x{H} at "
+                             f"({Xc},{Yc}) base pinned")
     # Build profile image for debug panel 09
     # Create 100px tall profile plot on black background width=640
     prof_h = 80
@@ -575,8 +555,12 @@ def process_image(path: Path, params: dict, out_dir: Path):
     # add text overlay? we will title panel instead
 
     # window image: orange rectangle + all centers (gray outside, green inside)
+    # blue star = chassis-forward base reference (the MultiROI marker), which
+    # the window bottom edge is pinned to
+    ref_y = tracker.ref_y()
     window_img = bgr_resized.copy()
     cv2.rectangle(window_img, (int(Xc - L/2), int(Yc - H/2)), (int(Xc + L/2), int(Yc + H/2)), (255,204,102), 3)
+    cv2.drawMarker(window_img, (width//2, ref_y), (255, 255, 0), cv2.MARKER_STAR, 20, 2)
     # draw all centers as small gray dots on window_img as context
     for (x,y) in centers:
         cv2.circle(window_img, (int(round(x)), int(round(y))), 2, (120,120,120), cv2.FILLED)
@@ -677,6 +661,7 @@ def process_image(path: Path, params: dict, out_dir: Path):
     # draw window on raw/clipped/final
     for img in [raw_line_img, clipped_line_img, final_img]:
         cv2.rectangle(img, (int(Xc - L/2), int(Yc - H/2)), (int(Xc + L/2), int(Yc + H/2)), (255,204,102), 2)
+        cv2.drawMarker(img, (width//2, ref_y), (255, 255, 0), cv2.MARKER_STAR, 20, 2)
     # draw all points: final inliers yellow, gap-removed magenta, iso outliers red, outside gray
     for im in [raw_line_img, clipped_line_img, final_img]:
         for (x,y) in final_inliers:
@@ -776,6 +761,9 @@ def process_image(path: Path, params: dict, out_dir: Path):
         "window_Yc": Yc,
         "window_L": L,
         "window_H": H,
+        "window_state": window_state,
+        "window_column_x": window_column_x,
+        "window_ref_y": tracker.ref_y(),
         "colaware_peaks": colaware_peaks,
         "colaware_chosen": colaware_chosen,
         "colaware_median_gap": colaware_median_gap,

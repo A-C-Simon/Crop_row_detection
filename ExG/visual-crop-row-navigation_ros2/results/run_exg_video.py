@@ -33,6 +33,10 @@ import math
 # Import the debug pipeline logic (process_image, load_params)
 from run_vcrn_debug import process_image, load_params
 from run_vcrn_debug import save_debug_composite  # not used for video, but available
+try:  # sibling module
+    from exg_window import BaseColumnWindow, line_base_error, steer_from_base
+except ImportError:  # imported as part of a package
+    from .exg_window import BaseColumnWindow, line_base_error, steer_from_base
 
 
 def run_video(input_path: str, output_dir: Path, params, show: bool = False):
@@ -61,9 +65,14 @@ def run_video(input_path: str, output_dir: Path, params, show: bool = False):
     # For video, we use the same image size as the pipeline (640x480)
     # The final overlay is always 640x480, so writer size is fixed
 
+    # one tracker for the whole stream: latch the nearest crop column,
+    # steer until the chassis aligns, then lock at bottom-centre; re-latch
+    # when the column ends (lane transition).
+    tracker = BaseColumnWindow(params)
+
     with open(csv_path, "w", newline="") as f:
         csvw = csv.writer(f)
-        csvw.writerow(["frame", "timestamp", "v_mps", "w_radps", "w_degps", "err_x_px", "err_theta_deg", "has_line", "n_nh", "n_inliers", "time_ms"])
+        csvw.writerow(["frame", "timestamp", "v_mps", "w_radps", "w_degps", "err_x_px", "err_theta_deg", "has_line", "n_nh", "n_inliers", "win_state", "time_ms"])
 
         frame_idx = 0
         while True:
@@ -85,7 +94,7 @@ def run_video(input_path: str, output_dir: Path, params, show: bool = False):
             # Direct pipeline for video frame (avoid disk I/O)
             # We replicate the core of process_image but with bgr array input
             # For simplicity, we will call process_image_via_array
-            res = process_image_array(bgr_full, params)
+            res = process_image_array(bgr_full, params, tracker)
             dt = (time.perf_counter() - t0) * 1000.0
 
             # Control is already computed inside res? No, process_image_array returns intermediates with fit
@@ -103,39 +112,24 @@ def run_video(input_path: str, output_dir: Path, params, show: bool = False):
             # Simple control: use the same logic as mr_vs but for ExG row
             # For ExG, the line is the crop row itself, we want to keep it centred.
             # Use the bottom point of the fitted line as reference.
+            # Chassis-base servo: the ExG vehicle rides above the rows, so
+            # the error is the fitted row's position at the bottom-of-frame
+            # chassis reference (the blue-marker row), not the image middle.
+            # Steering while driving forward slides the latched column to
+            # bottom-centre; the tracker then locks the window there.
+            win_state = res.get("window_state", "static")
             if has_line and fit_info is not None:
-                inside = fit_info["inside"]
-                if len(inside) >= 2:
-                    # line endpoints in 640x480
-                    P = np.array(inside[0], dtype=float)  # one end
-                    Q = np.array(inside[1], dtype=float)
-                    # Ensure P is bottom (larger y)
-                    if P[1] < Q[1]:
-                        P, Q = Q, P
-                    # Feature
-                    w_img, h_img = 640, 480
-                    X = P[0] - w_img/2.0
-                    Y = P[1] - h_img/2.0
-                    # Theta
-                    Yv = P[1] - Q[1]
-                    Xv = Q[0] - P[0]
-                    phi = math.atan2(Yv, Xv)
-                    Theta = phi - math.pi/2
-                    # wrap
-                    while Theta > math.pi:
-                        Theta -= 2*math.pi
-                    while Theta < -math.pi:
-                        Theta += 2*math.pi
-                    # Control gains (from MRVS but for ExG)
-                    err_x = X
-                    err_theta = Theta
-                    err_x_norm = err_x / w_img
-                    w_raw = -(2.0 * err_x_norm + 1.0 * err_theta)
-                    w_max = 0.6
-                    w_ang = max(-w_max, min(w_max, w_raw))
-                    if abs(w_ang) < 0.01:
-                        w_ang = 0.0
-                    v = 0.20
+                w_img, h_img = 640, 480
+                err_x, err_theta = line_base_error(
+                    fit_info, w_img, h_img,
+                    y_ref=res.get("window_ref_y"),
+                    base_margin=params.get("base_margin", 10.0))
+                if err_x is not None:
+                    w_ang = steer_from_base(err_x, err_theta, w_img,
+                                            kx=params.get("base_kx", 0.9),
+                                            kth=params.get("base_kth", 1.0),
+                                            w_max=params.get("base_w_max", 0.6))
+                    v = params.get("vf_des", 0.20)
                 else:
                     v, w_ang = 0.0, 0.0
                     err_x = err_theta = 0.0
@@ -145,12 +139,13 @@ def run_video(input_path: str, output_dir: Path, params, show: bool = False):
 
             csvw.writerow([frame_idx, time.time(), f"{v:.4f}", f"{w_ang:.4f}", f"{math.degrees(w_ang):.2f}",
                            f"{err_x:.1f}", f"{math.degrees(err_theta):.2f}" if has_line else "0",
-                           int(has_line), n_nh, n_in, f"{dt:.1f}"])
+                           int(has_line), n_nh, n_in, win_state, f"{dt:.1f}"])
 
             # For video, use the final overlay image (640x480) which already has red line, window, dots
             overlay = res["final_img"]  # BGR 640x480
-            # Add text overlay with v,w
-            txt = f"v={v:.2f} w={math.degrees(w_ang):.1f}deg err_x={err_x:.0f} Theta={math.degrees(err_theta) if has_line else 0:.1f}"
+            # Add text overlay with v,w and the window state
+            txt = (f"v={v:.2f} w={math.degrees(w_ang):.1f}deg err_x={err_x:.0f} "
+                   f"base {win_state} Theta={math.degrees(err_theta) if has_line else 0:.1f}")
             cv2.putText(overlay, txt, (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 0), 2, cv2.LINE_AA)
             # Add frame number
             cv2.putText(overlay, f"frame {frame_idx}", (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 0), 1, cv2.LINE_AA)
@@ -191,11 +186,15 @@ def run_video(input_path: str, output_dir: Path, params, show: bool = False):
     print(f"Saved to {output_dir}")
 
 
-def process_image_array(bgr, params):
+def process_image_array(bgr, params, tracker=None):
     """
     Version of process_image that takes a BGR array directly (for video),
     without reading from disk. It replicates the logic of run_vcrn_debug.process_image
     but with array input.
+
+    ``tracker`` carries the base-anchored column-aware window state across
+    frames (latch -> align -> lock -> re-latch); without one a fresh
+    transient tracker runs in acquisition.
     """
     import time
     import cv2
@@ -203,6 +202,8 @@ def process_image_array(bgr, params):
     from sklearn.ensemble import IsolationForest
     from run_vcrn_debug import detect_column_aware_window, fit_line_clip
 
+    if tracker is None:
+        tracker = BaseColumnWindow(params)
     t_all = time.perf_counter()
     timings = {}
     rejection_log = []
@@ -248,28 +249,29 @@ def process_image_array(bgr, params):
         cv2.circle(centers_img, (int(round(x)), int(round(y))), 3, (51,204,51), cv2.FILLED)
     timings["centers"] = (time.perf_counter()-t0)*1000
 
-    # Window - column-aware
+    # Window - base-anchored, column-aware (latch -> align -> lock -> re-latch)
     t0 = time.perf_counter()
     if params.get("colaware_enabled", True):
-        Xc_dyn, L_dyn, H_dyn, profile_raw, profile_smooth, peak_xs, chosen_idx, median_gap, y0_roi = detect_column_aware_window(combined, centers, params, width, height)
-        Xc, L, H = Xc_dyn, L_dyn, H_dyn
-        colaware_profile = profile_smooth
-        colaware_peaks = peak_xs
-        colaware_chosen = chosen_idx
-        colaware_median_gap = median_gap
-        colaware_y0 = y0_roi
+        win = detect_column_aware_window(combined, centers, params, width,
+                                         height, tracker)
+        Xc, Yc, L, H = win["Xc"], win["Yc"], win["L"], win["H"]
+        colaware_profile = win["smooth"]
+        colaware_peaks = win["peaks"]
+        colaware_chosen = win["chosen_idx"]
+        colaware_median_gap = win["median_gap"]
+        colaware_y0 = win["y0"]
+        window_state = win["state"]
+        window_column_x = win["column_x"]
     else:
-        Xc, Yc, L, H = params["ex_Xc"], params["ex_Yc"], params["nh_L"], params["nh_H"]
+        Xc, L, H = params["ex_Xc"], params["nh_L"], params["nh_H"]
+        Yc = BaseColumnWindow(params).base_yc(H)
         colaware_profile = np.zeros(width, dtype=float)
         colaware_peaks = []
         colaware_chosen = None
         colaware_median_gap = None
         colaware_y0 = int(height*0.55)
-        Yc = params["ex_Yc"]
-    if not params.get("colaware_enabled", True):
-        Yc = params["ex_Yc"]
-    else:
-        Yc = params["ex_Yc"]
+        window_state = "static"
+        window_column_x = None
     # Profile image (not needed for video, but keep for consistency)
     prof_h = 80
     profile_img = np.zeros((prof_h, width, 3), dtype=np.uint8)
@@ -287,8 +289,10 @@ def process_image_array(bgr, params):
     cv2.line(profile_img, (width//2,0), (width//2,prof_h), (255,255,0), 1)
     cv2.rectangle(profile_img, (int(Xc - L/2), 0), (int(Xc + L/2), prof_h), (255,204,102), 1)
 
+    ref_y = tracker.ref_y()
     window_img = bgr_resized.copy()
     cv2.rectangle(window_img, (int(Xc - L/2), int(Yc - H/2)), (int(Xc + L/2), int(Yc + H/2)), (255,204,102), 3)
+    cv2.drawMarker(window_img, (width//2, ref_y), (255, 255, 0), cv2.MARKER_STAR, 20, 2)
     for (x,y) in centers:
         cv2.circle(window_img, (int(round(x)), int(round(y))), 2, (120,120,120), cv2.FILLED)
 
@@ -425,6 +429,9 @@ def process_image_array(bgr, params):
         "window_Yc": Yc,
         "window_L": L,
         "window_H": H,
+        "window_state": window_state,
+        "window_column_x": window_column_x,
+        "window_ref_y": ref_y,
         "colaware_peaks": colaware_peaks,
         "colaware_chosen": colaware_chosen,
         "colaware_median_gap": colaware_median_gap if 'colaware_median_gap' in locals() else None,
@@ -470,6 +477,16 @@ def main():
             "iso_n_estimators": int(p.get("iso_n_estimators", 100)),
             "colaware_enabled": bool(p.get("colaware_enabled", True)),
             "colaware_y0_frac": float(p.get("colaware_y0_frac", 0.55)),
+            "base_margin": float(p.get("base_margin", 10.0)),
+            "latch_tol_px": float(p.get("latch_tol_px", 24.0)),
+            "lock_frames": int(p.get("lock_frames", 3)),
+            "lost_frames": int(p.get("lost_frames", 5)),
+            "lock_search_px": float(p.get("lock_search_px", 60.0)),
+            "min_nh_points": int(p.get("min_nh_points", 5)),
+            "base_kx": float(p.get("base_kx", 0.9)),
+            "base_kth": float(p.get("base_kth", 1.0)),
+            "base_w_max": float(p.get("base_w_max", 0.6)),
+            "vf_des": float(p.get("vf_des", 0.2)),
             "gap_enabled": bool(p.get("gap_enabled", False)),
             "gap_eps": float(p.get("gap_eps", 14)),
             "gap_min_samples": int(p.get("gap_min_samples", 6)),
