@@ -28,6 +28,7 @@ setup(
             "exg_bridge = exgsim.bridge:main",
             "exg_monitor = exgsim.monitor:main",
             "exg_teleop = exgsim.teleop_node:main",
+            "exg_nav = exgsim.nav_node:main",
         ],
     },
 )
