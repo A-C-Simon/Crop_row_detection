@@ -23,6 +23,10 @@
 #     other count 2..10 is generated on demand into ~/.cache/crop-row-fields.
 #   --field NAME   raw preset name (circle, curve, straight, curve5,
 #     straight5, zigzag5, custom).
+#   --nav exg|vendor  which navigation algorithm drives in --auto:
+#     'vendor' (default) keeps the C++ agribot_vs_node; 'exg' runs the
+#     Python pipeline in results/ (base-anchored column-aware window,
+#     exgsim/nav_node.py). Only one runs.
 #   --x/--y/--yaw  spawn pose override (defaults follow the field sidecar).
 #   --laps N       ring-field laps before auto-stop, 0 = loop forever.
 #   Reset in any mode (no relaunch): press r in the teleop terminal, or run
@@ -50,6 +54,7 @@ FIELD_ARG=()
 SPAWN_ARGS=()
 WORLD_ARG=()
 TOF_ARGS=()
+NAV_ARGS=()
 
 # resolve_row_field <shape> <n>: committed snapshot for N=2/N=5, generated
 # cache world otherwise. Sets FIELD_ARG and/or WORLD_ARG. Generation reuses
@@ -122,7 +127,8 @@ while [[ $# -gt 0 ]]; do
     --tof-gain) TOF_ARGS+=(tof_gain:="$2") ; shift 2 ;;
     --tof-max-w) TOF_ARGS+=(tof_max_w:="$2") ; shift 2 ;;
     --tof-v) TOF_ARGS+=(tof_v:="$2") ; shift 2 ;;
-    *) echo "unknown arg $1 (--auto|--demo|--keys|--circle|--curve|--straight|--zigzag|--field|--x|--y|--yaw|--laps|--world|--tof|--tof-min|--tof-gain|--tof-max-w|--tof-v)"; exit 1 ;;
+    --nav) NAV_ARGS=(nav:="$2") ; shift 2 ;;
+    *) echo "unknown arg $1 (--auto|--demo|--keys|--circle|--curve|--straight|--zigzag|--field|--nav|--x|--y|--yaw|--laps|--world|--tof|--tof-min|--tof-gain|--tof-max-w|--tof-v)"; exit 1 ;;
   esac
 done
 
@@ -150,8 +156,7 @@ ARGS=(mode:="${MODE}" gui:=true log_dir:="${LOG_DIR}" max_laps:="${LAPS}")
 if [[ " ${TOF_ARGS[*]} " == *"tof:=true"* ]]; then
   echo "-- ToF crop-safety guard ON (${TOF_ARGS[*]})"
   if [[ "${MODE}" == "teleop" ]]; then
-    echo "-- manual teleop must publish raw cmds for the guard to protect:"
-    echo "   MRSIM_CMD_TOPIC=/cmd_vel_raw ros2 run exgsim exg_teleop"
+    echo "-- teleop drives /cmd_vel_raw, so the guard protects manual driving too"
   fi
 fi
-ros2 launch exgsim farm.launch.py "${ARGS[@]}" "${FIELD_ARG[@]}" "${WORLD_ARG[@]}" "${SPAWN_ARGS[@]}" "${TOF_ARGS[@]}"
+ros2 launch exgsim farm.launch.py "${ARGS[@]}" "${FIELD_ARG[@]}" "${WORLD_ARG[@]}" "${SPAWN_ARGS[@]}" "${TOF_ARGS[@]}" "${NAV_ARGS[@]}"

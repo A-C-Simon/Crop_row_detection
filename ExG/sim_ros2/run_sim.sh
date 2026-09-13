@@ -12,6 +12,10 @@
 #     other count 2..10 is generated on demand into ~/.cache/crop-row-fields.
 #   --field NAME   raw preset name (circle, curve, straight, curve5,
 #     straight5, zigzag5, custom).
+#   --nav exg|vendor  which navigation algorithm drives the rover:
+#     'vendor' (default) keeps the C++ agribot_vs_node; 'exg' runs the
+#     Python pipeline in ExG/visual-crop-row-navigation_ros2/results/
+#     (base-anchored column-aware window, exgsim/nav_node.py). Only one runs.
 #   --probe        detection check: runs the real C++ stack with
 #     publish_cmd_vel disabled (rover never moves), captures frames plus
 #     per-frame vs errors through the monitor.
@@ -41,6 +45,7 @@ FIELD_ARG=()
 WORLD_ARG=()
 LAPS_ARG=()
 TOF_ARGS=()
+NAV_ARGS=()
 PROBE=0
 SPAWN_ARGS=()
 
@@ -114,6 +119,7 @@ while [[ $# -gt 0 ]]; do
     --tof-gain) TOF_ARGS+=(tof_gain:="$2"); shift 2 ;;
     --tof-max-w) TOF_ARGS+=(tof_max_w:="$2"); shift 2 ;;
     --tof-v) TOF_ARGS+=(tof_v:="$2"); shift 2 ;;
+    --nav) NAV_ARGS=(nav:="$2"); shift 2 ;;
     *) echo "unknown arg $1"; exit 1 ;;
   esac
 done
@@ -141,10 +147,10 @@ if [[ "$PROBE" == "1" ]]; then
   timeout 120 ros2 launch exgsim farm_probe.launch.py \
     out_dir:="${LOG_DIR}" "${FIELD_ARG[@]}" "${WORLD_ARG[@]}" "${SPAWN_ARGS[@]}" || true
 else
-  echo "== closed loop: ExG stack drives the furrow =="
+  echo "== closed loop: ExG navigation drives the crop row =="
   timeout "${SIM_TIMEOUT:-600}" ros2 launch exgsim farm.launch.py \
     log_dir:="${LOG_DIR}" \
-    ${SECONDS_ARG:+${SECONDS_ARG}} "${FIELD_ARG[@]}" "${WORLD_ARG[@]}" "${SPAWN_ARGS[@]}" "${LAPS_ARG[@]}" "${TOF_ARGS[@]}" || true
+    ${SECONDS_ARG:+${SECONDS_ARG}} "${FIELD_ARG[@]}" "${WORLD_ARG[@]}" "${SPAWN_ARGS[@]}" "${LAPS_ARG[@]}" "${TOF_ARGS[@]}" "${NAV_ARGS[@]}" || true
 fi
 
 echo
