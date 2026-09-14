@@ -153,17 +153,39 @@ def _setup(context):
     robot_y = val("robot_y", "robot_y", "0.0")
     robot_yaw = val("robot_yaw", "robot_yaw", "0.0")
     lane_y = val("lane_y", "lane_y", "0.0")
-    # default start is lane 1 (first furrow of the sidecar) unless the
-    # rover is placed explicitly.
-    if cfg.get("robot_y", "") == "" and cfg.get("lane_y", "") == "":
+    # --spawn N: drive the Nth furrow from the left (1-based). Default
+    # start is lane 1 (furrows[0]); the row-change sweep then walks
+    # 1, 2, 3, ...  An explicit spawn_row or robot_y/lane_y overrides this.
+    try:
+        sib = str(Path(world_file).with_suffix("")) + ".spawn.json"
+        furrows = [float(c) for c in
+                   json.loads(Path(sib).read_text()).get("furrows", [0.0])]
+    except Exception:
+        furrows = [0.0]
+    lane_index = 0
+    spawn_row = cfg.get("spawn_row", "")
+    if spawn_row != "":
         try:
-            sib = str(Path(world_file).with_suffix("")) + ".spawn.json"
-            furrows = [float(c) for c in
-                       json.loads(Path(sib).read_text()).get("furrows", [])]
-            if furrows:
-                robot_y = lane_y = f"{furrows[0]:.3f}"
+            n = int(spawn_row)
+        except ValueError:
+            raise RuntimeError(f"spawn_row must be 1..{len(furrows)}, got '{spawn_row}'")
+        if not (1 <= n <= len(furrows)):
+            raise RuntimeError(
+                f"spawn_row {n} out of range for {len(furrows)} furrow(s) "
+                f"at {sorted(furrows)}")
+        lane_index = n - 1
+        if cfg.get("robot_y", "") == "":
+            robot_y = f"{furrows[lane_index]:.3f}"
+        if cfg.get("lane_y", "") == "":
+            lane_y = f"{furrows[lane_index]:.3f}"
+    elif cfg.get("robot_y", "") != "" or cfg.get("lane_y", "") != "":
+        try:
+            lane_index = min(range(len(furrows)),
+                             key=lambda i: abs(furrows[i] - float(lane_y)))
         except Exception:
             pass
+    elif furrows:
+        robot_y = lane_y = f"{furrows[0]:.3f}"
     lane_end_x = val("lane_end_x", "lane_end_x", "9.0")
     circle_cx = val("circle_cx", "circle_cx", "0.0")
     circle_cy = val("circle_cy", "circle_cy", "0.0")
@@ -200,6 +222,12 @@ def _setup(context):
             "MRSIM_HEADING_GATE": cfg.get("heading_gate", "0.1"),
             "MRSIM_FF_GAIN": cfg.get("ff_gain", "0.0"),
             "FFT_TRIM_M": trim,
+            "MRSIM_ROW_CHANGE": cfg.get("row_change", "false"),
+            "MRSIM_MAX_LANES": cfg.get("max_lanes", "2"),
+            "MRSIM_TURN_MODE": cfg.get("turn_mode", "bulb"),
+            "MRSIM_LANE_START_X": robot_x,
+            "MRSIM_LANE_INDEX": str(lane_index),
+            "MRSIM_FURROWS": ",".join(f"{c:.3f}" for c in furrows),
             "MRSIM_LOG_DIR": cfg.get("log_dir", "/tmp/fftsim_log"),
             "MRSIM_MAX_SECONDS": cfg.get("max_seconds", "0"),
         })
@@ -339,6 +367,21 @@ def generate_launch_description():
                               description="spawn y (empty = field default)"),
         DeclareLaunchArgument("robot_yaw", default_value="",
                               description="spawn yaw (empty = field default)"),
+        DeclareLaunchArgument("spawn_row", default_value="",
+                              description="drive the Nth furrow from the left "
+                                          "(1-based; empty = sidecar spawn; "
+                                          "overrides robot_y/lane_y unless set)"),
+        DeclareLaunchArgument("row_change", default_value="false",
+                              description="at the lane end, bulb headland-turn "
+                                          "into the next furrow and keep going "
+                                          "(straight fields only)"),
+        DeclareLaunchArgument("max_lanes", default_value="2",
+                              description="lanes to cover with row_change on "
+                                          "(0 = until Ctrl-C)"),
+        DeclareLaunchArgument("turn_mode", default_value="bulb",
+                              description="headland turn style (only bulb is "
+                                          "wired: odometry push/spin/slide/spin; "
+                                          "anything else falls back to bulb)"),
         DeclareLaunchArgument("lane_y", default_value="",
                               description="furrow center y (empty = field default)"),
         DeclareLaunchArgument("lane_end_x", default_value="9.0"),
