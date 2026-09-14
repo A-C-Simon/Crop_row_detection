@@ -20,8 +20,10 @@
 #     ros2 topic pub --once /reset_rover std_msgs/msg/Empty "{}"
 #   --x/--y/--yaw  spawn pose override (defaults follow the field sidecar).
 #   --laps N       ring-field laps before auto-stop, 0 = loop forever.
-#   --lambdax/--lambdat/--gate/--ff/--trim  servo and DFT tuning (validated
+#   --lambdax/--lambdat/--gate/--ki/--ff/--trim  servo and DFT tuning (validated
 #     defaults; see farm.launch.py descriptions).
+#   --coverage F   ROI height fraction from the image bottom (shorter
+#     lookahead cuts inside less on curves, sees less ahead).
 #   --spawn N      drive the Nth furrow from the left, 1-based (default
 #     lane 1; overrides the sidecar spawn/lane unless --x/--y/--lane-y
 #     are also given).
@@ -126,7 +128,9 @@ while [[ $# -gt 0 ]]; do
     --lambdax) GAIN_ARGS+=(lambda_x:="$2"); shift 2 ;;
     --lambdat) GAIN_ARGS+=(lambda_theta:="$2"); shift 2 ;;
     --gate) GAIN_ARGS+=(heading_gate:="$2"); shift 2 ;;
+    --ki) GAIN_ARGS+=(ki:="$2"); shift 2 ;;
     --ff) GAIN_ARGS+=(ff_gain:="$2"); shift 2 ;;
+    --coverage) GAIN_ARGS+=(vertical_coverage:="$2"); shift 2 ;;
     --trim) TRIM_ARG=(trim:="$2"); shift 2 ;;
     --spawn) SPAWN_ARGS+=(spawn_row:="$2"); shift 2 ;;
     --row-change) HAVE_RC=1; RC_VALUE=1; shift ;;

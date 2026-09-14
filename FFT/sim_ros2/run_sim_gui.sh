@@ -31,6 +31,8 @@
 #     with 2+ furrows unless --rows-change 0 is given.
 #   --max-lanes N  lanes to cover before auto-stop (0 = until Ctrl-C).
 #   --turn-mode bulb: headland turn style (only bulb is wired).
+#   --coverage F   ROI height fraction from the image bottom (shorter
+#     lookahead cuts inside less on curves, sees less ahead).
 #   Reset in any mode (no relaunch): press r in the teleop terminal, or run
 #     ros2 topic pub --once /reset_rover std_msgs/msg/Empty "{}"
 #   --world PATH   custom world file (sibling .spawn.json seeds defaults).
@@ -53,6 +55,7 @@ FIELD_ARG=()
 SPAWN_ARGS=()
 WORLD_ARG=()
 TOF_ARGS=()
+EXTRA_ARGS=()
 RC_ARGS=()
 HAVE_RC=0
 RC_VALUE=""
@@ -131,6 +134,7 @@ while [[ $# -gt 0 ]]; do
         echo "--rows-change takes 0 or 1"; exit 1; fi
       HAVE_RC=1; RC_VALUE="$2"; shift 2 ;;
     --max-lanes) RC_ARGS+=(max_lanes:="$2"); HAVE_MAXLANES=1; shift 2 ;;
+    --coverage) EXTRA_ARGS+=(vertical_coverage:="$2"); shift 2 ;;
     --turn-mode)
       if [[ "$2" != "bulb" ]]; then
         echo "--turn-mode only supports bulb (no rear camera)"; exit 1; fi
@@ -213,4 +217,4 @@ echo "== launching Gazebo GUI + mode=${MODE} (Ctrl-C stops) =="
 ARGS=(mode:="${MODE}" gui:=true log_dir:="${LOG_DIR}" max_laps:="${LAPS}")
 [ -n "${DEMO_KEYS}" ] && ARGS+=(demo_keys:="${DEMO_KEYS}")
 [[ " ${TOF_ARGS[*]} " == *"tof:=true"* ]] && echo "-- ToF crop-safety guard ON (${TOF_ARGS[*]})"
-ros2 launch fftsim farm.launch.py "${ARGS[@]}" "${FIELD_ARG[@]}" "${WORLD_ARG[@]}" "${SPAWN_ARGS[@]}" "${TOF_ARGS[@]}" "${RC_ARGS[@]}"
+ros2 launch fftsim farm.launch.py "${ARGS[@]}" "${FIELD_ARG[@]}" "${WORLD_ARG[@]}" "${SPAWN_ARGS[@]}" "${TOF_ARGS[@]}" "${RC_ARGS[@]}" "${EXTRA_ARGS[@]}"
