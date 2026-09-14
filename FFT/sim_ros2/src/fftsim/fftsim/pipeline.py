@@ -147,9 +147,18 @@ class FFTPipeline:
             hg = float(os.environ.get("MRSIM_HEADING_GATE", "0.1"))
         except ValueError:
             hg = 0.1
+        try:
+            ki = float(os.environ.get("MRSIM_KI", "0.3"))
+        except ValueError:
+            ki = 0.3
+        try:
+            vc = float(os.environ.get("MRSIM_VERTICAL_COVERAGE", "0.75"))
+        except ValueError:
+            vc = 0.75
+        vc = min(1.0, max(0.3, vc))
         self.vs = MultiROIVS(MRVSParams(
-            width=640, height=480, vertical_coverage=0.75,
-            lambda_x=lx, lambda_theta=lt, heading_gate=hg))
+            width=640, height=480, vertical_coverage=vc,
+            lambda_x=lx, lambda_theta=lt, heading_gate=hg, ki=ki))
         self.vs.reset_smoother()
         self.ey_s = None
         self.eth_s = None

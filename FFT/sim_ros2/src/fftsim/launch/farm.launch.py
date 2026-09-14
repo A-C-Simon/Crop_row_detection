@@ -192,6 +192,8 @@ def _setup(context):
     circle_r = val("circle_r", "circle_r", "0.0")
     max_laps = val("max_laps", "max_laps_default", "1")
     trim = val("trim", "trim_default", "0.0")
+    vertical_coverage = val("vertical_coverage", "vertical_coverage_default",
+                            "0.75")
 
     # idle env: nav node runs detection/overlay but never publishes /cmd_vel
     # unless mode:=auto (so teleop/demo own the topic)
@@ -220,6 +222,8 @@ def _setup(context):
             "MRSIM_LAMBDA_X": cfg.get("lambda_x", "2.0"),
             "MRSIM_LAMBDA_THETA": cfg.get("lambda_theta", "1.0"),
             "MRSIM_HEADING_GATE": cfg.get("heading_gate", "0.1"),
+            "MRSIM_KI": cfg.get("ki", "0.3"),
+            "MRSIM_VERTICAL_COVERAGE": vertical_coverage,
             "MRSIM_FF_GAIN": cfg.get("ff_gain", "0.0"),
             "FFT_TRIM_M": trim,
             "MRSIM_ROW_CHANGE": cfg.get("row_change", "false"),
@@ -410,6 +414,12 @@ def generate_launch_description():
         DeclareLaunchArgument("trim", default_value="",
                               description="static lateral bias trim in meters "
                                           "(empty = field default)"),
+        DeclareLaunchArgument("ki", default_value="0.3",
+                              description="lateral integral gain against steady "
+                                          "inside-cut (0 = off)"),
+        DeclareLaunchArgument("vertical_coverage", default_value="",
+                              description="ROI height fraction from the image "
+                                          "bottom (empty = field default)"),
         DeclareLaunchArgument("max_seconds", default_value="0"),
         DeclareLaunchArgument("log_dir", default_value="/tmp/fftsim_log"),
         DeclareLaunchArgument("tof", default_value="false",
