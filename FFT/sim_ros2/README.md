@@ -44,6 +44,13 @@ Spawn/termination defaults follow the field sidecars (e.g.
 Note the ring spawn yaw is a look-into-the-turn lead (1.8308), same as the
 MultiROI rig. Probes print `n_rows ey theta prom status`.
 
+On fields with 2+ furrows the rover bulb-turns into the next furrow at
+each lane end automatically (`--rows-change 0` disables it):
+`./run_sim.sh --straight 5` sweeps lanes 1, 2, ...; `--spawn 2` starts in
+furrow 2; `--max-lanes 2` stops after two lanes; `--turn-mode` only takes
+`bulb` (no rear camera for the other styles). A HELD detector creeps back
+toward the furrow instead of parking, so legs always reach the turn.
+
 ### Crop-safety ToF guard
 
 Same rig-wide guard as MultiROI (see its tests README): four rangers

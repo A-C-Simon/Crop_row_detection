@@ -22,6 +22,15 @@
 #   --laps N       ring-field laps before auto-stop, 0 = loop forever.
 #   --lambdax/--lambdat/--gate/--ff/--trim  servo and DFT tuning (validated
 #     defaults; see farm.launch.py descriptions).
+#   --spawn N      drive the Nth furrow from the left, 1-based (default
+#     lane 1; overrides the sidecar spawn/lane unless --x/--y/--lane-y
+#     are also given).
+#   --row-change / --rows-change 0|1: bulb headland-turn into the next
+#     furrow at each lane end (straight fields only). Automatic on fields
+#     with 2+ furrows unless --rows-change 0 is given.
+#   --max-lanes N  lanes to cover before auto-stop (0 = until Ctrl-C;
+#     defaults to a full sweep of the field).
+#   --turn-mode bulb: headland turn style (only bulb is wired).
 #   --tof          crop-safety guard: side + angled-front ToF rangers override vision
 #     steering when closer than --tof-min (default 0.35 m). High priority:
 #     the guard angular command replaces the servo output while violated.
@@ -40,8 +49,12 @@ LAPS_ARG=()
 GAIN_ARGS=()
 TRIM_ARG=()
 TOF_ARGS=()
+RC_ARGS=()
 PROBE=0
 SPAWN_ARGS=()
+HAVE_RC=0
+RC_VALUE=""
+HAVE_MAXLANES=0
 
 # resolve_row_field <shape> <n>: committed snapshot for N=2/N=5, generated
 # cache world otherwise. Sets FIELD_ARG and/or WORLD_ARG. Generation reuses
@@ -115,6 +128,17 @@ while [[ $# -gt 0 ]]; do
     --gate) GAIN_ARGS+=(heading_gate:="$2"); shift 2 ;;
     --ff) GAIN_ARGS+=(ff_gain:="$2"); shift 2 ;;
     --trim) TRIM_ARG=(trim:="$2"); shift 2 ;;
+    --spawn) SPAWN_ARGS+=(spawn_row:="$2"); shift 2 ;;
+    --row-change) HAVE_RC=1; RC_VALUE=1; shift ;;
+    --rows-change)
+      if [[ "$2" != "0" && "$2" != "1" ]]; then
+        echo "--rows-change takes 0 or 1"; exit 1; fi
+      HAVE_RC=1; RC_VALUE="$2"; shift 2 ;;
+    --max-lanes) RC_ARGS+=(max_lanes:="$2"); HAVE_MAXLANES=1; shift 2 ;;
+    --turn-mode)
+      if [[ "$2" != "bulb" ]]; then
+        echo "--turn-mode only supports bulb (no rear camera)"; exit 1; fi
+      RC_ARGS+=(turn_mode:="$2"); shift 2 ;;
     --tof) TOF_ARGS+=(tof:=true); shift ;;
     --tof-min) TOF_ARGS+=(tof_min:="$2"); shift 2 ;;
     --tof-gain) TOF_ARGS+=(tof_gain:="$2"); shift 2 ;;
@@ -123,6 +147,59 @@ while [[ $# -gt 0 ]]; do
     *) echo "unknown arg $1"; exit 1 ;;
   esac
 done
+
+# Row-change defaults (closed loop only; the probe never drives): with 2+
+# furrows available the demo turns into the next furrow at each lane end
+# and covers them all, unless --rows-change 0 was passed explicitly. An
+# explicit --row-change/--rows-change value always wins; --rows-change 0
+# disables changing (and --max-lanes then has nothing to bound).
+if [[ "$PROBE" == "0" ]]; then
+  if [[ "${HAVE_RC}" == "1" ]]; then
+    if [[ "${RC_VALUE}" == "1" ]]; then
+      RC_ARGS+=(row_change:=true)
+    else
+      RC_ARGS+=(row_change:=false)
+    fi
+  else
+    _WORLD_FILE=""
+    if [[ "${#WORLD_ARG[@]}" -gt 0 ]]; then
+      _WORLD_FILE="${WORLD_ARG[0]#world:=}"
+    elif [[ "${#FIELD_ARG[@]}" -gt 0 ]]; then
+      case "${FIELD_ARG[0]#field:=}" in
+        circle) _STEM="farm_maize" ;;
+        curve) _STEM="farm_curve" ;;
+        straight) _STEM="farm_straight" ;;
+        curve5) _STEM="farm_curve5" ;;
+        straight5) _STEM="farm_straight5" ;;
+        zigzag5) _STEM="farm_zigzag5" ;;
+        *) _STEM="" ;;
+      esac
+      [[ -n "${_STEM:-}" ]] && _WORLD_FILE="${HERE}/src/fftsim/worlds/${_STEM}.world"
+    else
+      _WORLD_FILE="${HERE}/src/fftsim/worlds/farm_maize.world"
+    fi
+    _SIDECAR=""
+    [[ -n "${_WORLD_FILE}" ]] && _SIDECAR="${_WORLD_FILE%.world}.spawn.json"
+    _N_FURROWS=1
+    if [[ -n "${_SIDECAR}" && -f "${_SIDECAR}" ]]; then
+      _N_FURROWS=$(python3 -c "
+import json, sys
+try:
+    print(len(json.load(open(sys.argv[1])).get('furrows', [0.0])))
+except Exception:
+    print(1)
+" "${_SIDECAR}")
+    fi
+    if [[ "${_N_FURROWS}" -ge 2 ]]; then
+      RC_ARGS+=(row_change:=true)
+      echo "-- ${_N_FURROWS} furrows available: row changing on"
+      if [[ "${HAVE_MAXLANES}" == "0" ]]; then
+        RC_ARGS+=(max_lanes:=$((2 * _N_FURROWS - 2)))
+        echo "-- covering up to $((2 * _N_FURROWS - 2)) lanes"
+      fi
+    fi
+  fi
+fi
 
 source /opt/ros/humble/setup.bash
 export FFT_DIR
@@ -143,7 +220,7 @@ else
   echo "== closed loop: nav node drives the furrow =="
   timeout "${SIM_TIMEOUT:-600}" ros2 launch fftsim farm.launch.py \
     log_dir:="${LOG_DIR}" \
-    ${SECONDS_ARG:+${SECONDS_ARG}} "${FIELD_ARG[@]}" "${WORLD_ARG[@]}" "${SPAWN_ARGS[@]}" "${LAPS_ARG[@]}" "${GAIN_ARGS[@]}" "${TRIM_ARG[@]}" "${TOF_ARGS[@]}" || true
+    ${SECONDS_ARG:+${SECONDS_ARG}} "${FIELD_ARG[@]}" "${WORLD_ARG[@]}" "${SPAWN_ARGS[@]}" "${LAPS_ARG[@]}" "${GAIN_ARGS[@]}" "${TRIM_ARG[@]}" "${TOF_ARGS[@]}" "${RC_ARGS[@]}" || true
 fi
 
 echo
