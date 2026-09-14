@@ -108,6 +108,64 @@ class FFTNavNode(Node):
                 f"circle lane: center=({self.circle_cx:.2f},{self.circle_cy:.2f}) "
                 f"R={self.circle_r:.2f} max_laps={self.max_laps:g} "
                 f"(cross_track=radial error)")
+        # row changing (headland turns, straight fields only): at each lane
+        # end, bulb-turn into the adjacent furrow and drive it back the
+        # other way. lane_index tracks the current furrow in the sidecar
+        # furrow list; turn_dir walks it, flipping at the edges.
+        self.row_change = str(os.environ.get("MRSIM_ROW_CHANGE",
+                                             _p("row_change", ""))).lower() \
+            in ("1", "true", "yes")
+        self.max_lanes = int(float(os.environ.get("MRSIM_MAX_LANES",
+                                                  _p("max_lanes", 2))))
+        self.lane_start_x = float(os.environ.get("MRSIM_LANE_START_X",
+                                                 _p("lane_start_x", -8.0)))
+        self.lane_index = int(float(os.environ.get("MRSIM_LANE_INDEX",
+                                                   _p("lane_index", 0))))
+        try:
+            self.furrows = [float(c) for c in
+                            str(os.environ.get("MRSIM_FURROWS", "0.0")).split(",")]
+        except Exception:
+            self.furrows = [0.0]
+        self.turn_dir = 1
+        self.lanes_done = 0
+        self.drive_dir = 1
+        # turn style: only "bulb" exists here (odometry push/spin/slide/
+        # spin, nose-first both ways, front camera always faces travel).
+        # fishtail/shuttle need the rear camera the FFT rover does not
+        # have, so they fall back to bulb with a warning.
+        self.turn_mode = str(os.environ.get("MRSIM_TURN_MODE",
+                                            _p("turn_mode", "bulb"))).lower()
+        if self.turn_mode != "bulb":
+            self.get_logger().warn(
+                f"turn_mode '{self.turn_mode}' needs a rear camera; "
+                f"using bulb")
+            self.turn_mode = "bulb"
+        self.phase = "follow"
+        self.phase_t0 = 0.0
+        self.phase_x0 = self.phase_y0 = self.phase_yaw0 = 0.0
+        self.phase_target_y = self.lane_y
+        self.phase_target_yaw = 0.0
+        if self.row_change:
+            if self.circle_r > 0:
+                self.get_logger().warn(
+                    "row_change is for straight fields; ignoring on the ring")
+                self.row_change = False
+            elif len(self.furrows) < 2:
+                self.get_logger().warn(
+                    "row_change needs 2+ furrows; single lane, driving through")
+                self.row_change = False
+            else:
+                self.lane_index = max(0, min(len(self.furrows) - 1,
+                                             self.lane_index))
+                self.lane_y = float(self.furrows[self.lane_index])
+                self.phase_target_y = self.lane_y
+                self.get_logger().info(
+                    f"row change on: {len(self.furrows)} furrows, start lane "
+                    f"{self.lane_index} (y={self.lane_y:+.2f}), "
+                    f"max_lanes={self.max_lanes:g} turn=bulb")
+        # HELD bookkeeping: how long the detector has continuously reported
+        # no lock (sim time of the first HELD frame, None while OK).
+        self._held_since = None
         log_dir = os.environ.get("MRSIM_LOG_DIR", _p("log_dir", ""))
         self.save_every = int(os.environ.get("MRSIM_SAVE_EVERY",
                                              _p("save_every", 20)))
@@ -146,6 +204,7 @@ class FFTNavNode(Node):
             Odometry, odom_topic, self._on_odom, 10)
 
         self.odom_x = self.odom_y = 0.0
+        self.odom_yaw = 0.0
         self.last_img_t = None
         self.frame_idx = 0
         self.pub_count = 0
@@ -155,9 +214,28 @@ class FFTNavNode(Node):
         self._cmd_seq = 0
 
     # --------------------------------------------------------------
+    @staticmethod
+    def _quat_to_yaw(q):
+        siny = 2.0 * (q.w * q.z + q.x * q.y)
+        cosy = 1.0 - 2.0 * (q.y * q.y + q.z * q.z)
+        return math.atan2(siny, cosy)
+
+    @staticmethod
+    def _ang_diff(a, b):
+        d = a - b
+        while d > math.pi:
+            d -= 2.0 * math.pi
+        while d < -math.pi:
+            d += 2.0 * math.pi
+        return d
+
     def _on_odom(self, msg: Odometry):
         self.odom_x = msg.pose.pose.position.x
         self.odom_y = msg.pose.pose.position.y
+        try:
+            self.odom_yaw = self._quat_to_yaw(msg.pose.pose.orientation)
+        except Exception:
+            pass
         if self.circle_r > 0:
             ang = math.atan2(self.odom_y - self.circle_cy,
                              self.odom_x - self.circle_cx)
@@ -175,6 +253,181 @@ class FFTNavNode(Node):
             return math.hypot(self.odom_x - self.circle_cx,
                               self.odom_y - self.circle_cy) - self.circle_r
         return self.odom_y - self.lane_y
+
+    # --------------------------------------------------------------
+    # Row changing: bulb headland turns between adjacent furrows. At each
+    # lane end the rover pushes past the rows, spins toward the next
+    # furrow, slides sideways into it, spins to the next-leg heading and
+    # drives it back the other way - nose-first both ways, so the single
+    # front camera always faces travel. Detection keeps running for the
+    # overlay the whole time. Straight fields only. Gains mirror the
+    # validated MultiROI bulb turn.
+    TURN_PUSH_M = 1.3
+    TURN_RATE = 0.5
+    TURN_DRIVE_V = 0.18
+    TURN_TOL_YAW = 0.12
+    TURN_TOL_Y = 0.06
+    TURN_TIMEOUT = 15.0
+    # follow-phase creep while the detector holds (row ends thin out, so
+    # the pipeline parks at v=0; without motion odometry never reaches
+    # the lane-end trigger). Slow enough to stay safe, bounded by the
+    # lane-end trigger and the turn timeouts.
+    HELD_CREEP_V = 0.10
+    # single-lane runs have no odometry trigger to fall back on: a hold
+    # this long means genuinely lost, so stop cleanly instead of sitting
+    # until the frame cap.
+    HELD_STOP_S = 20.0
+
+    def _reset_perception(self):
+        try:
+            self.pipeline.reset()
+        except Exception:
+            pass
+        self.last_w = 0.0
+
+    def _lane_end_reached(self):
+        if self.drive_dir > 0:
+            return self.odom_x >= self.lane_end_x
+        return self.odom_x <= self.lane_start_x
+
+    def _enter_turn(self, t_now):
+        nxt = self.lane_index + self.turn_dir
+        if not (0 <= nxt < len(self.furrows)):
+            self.turn_dir *= -1
+            nxt = self.lane_index + self.turn_dir
+        self.phase_target_y = float(self.furrows[nxt])
+        self.phase = "push"
+        self.phase_t0 = t_now
+        self.phase_x0, self.phase_y0 = self.odom_x, self.odom_y
+        self.phase_yaw0 = self.odom_yaw
+        self.phase_slide_yaw = 0.0
+        self.get_logger().info(
+            f"row change: lane {self.lane_index} -> {nxt} "
+            f"(y {self.lane_y:+.2f} -> {self.phase_target_y:+.2f}) "
+            f"turn=bulb")
+
+    def _spin_toward(self, target_yaw):
+        d = self._ang_diff(target_yaw, self.odom_yaw)
+        if abs(d) < self.TURN_TOL_YAW:
+            return 0.0, True
+        return math.copysign(self.TURN_RATE, d), False
+
+    def _turn_twist(self, t_now):
+        """Scripted headland maneuver. Returns (twist, done, Tenth-leg info).
+        done True means FOLLOW resumed (lane fields already updated)."""
+        tw = Twist()
+        if t_now - self.phase_t0 > self.TURN_TIMEOUT:
+            return tw, "timeout", f"turn timeout in {self.phase}"
+        if self.phase == "push":
+            return self._push_twist(t_now)
+        elif self.phase == "spin1":
+            w, done = self._spin_toward(self.phase_target_yaw)
+            tw.angular.z = w
+            if done:
+                self.phase_slide_yaw = self.phase_target_yaw
+                self.phase, self.phase_t0 = "slide", t_now
+        elif self.phase == "slide":
+            err = self.phase_target_y - self.odom_y
+            if abs(err) < self.TURN_TOL_Y:
+                self.phase_target_yaw = 0.0 if self.drive_dir < 0 else math.pi
+                self.phase, self.phase_t0 = "spin2", t_now
+            else:
+                tw.linear.x = self.TURN_DRIVE_V
+                tw.angular.z = float(np.clip(
+                    -1.5 * self._ang_diff(self.odom_yaw, self.phase_slide_yaw),
+                    -0.4, 0.4))
+        elif self.phase == "spin2":
+            w, done = self._spin_toward(self.phase_target_yaw)
+            tw.angular.z = w
+            if done:
+                return self._finish_turn(tw)
+        else:
+            return tw, "timeout", f"bad turn phase {self.phase}"
+        return tw, "", ""
+
+    def _push_twist(self, t_now):
+        """Push-past-the-rows phase; branches to spin1 once past."""
+        tw = Twist()
+        tw.linear.x = self.TURN_DRIVE_V
+        tw.angular.z = float(np.clip(
+            -1.5 * self._ang_diff(self.odom_yaw, self.phase_yaw0),
+            -0.4, 0.4))
+        if (self.odom_x - self.phase_x0) * self.drive_dir >= self.TURN_PUSH_M:
+            side = 1.0 if self.phase_target_y >= self.odom_y else -1.0
+            self.phase_target_yaw = side * math.pi / 2.0
+            self.phase, self.phase_t0 = "spin1", t_now
+        return tw, "", ""
+
+    def _finish_turn(self, tw):
+        """Shared lane bookkeeping when a turn completes; resumes FOLLOW."""
+        self.lane_index += self.turn_dir
+        self.lane_y = float(self.furrows[self.lane_index])
+        self.drive_dir *= -1
+        self._reset_perception()
+        self.phase = "follow"
+        self._held_since = None
+        self.get_logger().info(
+            f"row change done: lane {self.lane_index} "
+            f"(y={self.lane_y:+.2f}) dir={self.drive_dir:+d}")
+        return tw, "follow", ""
+
+    def _lane_change_prelude(self):
+        """Shared leg-completion prologue. Returns (next lane, stop_reason);
+        stop_reason '' means keep going."""
+        self.lanes_done += 1
+        if self.max_lanes > 0 and self.lanes_done >= self.max_lanes:
+            return None, (f"covered {self.lanes_done} lane(s), "
+                          f"last y={self.lane_y:+.2f}")
+        nxt = self.lane_index + self.turn_dir
+        if not (0 <= nxt < len(self.furrows)):
+            self.turn_dir *= -1
+            nxt = self.lane_index + self.turn_dir
+            if not (0 <= nxt < len(self.furrows)):
+                return None, "no adjacent furrow to change into"
+        return nxt, ""
+
+    def _creep_twist(self):
+        """Blind-creep command used while the detector holds (HELD).
+
+        A parked rover never reaches its odometry trigger, and parking on
+        a bad heading is worse: steer gently back toward the furrow center
+        line with heading damping instead of driving straight-blind. Slow
+        enough to stay safe; the ToF guard still protects crops when armed.
+        Straight lanes only (ring holds keep legacy v=0 behavior)."""
+        tw = Twist()
+        leg_yaw = 0.0 if self.drive_dir > 0 else math.pi
+        w_creep = (1.2 * (self.lane_y - self.odom_y)
+                   - 1.0 * self._ang_diff(self.odom_yaw, leg_yaw))
+        tw.linear.x = min(self.HELD_CREEP_V, self.v_max)
+        tw.angular.z = float(np.clip(w_creep, -0.4, 0.4))
+        return tw
+
+    def _step_row_change(self, out, t_now, held):
+        """One control tick in row-change mode. Returns (twist, stop_reason).
+        stop_reason "" means keep driving."""
+        if self.phase == "follow":
+            if self._lane_end_reached():
+                nxt, stop = self._lane_change_prelude()
+                if stop:
+                    return Twist(), stop
+                self._enter_turn(t_now)
+                tw = Twist()
+                return tw, ""
+            tw = Twist()
+            if held:
+                # vision hold at a thinning row end would park the rover
+                # short of the odometry lane-end trigger; creep back toward
+                # the furrow so the leg can finish (guard still protects).
+                creep = self._creep_twist()
+                tw.linear.x, tw.angular.z = creep.linear.x, creep.angular.z
+            else:
+                tw.linear.x = float(np.clip(out["v"], 0.0, self.v_max))
+                tw.angular.z = float(out["w"])
+            return tw, ""
+        tw, status, reason = self._turn_twist(t_now)
+        if status == "timeout":
+            return Twist(), reason
+        return tw, ""
 
     # --------------------------------------------------------------
     def _stop_robot(self, reason: str):
@@ -223,9 +476,24 @@ class FFTNavNode(Node):
         info = out["info"]
 
         # --- command (skipped in teleop idle mode) ---
+        held = str(info.get("status", "")).startswith("HELD")
+        if held and self._held_since is None:
+            self._held_since = t_now
+        elif not held:
+            self._held_since = None
         twist = Twist()
-        twist.linear.x = float(np.clip(out["v"], 0.0, self.v_max))
-        twist.angular.z = float(out["w"])
+        stop_reason = ""
+        if self.row_change and self.circle_r <= 0.0 and not self.idle:
+            twist, stop_reason = self._step_row_change(out, t_now, held)
+        elif held and self.circle_r <= 0.0 and not self.idle:
+            # single straight lane, no odometry trigger to fall back on:
+            # creep toward the furrow (same recovery as row-change mode);
+            # the HELD-stop below bounds a genuinely lost run.
+            creep = self._creep_twist()
+            twist.linear.x, twist.angular.z = creep.linear.x, creep.angular.z
+        else:
+            twist.linear.x = float(np.clip(out["v"], 0.0, self.v_max))
+            twist.angular.z = float(out["w"])
         if not self.idle:
             self.cmd_pub.publish(twist)
             self._last_cmd = twist
@@ -261,9 +529,12 @@ class FFTNavNode(Node):
         if self.frame_idx % 60 == 0:
             lap_txt = (f" lap={abs(self._lap_angle) / (2.0 * math.pi):.2f}"
                        if self.circle_r > 0 else "")
+            leg_txt = (f" leg={self.lanes_done + 1} lane={self.lane_index} "
+                       f"ph={self.phase}"
+                       if self.row_change and self.circle_r <= 0.0 else "")
             self.get_logger().info(
                 f"[{self.frame_idx:>4}] t={t_now:6.2f} odom=({self.odom_x:+.2f},"
-                f"{self.odom_y:+.2f}) cross={cross:+.3f}{lap_txt} "
+                f"{self.odom_y:+.2f}) cross={cross:+.3f}{lap_txt}{leg_txt} "
                 f"w={twist.angular.z:+.2f} conf={info.get('confidence', 0):.2f} "
                 f"status={info.get('status', '')}")
 
@@ -274,6 +545,8 @@ class FFTNavNode(Node):
         # termination conditions
         if self.max_seconds > 0 and (t_now - self.t0) >= self.max_seconds:
             self._stop_robot(f"reached max_seconds={self.max_seconds}")
+        elif stop_reason:
+            self._stop_robot(stop_reason)
         elif self.circle_r > 0:
             if self.max_laps > 0 and abs(self._lap_angle) >= self.max_laps * 2.0 * math.pi:
                 self._stop_robot(
@@ -281,6 +554,17 @@ class FFTNavNode(Node):
                     f"(radial err {cross:+.2f} m)")
             elif self.frame_idx > 60000:
                 self._stop_robot("frame cap")
+        elif self.row_change:
+            if self.frame_idx > 60000:
+                self._stop_robot("frame cap")
+            # lane ends handled by the row-change machine (legs/lanes bound it)
+        elif (held and self._held_since is not None
+                and (t_now - self._held_since) >= self.HELD_STOP_S):
+            # single lane with no odometry trigger to fall back on: a hold
+            # this long means genuinely lost, so stop cleanly instead of
+            # sitting until the frame cap.
+            self._stop_robot(
+                f"lost lock for {self.HELD_STOP_S:.0f}s, stopping")
         elif self.odom_x >= self.lane_end_x:
             self._stop_robot(f"reached end of lane (x={self.odom_x:.2f})")
         elif self.frame_idx > 20000:
