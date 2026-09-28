@@ -212,17 +212,38 @@ class Detection:
     def centerline(self):
         """Navigation centerline through the midpoint of the two flanking
         rows: (x0, y0, x1, y1) or None."""
-        e = self.e_indices
-        if len(e) < 2:
+        pair = flanking_pair(self.e_indices)
+        if pair is None:
             return None
-        order = np.argsort(np.abs(e))
-        i, j = order[0], order[1]
+        i, j = pair
         xim = (self.intersections[i] + self.intersections[j]) / 2.0
         h, w = self.magnitude.shape
         L = 1.6 * float(np.hypot(h, w))
         t = self.direction
         a, b = np.array([xim, 0.0]) - t * L, np.array([xim, 0.0]) + t * L
         return a[0], a[1], b[0], b[1]
+
+
+def flanking_pair(e_vals):
+    """Indices of the two rows truly flanking the reference point: the
+    nearest line on each side (one with e < 0, one with e >= 0).
+
+    Picking the two smallest |e| instead can return two lines on the SAME
+    side (e.g. +5 and +35 px while -25 px exists), whose midpoint sits up
+    to a full spacing off the robot's furrow. Falls back to the two
+    smallest |e| only when one side has no lines at all.
+    """
+    e = np.asarray(e_vals, dtype=float)
+    if len(e) < 2:
+        return None
+    neg = np.flatnonzero(e < 0.0)
+    pos = np.flatnonzero(e >= 0.0)
+    if len(neg) and len(pos):
+        i = int(neg[np.argmax(e[neg])])  # closest below zero
+        j = int(pos[np.argmin(e[pos])])  # closest above zero
+        return i, j
+    order = np.argsort(np.abs(e))
+    return int(order[0]), int(order[1])
 
 
 class DFTRowDetector:
@@ -302,10 +323,11 @@ class DFTRowDetector:
 
         e_theta = float(np.degrees(np.arctan2(direction[0], -direction[1])))
 
-        order = np.argsort(np.abs(e_vals))
-        if len(order) >= 2:
-            ey_px = float((e_vals[order[0]] + e_vals[order[1]]) / 2.0)
-            corridor = float(abs(e_vals[order[0]] - e_vals[order[1]]))
+        order = flanking_pair(e_vals)
+        if order is not None:
+            i, j = order
+            ey_px = float((e_vals[i] + e_vals[j]) / 2.0)
+            corridor = float(abs(e_vals[i] - e_vals[j]))
         else:
             ey_px, corridor = float("nan"), float("nan")
 
@@ -415,10 +437,10 @@ def corridor_in_image(res: Detection, map_info: Optional[dict]):
         return to_image(np.column_stack([xs[i0:i1], ys[i0:i1]]))
 
     e = res.e_indices
-    if len(e) < 2:
+    pair = flanking_pair(e)
+    if pair is None:
         return None
-    order = np.argsort(np.abs(e))
-    i, j = int(order[0]), int(order[1])
+    i, j = pair
     rows = [p for p in (polyline(xi) for xi in res.intersections)
             if p is not None]
     b1, b2 = polyline(res.intersections[i]), polyline(res.intersections[j])
