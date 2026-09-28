@@ -40,9 +40,21 @@ def exg_gray(rgb: np.ndarray) -> np.ndarray:
 
 
 def maair(mask: np.ndarray) -> Tuple[int, int, int, int]:
-    """Maximum axis-aligned inscribed rectangle of a valid region whose row
-    spans are contiguous and monotone (trapezoids from IPM):
-    returns (row, col, height, width)."""
+    """Maximum-area axis-aligned inscribed rectangle of a valid region.
+
+    Searches top-anchored intervals [0..k] and bottom-anchored intervals
+    [k..n) in O(n): for each interval the width is limited by the
+    narrowest row it spans (left = max left edge, right = min right
+    edge), and the best area wins. Either orientation can win, so both
+    wide-at-bottom trapezoids and wide-at-top triangles (yawed inverse
+    perspective mappings) yield a fully-valid rectangle.
+
+    The previous suffix-only formulation with 0.6 size gates found
+    nothing on triangular masks and fell back to the bounding box, which
+    teams 40%+ invalid warp-fill pixels into the ROI. Those zeros bias
+    the DTFT phase and draw the navigation line into no-data wedges.
+    returns (row, col, height, width); (0, 0, 0, 0) when empty.
+    """
     rows = np.any(mask, axis=1)
     cols = np.any(mask, axis=0)
     if not rows.any() or not cols.any():
@@ -52,23 +64,37 @@ def maair(mask: np.ndarray) -> Tuple[int, int, int, int]:
     c0 = int(np.argmax(cols))
     c1 = len(cols) - int(np.argmax(cols[::-1]))
     n = r1 - r0
-    spans = np.zeros(n, dtype=int)
-    lefts = np.zeros(n, dtype=int)
+    lefts = np.full(n, c1, dtype=int)
+    rights = np.full(n, c0, dtype=int)
     for i, r in enumerate(range(r0, r1)):
         idx = np.flatnonzero(mask[r, c0:c1])
         if idx.size:
-            lefts[i] = idx[0]
-            spans[i] = idx[-1] - idx[0] + 1
-    sufmin = np.minimum.accumulate(spans[::-1])[::-1]
-    heights = np.arange(n, 0, -1)
-    min_w, min_h = 0.6 * (c1 - c0), 0.6 * n
-    ok = (sufmin >= min_w) & (heights >= min_h)
-    if not ok.any():
-        return r0, c0, n, c1 - c0
-    kk = np.flatnonzero(ok)
-    k = int(kk[np.argmax(sufmin[kk] * heights[kk])])
-    j = k + int(np.argmin(spans[k:]))
-    return r0 + k, c0 + int(lefts[j]), int(heights[k]), int(sufmin[k])
+            lefts[i] = c0 + int(idx[0])
+            rights[i] = c0 + int(idx[-1]) + 1  # half-open
+    best = (0, 0, 0, 0, 0)  # area, top, left, h, w
+    # top-anchored [0..k]: left must clear every spanned row's left
+    # edge, right must clear every spanned row's right edge
+    l, rr = c0, c1
+    for k in range(n):
+        l = max(l, lefts[k])
+        rr = min(rr, rights[k])
+        wdt = rr - l
+        if wdt > 0:
+            area = wdt * (k + 1)
+            if area > best[0]:
+                best = (area, r0, l, k + 1, wdt)
+    # bottom-anchored [k..n)
+    l, rr = c0, c1
+    for k in range(n - 1, -1, -1):
+        l = max(l, lefts[k])
+        rr = min(rr, rights[k])
+        wdt = rr - l
+        if wdt > 0:
+            area = wdt * (n - k)
+            if area > best[0]:
+                best = (area, r0 + k, l, n - k, wdt)
+    _, top, left, hh, ww = best
+    return int(top), int(left), int(hh), int(ww)
 
 
 def camera_homography(shape: Tuple[int, int], pitch_deg: float, height_m: float,

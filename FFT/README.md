@@ -74,7 +74,10 @@ What each block does and why it is there:
    ground grid with a homography built from a pinhole camera model
    (`camera_homography`) using pitch, height, field of view and yaw. Pixels
    with no source in the original image are masked out and the ROI is cut to
-   the largest useful axis aligned rectangle (`maair`). Since the test photos
+   the largest fully-valid axis aligned rectangle (`maair`, searched both
+   top- and bottom-anchored so yawed triangular footprints also yield a
+   rectangle with zero warp-fill pixels - warp zeros otherwise bias the
+   DTFT phase and drag the navigation line into no-data wedges). Since the test photos
    come with no calibration data, the pitch and yaw are found by scanning
    (see the photo runner section below). Function: `rectify_forward`.
 
