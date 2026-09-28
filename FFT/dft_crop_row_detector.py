@@ -218,6 +218,9 @@ class Detection:
     freq_y: np.ndarray
     band_lo: float            # bandpass radii in cyc/px
     band_hi: float
+    apex_x_px: Optional[float] = None  # furrow mouth at the ROI base, px
+    apex_shift_px: float = 0.0         # lateral grid translation applied
+    anchored: bool = False             # True when apex anchoring moved the grid
 
     @property
     def n_rows(self) -> int:
@@ -349,6 +352,17 @@ class DFTRowDetector:
 
         e_theta = float(np.degrees(np.arctan2(direction[0], -direction[1])))
 
+        # Apex anchoring: translate the grid laterally so the navigation
+        # corridor starts at the furrow mouth visible at the ROI base
+        # (the apex of the converging rows, where the robot drives).
+        ref = ref_xy if ref_xy is not None else (w / 2.0, h - 1.0)
+        apex_x, apex_shift, anchored = self._anchor_apex(
+            img, fx, fy, intersections, e_vals, direction, ref, w, h)
+        if anchored:
+            intersections = intersections + apex_shift
+            e_vals = ((ref[0] - intersections) * direction[1]
+                      - (ref[1] - 0.0) * direction[0])
+
         order = flanking_pair(e_vals)
         if order is not None:
             i, j = order
@@ -370,6 +384,8 @@ class DFTRowDetector:
             prominence=prominence,
             magnitude=mag, freq_x=FX, freq_y=FY,
             band_lo=f_lo, band_hi=f_hi,
+            apex_x_px=apex_x, apex_shift_px=float(apex_shift),
+            anchored=bool(anchored),
         )
 
     @staticmethod
@@ -427,6 +443,91 @@ class DFTRowDetector:
         e = ((rx - points[:, 0]) * direction[1]
              - (ry - points[:, 1]) * direction[0])
         return pos, e
+
+    @staticmethod
+    def _anchor_apex(img: np.ndarray, fx: float, fy: float,
+                     intersections: np.ndarray, e_vals: np.ndarray,
+                     direction: np.ndarray, ref_xy: Tuple[float, float],
+                     w: int, h: int):
+        """Shift the row grid laterally so the navigation corridor starts
+        at the furrow mouth visible at the ROI base (apex of the row
+        triangle, where the chassis drives).
+
+        Residual perspective keeps rectified rows slightly convergent, so
+        the globally-fitted grid can sit up to half a spacing off the
+        furrow mouth at the base. The base strip (bottom 12% of the
+        valid ROI) is profiled, and the grid is translated so the
+        corridor center meets the deepest local brightness minimum
+        (furrow mouth) nearest the reference, searched within half a
+        lateral period of the current centerline base. Spacing and
+        direction are untouched; the translation never exceeds half a
+        period, so row identities cannot flip to the next furrow.
+
+        Returns (apex_x_or_None, shift_px, anchored_bool). Horizontal
+        row layouts (|fy| > |fx|) and low-contrast strips keep the
+        global grid (anchored=False).
+        """
+        if len(intersections) < 2 or abs(fx) < abs(fy):
+            return None, 0.0, False
+        pair = flanking_pair(e_vals)
+        if pair is None:
+            return None, 0.0, False
+        i, j = pair
+        Tx = 1.0 / abs(fx)
+        t = direction
+        if abs(t[1]) < 1e-9:
+            return None, 0.0, False
+        xim = (float(intersections[i]) + float(intersections[j])) / 2.0
+        # current centerline x at the ROI base
+        x0 = xim + (t[0] / t[1]) * (float(h - 1) - 0.0)
+        rx = float(ref_xy[0])
+
+        yb = int(round(h * 0.88))
+        strip = np.asarray(img[yb:, :], dtype=np.float64)
+        if strip.size == 0:
+            return None, 0.0, False
+        prof = strip.mean(axis=0)
+        kw = max(3, int(round(Tx / 8.0)))
+        if kw % 2 == 0:
+            kw += 1
+        ker = np.ones(kw) / kw
+        sm = np.convolve(prof, ker, mode="same")
+
+        lo = max(0, int(round(x0 - Tx / 2.0)))
+        hi = min(w, int(round(x0 + Tx / 2.0)))
+        if hi - lo < 3:
+            return None, 0.0, False
+        seg = sm[lo:hi]
+        med = float(np.median(seg))
+        cands = []
+        for x in range(1, len(seg) - 1):
+            if seg[x] < seg[x - 1] and seg[x] <= seg[x + 1]:
+                if med - float(seg[x]) >= 6.0:  # real mouth, not noise
+                    cands.append(lo + x)
+        if not cands:
+            return None, 0.0, False
+        apex = min(cands, key=lambda x: abs(x - rx))
+        shift = float(apex) - float(x0)
+        if abs(shift) > Tx / 2.0 + 1e-9:
+            return None, 0.0, False
+        # Self-validation: the shifted grid must explain the base-strip
+        # vegetation better than the global grid, otherwise the "mouth"
+        # was a weed/shadow gap and the shift would push rows off the
+        # crop (orange borders into furrows, nav line onto plants).
+        def base_row_score(xs):
+            acc, n = 0.0, 0
+            for xi in xs:
+                for y in range(yb, h, 2):
+                    x = int(round(xi + (t[0] / t[1]) * y))
+                    if 0 <= x < w:
+                        acc += float(img[y, x])
+                        n += 1
+            return acc / max(n, 1)
+
+        if base_row_score(intersections + shift) <= base_row_score(
+                intersections):
+            return None, 0.0, False
+        return float(apex), shift, True
 
 
 def corridor_in_image(res: Detection, map_info: Optional[dict]):

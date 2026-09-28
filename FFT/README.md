@@ -115,11 +115,17 @@ What each block does and why it is there:
 
 9. **Deviations.** The reference point (bottom center of the ROI, the
    position the robot is assumed to occupy) is compared with every detected
-   line. The signed perpendicular distances are sorted and the two rows
-   flanking the reference are taken. Their mean signed distance is the
+   line. The nearest line on EACH side is taken as the flanking pair (not
+   the two smallest absolute distances, which can sit on the same side and
+   park the centerline a full spacing off the furrow). Their mean signed distance is the
    lateral deviation `e_y`, their corridor width is a sanity check, and the
    row direction angle relative to the image vertical is the heading
-   deviation `e_theta` (paper Eq. 21 to 23). Distances are converted to
+   deviation `e_theta` (paper Eq. 21 to 23). Then the whole grid is
+   translated laterally (apex anchoring, at most half a period, spacing and
+   direction untouched) so the corridor center starts at the furrow mouth
+   visible at the ROI base - the apex of the converging rows, where the
+   chassis drives - instead of the globally-averaged midpoint, which
+   residual perspective can leave sitting on a row shoulder. Distances are converted to
    meters with the ground sample distance.
 
 The LQG controller of the paper (Section 3.2) is not part of this code, the

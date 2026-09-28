@@ -152,6 +152,9 @@ def draw_roi(ax, roi: np.ndarray, res: Detection, title: str):
         ax.plot([cl[0], cl[2]], [cl[1], cl[3]], "c-", lw=2.2, zorder=4)
     ax.plot(*res.ref_point, marker="*", color="yellow", ms=14,
             mec="k", zorder=5)
+    if res.anchored and res.apex_x_px is not None:
+        ax.plot(res.apex_x_px, roi.shape[0] - 1.0, marker="o",
+                color="magenta", ms=8, mec="k", zorder=6)
     h, w = roi.shape
     ax.set_xlim(-w * 0.03, w * 1.03)
     ax.set_ylim(h * 1.03, -h * 0.03)
@@ -183,6 +186,10 @@ def summary_text(name, info, res: Detection, ms: float, gsd: float | None):
         + (f"{res.corridor_px * gsd:.2f} m" if gsd and np.isfinite(res.corridor_px)
            else f"{res.corridor_px:.1f} px"),
         f"prominence     : {res.prominence:.1f}x",
+        f"apex base x    : "
+        + (f"{res.apex_x_px:.1f} px (grid shifted {res.apex_shift_px:+.1f} px)"
+           if res.anchored and res.apex_x_px is not None
+           else "global grid (no local mouth found)"),
         f"detect time    : {ms:.0f} ms",
     ]
     return "\n".join(lines)
