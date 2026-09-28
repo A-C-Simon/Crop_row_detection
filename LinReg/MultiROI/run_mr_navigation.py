@@ -756,9 +756,12 @@ def main():
     parser.add_argument("--roi-draw-frac", type=float, default=1.0, help="Height fraction of each white ROI box relative to strip height (1.0 = full strip, 0.75 = 3/4 height centered; default 1.0)")
     args = parser.parse_args()
 
-    # Detector with default robust params (from test_multi_roi.py)
+    # Detector with default robust params (from test_multi_roi.py).
+    # morph="struct" is the documented default (README, result_02): Eq. (3)
+    # opening + embedded band-support weed removal before any corridor.
     # --line = straight line only, default = smoothing spline (nav_curve=True)
     detector = MultiROIDetector(n_strips=args.n_strips, l_frac=args.l_frac, index=args.index,
+                                morph="struct",
                                 nav_curve=(not args.line),
                                 ignore_initial=args.ignore_initial,
                                 vertical_coverage=args.vertical_coverage,
