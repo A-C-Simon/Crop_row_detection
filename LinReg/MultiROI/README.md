@@ -64,7 +64,8 @@ DETECTION LINES (straight, TLS)
 **Per-strip profile exposed for lookahead** (`res["strip_profile"]`): `mu, y_top/y_bot/y_center, center_x, width, left_x/right_x, two_sided, accepted_nav, suppressed, roi`. Also `q_feed, left_feed, right_feed, feed_d, median_width, bottom_width, n_two_sided, raw_bottom_x`.
 
 **Visualization contract** (`multiroi_masks/` and composite):
-- middle panel white boxes = per-strip ROIs (now bottom 3/4 only, `36px` vs `48px` for `480h`), green dots `q_accepted`, red dots `q_rejected`/`suppressed`/`ignore_initial`
+- composite is 2x2: TL raw binary (`ExG+Otsu`, before cleaning), TR weed-removal before/after (white=kept, red=removed `struct-clean` pixels with count + `% veg`), BL mask + ROIs, BR overlay on original
+- mask panel white boxes = per-strip ROIs (now bottom 3/4 only, `36px` vs `48px` for `480h`), green dots `q_accepted`, red dots `q_rejected`/`suppressed`/`ignore_initial`
 - blue polyline = navigation curve (spline) or straight TLS when `--line`
 - dark-blue lines = detection lines
 - overlay bottom panel: filtered red line `P->Q` (8px red bottom, 5px yellow top), raw thin cyan line, green lookahead boxes + centre dots, yellow `pred_bottom_x` (lookahead prediction), centre star `width/2, height-20`, text `v,w,err`

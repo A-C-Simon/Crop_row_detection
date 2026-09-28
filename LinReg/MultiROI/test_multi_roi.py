@@ -247,10 +247,19 @@ class MultiROIDetector:
                                                      self.fence_k,
                                                      self.morph_fence,
                                                      self.n, self.l_frac)
+        # Intermediates for the composite's before/after weed-removal
+        # panel: raw Otsu mask (before any morphology) and the Eq. (3)
+        # opening (before the struct-clean weed filter). Recomputed here
+        # from exg8/otsu_t so preprocess() keeps its signature.
+        _, binary_raw = cv2.threshold(exg8, otsu_t, 255, cv2.THRESH_BINARY)
+        binary_opened = cv2.morphologyEx(binary_raw, cv2.MORPH_OPEN,
+                                         KERNEL_K)
         core = self._run_core(binary, lookahead_prior=lookahead_prior)
         out = dict(core)
         out.update({
             "binary": binary,
+            "binary_raw": binary_raw,
+            "binary_opened": binary_opened,
             "exg": exg8,
             "otsu_t": otsu_t,
             "crop_offset": (dx, dy),
@@ -1225,47 +1234,72 @@ def draw_results(bgr, res, draw_rois=False):
 
 
 def make_composite(bgr, res):
-    """Vertical single-window composite: binary (top) / mask (middle) / overlay
-    (bottom) stacked vertically to maximize vertical size on portrait pages.
+    """2x2 composite: each cell fills half the composite width so panels
+    render ~2x larger than in the previous 1x3 vertical stack.
 
-    Panels are scaled to the full overlay width so each view fills the page
-    width; stacked vertically the composite is portrait (~0.6 aspect) and fills
-    page height, unlike the previous ultra-wide horizontal strip that shrank
-    to ~360 px when fitted to screen/page width.
+    TL: raw binary (ExG + Otsu, before any cleaning) = "before".
+    TR: weed-removal before/after in one image: white = kept vegetation,
+        red = pixels erased by the struct-clean weed filter (Eq. 3
+        opening vs final mask) = "before vs after".
+    BL: MultiROI mask + ROIs + accepted/rejected dots + nav/det lines.
+    BR: overlay on the original image.
     """
     overlay, mask_vis = draw_results(bgr, res, draw_rois=True)
-    binary_bgr = cv2.cvtColor(res["binary"], cv2.COLOR_GRAY2BGR)
+    final = res["binary"]
+    raw = res.get("binary_raw", final)
+    opened = res.get("binary_opened", final)
 
-    w_target = overlay.shape[1]
+    # Before/after weed removal: kept white, removed red. "Before" is the
+    # Eq. (3) opening, "after" is the final mask, so before = white + red.
+    weed_vis = cv2.cvtColor(final, cv2.COLOR_GRAY2BGR)
+    removed_mask = (opened == 255) & (final == 0)
+    weed_vis[removed_mask] = (0, 0, 255)
+    n_removed = int(np.count_nonzero(removed_mask))
+    n_opened = int(np.count_nonzero(opened))
+    removed_pct = (n_removed / n_opened * 100.0) if n_opened else 0.0
 
-    def resize_to_w(img, w):
-        if img.shape[1] == w:
+    raw_bgr = cv2.cvtColor(raw, cv2.COLOR_GRAY2BGR)
+
+    h_cell, w_cell = overlay.shape[:2]
+
+    def to_cell(img):
+        if img.shape[1] == w_cell and img.shape[0] == h_cell:
             return img
-        scale = w / img.shape[1]
-        new_h = int(round(img.shape[0] * scale))
-        return cv2.resize(img, (w, new_h), interpolation=cv2.INTER_NEAREST)
+        # masks stay crisp; overlay never reaches here (already cell size)
+        return cv2.resize(img, (w_cell, h_cell),
+                          interpolation=cv2.INTER_NEAREST)
 
-    mask_resized = resize_to_w(mask_vis, w_target)
-    binary_resized = resize_to_w(binary_bgr, w_target)
+    tl = to_cell(raw_bgr)
+    tr = to_cell(weed_vis)
+    bl = to_cell(mask_vis)
+    br = overlay
 
     bar_h = 36
 
     def with_label(img, text):
-        w = img.shape[1]
-        bar = np.full((bar_h, w, 3), (32, 32, 32), dtype=np.uint8)
+        bar = np.full((bar_h, w_cell, 3), (32, 32, 32), dtype=np.uint8)
         cv2.putText(bar, text, (10, bar_h - 10),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.65, (255, 255, 255), 2,
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.60, (255, 255, 255), 2,
                     cv2.LINE_AA)
         return np.vstack([bar, img])
 
-    binary_labeled = with_label(binary_resized, "Binary (ExG + Otsu)")
-    mask_labeled = with_label(mask_resized, "MultiROI mask + ROIs")
-    overlay_labeled = with_label(overlay, "Overlay (original)")
+    tl_labeled = with_label(tl, "Binary raw (ExG+Otsu, before cleaning)")
+    if n_removed:
+        tr_labeled = with_label(
+            tr, f"Weed removal: white=kept red=removed "
+                f"({n_removed}px, {removed_pct:.1f}% veg)")
+    else:
+        tr_labeled = with_label(tr, "Weed removal: none removed")
+    bl_labeled = with_label(bl, "MultiROI mask + ROIs")
+    br_labeled = with_label(br, "Overlay (original)")
 
-    sep_h = 4
-    sep = np.full((sep_h, w_target, 3), (255, 255, 255), dtype=np.uint8)
-    composite = np.vstack([binary_labeled, sep, mask_labeled, sep, overlay_labeled])
-    return composite
+    sep = 4
+    vsep = np.full((h_cell + bar_h, sep, 3), (255, 255, 255),
+                   dtype=np.uint8)
+    top = np.hstack([tl_labeled, vsep, tr_labeled])
+    bot = np.hstack([bl_labeled, vsep, br_labeled])
+    hsep = np.full((sep, top.shape[1], 3), (255, 255, 255), dtype=np.uint8)
+    return np.vstack([top, hsep, bot])
 
 
 def main():
