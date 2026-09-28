@@ -137,6 +137,9 @@ python LinReg/MultiROI/run_mr_navigation.py --input ../../Photos --output ./nav_
 python LinReg/MultiROI/run_mr_navigation.py --input LinReg/crop_line_detector_cv/images/crops.mp4 --output /tmp --video --show
 python LinReg/MultiROI/run_mr_navigation.py --input crops.mp4 --output /tmp --video --loop --show   # loop forever until q/Ctrl-C
 
+# composite-only outputs (no navigation overlay / side-by-side)
+python LinReg/MultiROI/run_mr_navigation.py --input crops.mp4 --output /tmp --video --composite-only
+
 # straight line instead of spline
 python LinReg/MultiROI/run_mr_navigation.py --input crops.mp4 --output /tmp --video --line
 python LinReg/MultiROI/run_mr_navigation.py --input crops.mp4 --output /tmp --video --show --line --loop

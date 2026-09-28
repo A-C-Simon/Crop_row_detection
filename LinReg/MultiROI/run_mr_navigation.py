@@ -484,7 +484,7 @@ def make_side_by_side(nav_bgr, comp_bgr, border=8, max_height=800):
     return combined
 
 
-def run_folder(input_path, output_dir, detector, vs, show=False, use_temporal=False, t_filter=None, use_lookahead=False, lookahead_map=None):
+def run_folder(input_path, output_dir, detector, vs, show=False, use_temporal=False, t_filter=None, use_lookahead=False, lookahead_map=None, composite_only=False):
     """Process a folder of images. Temporal/lookahead disabled by default for unrelated images."""
     if os.path.isdir(input_path):
         paths = sorted(glob.glob(os.path.join(input_path, "*.png")) +
@@ -521,13 +521,16 @@ def run_folder(input_path, output_dir, detector, vs, show=False, use_temporal=Fa
             last_w = float(out["w"])
             from test_multi_roi import make_composite
             comp = make_composite(bgr, out["res"])
-            if out["overlay"] is not None:
-                combined = make_side_by_side(out["overlay"], comp)
-                cv2.imwrite(os.path.join(output_dir, f"{name}_combined.png"), combined)
-                cv2.imwrite(os.path.join(output_dir, f"{name}_nav.png"), out["overlay"])
+            if composite_only:
                 cv2.imwrite(os.path.join(output_dir, f"{name}_composite.png"), comp)
             else:
-                cv2.imwrite(os.path.join(output_dir, f"{name}_composite.png"), comp)
+                if out["overlay"] is not None:
+                    combined = make_side_by_side(out["overlay"], comp)
+                    cv2.imwrite(os.path.join(output_dir, f"{name}_combined.png"), combined)
+                    cv2.imwrite(os.path.join(output_dir, f"{name}_nav.png"), out["overlay"])
+                    cv2.imwrite(os.path.join(output_dir, f"{name}_composite.png"), comp)
+                else:
+                    cv2.imwrite(os.path.join(output_dir, f"{name}_composite.png"), comp)
 
             has_line = out["res"]["nav_line"] is not None
             nav_w, nav_b = out["res"]["nav_line"] if has_line else (float("nan"), float("nan"))
@@ -553,12 +556,16 @@ def run_folder(input_path, output_dir, detector, vs, show=False, use_temporal=Fa
     print(f"CSV: {csv_path}")
 
 
-def run_video(input_path, output_dir, detector, vs, show=False, use_temporal=True, t_filter=None, loop=False, use_lookahead=True, lookahead_map=None):
+def run_video(input_path, output_dir, detector, vs, show=False, use_temporal=True, t_filter=None, loop=False, use_lookahead=True, lookahead_map=None, composite_only=False):
     """Process a video file or camera index. Temporal+lookahead enabled by default.
 
     If loop=True and input is a video file, the video rewinds to the first
     frame and continues forever until the user quits (q) or interrupts
     (Ctrl-C). Camera streams already run forever and ignore loop.
+
+    If composite_only=True, the output video contains only the MultiROI
+    composite frames ({name}_composite.mp4) instead of the navigation
+    side-by-side ({name}_nav.mp4).
     """
     try:
         cam_idx = int(input_path)
@@ -578,7 +585,8 @@ def run_video(input_path, output_dir, detector, vs, show=False, use_temporal=Tru
     csv_path = os.path.join(output_dir, f"{name}_nav.csv")
     writer = None
     writer_w = writer_h = None
-    out_path = os.path.join(output_dir, f"{name}_nav.mp4") if not is_camera else None
+    out_name = f"{name}_composite.mp4" if composite_only else f"{name}_nav.mp4"
+    out_path = os.path.join(output_dir, out_name) if not is_camera else None
     if loop and not is_camera:
         print(f"[LOOP] enabled — video will rewind and run until stopped (q / Ctrl-C)")
 
@@ -670,24 +678,27 @@ def run_video(input_path, output_dir, detector, vs, show=False, use_temporal=Tru
                                int(info.get("spatial_old",0)), int(info.get("spatial_new",0)), f"{info.get('map_shift_px',0):.1f}"])
                 from test_multi_roi import make_composite
                 comp = make_composite(bgr, out["res"])
-                combined = make_side_by_side(out["overlay"] if out["overlay"] is not None else bgr, comp) if out["overlay"] is not None else comp
+                if composite_only or out["overlay"] is None:
+                    frame = comp
+                else:
+                    frame = make_side_by_side(out["overlay"] if out["overlay"] is not None else bgr, comp)
 
                 if writer is None and not is_camera:
                     fps = cap.get(cv2.CAP_PROP_FPS) or 20.0
                     if fps < 1 or fps > 120:
                         fps = 20.0
-                    writer_h, writer_w = combined.shape[:2]
+                    writer_h, writer_w = frame.shape[:2]
                     fourcc = cv2.VideoWriter_fourcc(*"mp4v")
                     writer = cv2.VideoWriter(out_path, fourcc, fps, (writer_w, writer_h))
                     if not writer.isOpened():
                         print(f"[WARN] VideoWriter failed for {writer_w}x{writer_h} fps {fps}")
 
                 if writer is not None:
-                    if combined.shape[1] != writer_w or combined.shape[0] != writer_h:
-                        combined = cv2.resize(combined, (writer_w, writer_h), interpolation=cv2.INTER_AREA)
-                    writer.write(combined)
+                    if frame.shape[1] != writer_w or frame.shape[0] != writer_h:
+                        frame = cv2.resize(frame, (writer_w, writer_h), interpolation=cv2.INTER_AREA)
+                    writer.write(frame)
                 if show:
-                    preview = combined
+                    preview = frame
                     if preview.shape[1] > 1280:
                         scale = 1280 / preview.shape[1]
                         preview = cv2.resize(preview, (1280, int(preview.shape[0]*scale)), interpolation=cv2.INTER_AREA)
@@ -752,6 +763,7 @@ def main():
     parser.add_argument("--lookahead-conf-decay", type=float, default=0.97, help="Per-frame confidence decay for map (default 0.97)")
     parser.add_argument("--lookahead-overlay", action=argparse.BooleanOptionalAction, default=True, help="Draw lookahead map overlay (green boxes)")
     parser.add_argument("--ignore-initial", type=int, default=0, help="Ignore the first N bottom ROI boxes/midpoints (e.g. 3) for nav; robot follows center star until upper good evidence (approach phase, noisy entry)")
+    parser.add_argument("--composite-only", action="store_true", help="Write only composite outputs (folder: *_composite.png; video: *_composite.mp4), skip the navigation overlay / side-by-side")
     parser.add_argument("--vertical-coverage", type=float, default=0.75, help="Vertical fraction of image covered by ROIs from bottom (0.75 = bottom 3/4, top 1/4 has no boxes; default 0.75 per request)")
     parser.add_argument("--roi-draw-frac", type=float, default=1.0, help="Height fraction of each white ROI box relative to strip height (1.0 = full strip, 0.75 = 3/4 height centered; default 1.0)")
     args = parser.parse_args()
@@ -839,9 +851,9 @@ def main():
     if args.loop and not args.video:
         print("[WARN] --loop only applies with --video; ignoring for folder mode")
     if args.video:
-        run_video(args.input, args.output, detector, vs, show=args.show, use_temporal=use_temporal, t_filter=t_filter, loop=args.loop, use_lookahead=use_lookahead, lookahead_map=lookahead_map)
+        run_video(args.input, args.output, detector, vs, show=args.show, use_temporal=use_temporal, t_filter=t_filter, loop=args.loop, use_lookahead=use_lookahead, lookahead_map=lookahead_map, composite_only=args.composite_only)
     else:
-        run_folder(args.input, args.output, detector, vs, show=args.show, use_temporal=use_temporal, t_filter=t_filter, use_lookahead=use_lookahead, lookahead_map=lookahead_map)
+        run_folder(args.input, args.output, detector, vs, show=args.show, use_temporal=use_temporal, t_filter=t_filter, use_lookahead=use_lookahead, lookahead_map=lookahead_map, composite_only=args.composite_only)
 
 
 if __name__ == "__main__":
