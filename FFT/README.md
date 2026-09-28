@@ -182,10 +182,18 @@ Video differs from the photo batch in three ways:
    moves during recording, recalibrate by restarting on a representative
    frame.
 
-2. **Temporal smoothing.** `e_y` and `e_theta` are smoothed with an
-   exponential moving average, `--smooth` sets the weight of the new
-   measurement (default 0.35, lower means smoother). Angles are smoothed on
-   the unit circle so the ±180 deg wrap cannot cause jumps.
+2. **Temporal row-lock filter.** `RowLockFilter` keeps a continuous
+    corridor state (centerline base-x, heading, spacing) across frames.
+    Small innovations are followed with an EMA (`--smooth`, default 0.35;
+    angles on the unit circle). A raw frame whose centerline jumps more
+    than `--row-gate-frac` of the spacing (default 0.35), whose heading
+    jumps more than `--heading-gate` deg (default 8), or whose spacing
+    changes more than `--spacing-gate` (default 0.20) is treated as
+    jitter/a half-period flip/a harmonic jump and HELD: the previous
+    locked lines keep being drawn, so the overlay never teleports onto a
+    neighbouring row. Outliers that stay mutually consistent for
+    `--persist-frames` (default 5) are accepted as a genuine lane change
+    (RELOCK). `--no-rowlock` draws raw detections instead.
 
 3. **Hold on failure.** If a frame cannot be rectified or detected (motion
    blur, frame with no ground), the last valid detection is held and the
@@ -196,20 +204,30 @@ Options beyond the photo runner:
 ```
 --stride N        process every Nth frame (output video plays at fps/N)
 --max-frames N    stop after N processed frames
---smooth A        EMA weight, 0..1
+--smooth A        row-lock EMA weight, 0..1
+--persist-frames N consistent outlier frames before a lane change is
+                accepted (default 5)
+--row-gate-frac F centerline jump gate as fraction of spacing (0.35)
+--heading-gate D per-frame heading jump gate in deg (8)
+--spacing-gate F spacing change gate as fraction (0.20)
+--no-rowlock    disable the temporal row-lock filter (draw raw)
 --show            live preview window, q quits
 --no-video        skip writing the overlay mp4
 ```
 
 Outputs per video, written to `--out`:
 
-- `<name>_overlay.mp4`: side by side panels, original frame, rectified bird's
-  eye view with detected rows in red, the navigation centerline in cyan and
-  the reference point as a yellow star, plus a text panel with the current
-  metrics.
+- `<name>_overlay.mp4`: three panels - the original frame with the
+  photo-style locked overlay (shaded corridor, orange bordering rows,
+  thin red rows, cyan navigation centerline, yellow robot star), the
+  rectified bird's eye view with stabilized red rows, the locked
+  corridor in orange, the locked centerline in cyan (raw centerline
+  thin gray when held), the reference star plus the magenta apex dot,
+  and a text panel with the locked metrics and filter status
+  (`OK` / `HELD (row|heading|spacing jump|...)` / `RELOCK` / `INIT`).
 - `<name>_video_metrics.csv`: one row per processed frame with frame index,
-  timestamp, rectification parameters, row spacing, row count, smoothed
-  `e_y` in cm, smoothed `e_theta` in deg, prominence and status.
+  timestamp, rectification parameters, locked row spacing, row count, locked
+  `e_y` in cm, locked `e_theta` in deg, prominence and filter status.
 
 ## Outputs of the photo runner
 

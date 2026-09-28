@@ -2,9 +2,14 @@
 
 The rectification pitch and yaw are calibrated once on the first usable
 frame and reused afterwards, so the per frame cost is one rectification
-plus one DFT. Lateral and heading deviations are smoothed with an
-exponential moving average. Outputs an annotated side-by-side video and
-a per frame CSV in the output directory.
+plus one DFT. A temporal row-lock filter (RowLockFilter) keeps a
+continuous corridor state across frames: small innovations are followed
+with an EMA, while jumps larger than a fraction of the row spacing
+(jitter, half-period flips, harmonic spacing jumps) are held instead of
+followed, and only accepted as genuine lane changes after several
+mutually-consistent frames. Outputs an annotated side-by-side video
+(original frame with photo-style corridor overlay | BEV with locked
+lines | metrics) and a per frame CSV in the output directory.
 
 Usage:
     python3 run_fft_video.py VIDEO [options]
@@ -15,32 +20,185 @@ from __future__ import annotations
 
 import argparse
 import csv
+import math
 import os
 import time
+from dataclasses import replace
 
 import cv2
 import numpy as np
 
-from dft_crop_row_detector import DFTRowDetector, exg_gray, rectify_forward
+from dft_crop_row_detector import (DFTRowDetector, corridor_in_image,
+                                   exg_gray, rectify_forward)
 from run_fft_detection import pitch_scan_score, spacing_band_px
 
 
-def ema(prev, new, alpha):
-    if new is None or np.isnan(new):
-        return prev
-    if prev is None or np.isnan(prev):
-        return new
-    return (1.0 - alpha) * prev + alpha * new
+def _wrap_deg(a: float) -> float:
+    return (float(a) + 180.0) % 360.0 - 180.0
 
 
-def ema_angle(prev, new, alpha):
-    if new is None or np.isnan(new):
-        return prev
-    if prev is None or np.isnan(prev):
-        return new
-    z = ((1.0 - alpha) * np.exp(1j * np.radians(prev))
-         + alpha * np.exp(1j * np.radians(new)))
-    return float(np.degrees(np.angle(z)))
+class RowLockFilter:
+    """Temporal row-lock for video DFT tracking.
+
+    Per-frame DFT detections are independent, so phase jitter, a
+    half-period flip or a harmonic spacing jump can teleport the
+    navigation line onto a neighbouring row (or onto the crop). The
+    filter keeps a continuous corridor state (centerline base-x,
+    heading, spacing) and gates each raw detection against it:
+
+    - innovation within gate (fraction of spacing), heading and spacing
+      within gates -> EMA update, status OK;
+    - otherwise the raw frame is treated as a jitter outlier and HELD
+      (previous state is output, so the drawn lines stand still);
+    - outliers that stay mutually consistent for `persist_frames`
+      frames are accepted as a genuine lane change -> RELOCK.
+
+    A physical lane change therefore takes ~persist_frames to follow,
+    while single-frame jitter never moves the lines.
+    """
+
+    def __init__(self, smooth=0.35, row_gate_frac=0.35,
+                 max_spacing_change=0.20, max_heading_jump=8.0,
+                 persist_frames=5, min_gate_px=8.0):
+        self.smooth = float(smooth)
+        self.row_gate_frac = float(row_gate_frac)
+        self.max_spacing_change = float(max_spacing_change)
+        self.max_heading_jump = float(max_heading_jump)
+        self.persist_frames = int(persist_frames)
+        self.min_gate_px = float(min_gate_px)
+        self.reset()
+
+    def reset(self):
+        self.init = False
+        self.filt_cx = 0.0
+        self.filt_eth = 0.0
+        self.filt_S = 0.0
+        self.pending = 0
+        self.cand_cx = 0.0
+        self.cand_eth = 0.0
+        self.cand_S = 0.0
+
+    @staticmethod
+    def _base_x(cl, h):
+        x0, y0, x1, y1 = cl
+        if abs(y1 - y0) < 1e-9:
+            return (x0 + x1) / 2.0
+        return x0 + (x1 - x0) * ((h - 1.0 - y0) / (y1 - y0))
+
+    def _commit(self, cx, eth, S):
+        self.filt_cx, self.filt_eth, self.filt_S = cx, eth, S
+
+    def update(self, res, roi_shape):
+        h, w = roi_shape
+        cl = res.centerline() if res is not None else None
+        if cl is None:
+            if not self.init:
+                self._commit(w / 2.0, 0.0, 50.0)
+                self.init = True
+                status = "INIT (no line)"
+            else:
+                status = "HELD (no line)"
+            return self._out(res, roi_shape, status, raw_cx=None)
+
+        raw_cx = self._base_x(cl, h)
+        raw_eth = float(res.e_theta_deg)
+        raw_S = float(res.spacing_px)
+        if not self.init or not (np.isfinite(raw_cx) and np.isfinite(
+                raw_eth) and np.isfinite(raw_S) and raw_S > 1e-6):
+            if np.isfinite(raw_cx) and np.isfinite(raw_eth):
+                self._commit(raw_cx, raw_eth, raw_S if raw_S > 1e-6 else 50.0)
+                self.init = True
+            return self._out(res, roi_shape, "INIT", raw_cx=raw_cx)
+
+        gate = max(self.row_gate_frac * self.filt_S, self.min_gate_px)
+        innov = raw_cx - self.filt_cx
+        deth = _wrap_deg(raw_eth - self.filt_eth)
+        dsp = abs(raw_S - self.filt_S) / max(self.filt_S, 1e-9)
+        if abs(innov) <= gate and abs(deth) <= self.max_heading_jump \
+                and dsp <= self.max_spacing_change:
+            a = self.smooth
+            z = ((1.0 - a) * np.exp(1j * np.radians(self.filt_eth))
+                 + a * np.exp(1j * np.radians(raw_eth)))
+            self._commit((1.0 - a) * self.filt_cx + a * raw_cx,
+                         float(np.degrees(np.angle(z))),
+                         (1.0 - a) * self.filt_S + a * raw_S)
+            self.pending = 0
+            return self._out(res, roi_shape, "OK", raw_cx=raw_cx)
+
+        # outlier: check whether it continues a pending lane-change stream
+        if self.pending == 0:
+            self.cand_cx, self.cand_eth, self.cand_S = raw_cx, raw_eth, raw_S
+            self.pending = 1
+        else:
+            c_gate = max(0.5 * gate, self.min_gate_px)
+            if abs(raw_cx - self.cand_cx) <= c_gate \
+                    and abs(_wrap_deg(raw_eth - self.cand_eth)) \
+                    <= self.max_heading_jump \
+                    and abs(raw_S - self.cand_S) / max(self.cand_S, 1e-9) \
+                    <= self.max_spacing_change:
+                self.cand_cx = 0.5 * self.cand_cx + 0.5 * raw_cx
+                z = (0.5 * np.exp(1j * np.radians(self.cand_eth))
+                     + 0.5 * np.exp(1j * np.radians(raw_eth)))
+                self.cand_eth = float(np.degrees(np.angle(z)))
+                self.cand_S = 0.5 * self.cand_S + 0.5 * raw_S
+                self.pending += 1
+            else:
+                self.cand_cx, self.cand_eth, self.cand_S = raw_cx, raw_eth, raw_S
+                self.pending = 1
+        if self.pending >= self.persist_frames:
+            self._commit(self.cand_cx, self.cand_eth, self.cand_S)
+            self.pending = 0
+            return self._out(res, roi_shape, "RELOCK", raw_cx=raw_cx)
+        d = ("row jump" if abs(innov) > gate
+             else "heading jump" if abs(deth) > self.max_heading_jump
+             else "spacing jump")
+        return self._out(res, roi_shape, f"HELD ({d})", raw_cx=raw_cx)
+
+    def _out(self, res, roi_shape, status, raw_cx):
+        h, w = roi_shape
+        th = math.radians(self.filt_eth)
+        t = np.array([math.sin(th), -math.cos(th)])
+        rx = w / 2.0
+        filt_ey = (rx - self.filt_cx) * t[1] - ((h - 1.0) - (h - 1.0)) * t[0]
+        delta = None if raw_cx is None else self.filt_cx - raw_cx
+        return {"filt_cx": float(self.filt_cx), "filt_eth": float(self.filt_eth),
+                "filt_S": float(self.filt_S), "filt_ey_px": float(filt_ey),
+                "filt_t": t, "delta_px": delta, "raw_cx": raw_cx,
+                "status": status, "pending": int(self.pending)}
+
+
+def draw_original_overlay(bgr, res, filt, map_info):
+    """Photo-style overlay on the original frame: shaded corridor, orange
+    bordering rows, thin red rows, cyan navigation centerline, robot star.
+
+    Uses the same corridor_in_image() projection as the photo runner
+    (lines clipped to the full rectified grid, not the valid ROI), so the
+    overlay spans the frame exactly like the photo figures. All lines come
+    from the row-locked corridor (raw grid translated laterally by the
+    filter delta, locked heading)."""
+    ov = bgr.copy()
+    delta = filt["delta_px"] or 0.0
+    draw_res = replace(res, intersections=np.asarray(res.intersections)
+                       + delta, direction=np.asarray(filt["filt_t"]))
+    cor = corridor_in_image(draw_res, map_info)
+    if cor is None:
+        return ov
+    for p in cor["rows"]:
+        cv2.polylines(ov, [p.astype(np.int32)], False, (0, 0, 255), 2)
+    if cor["corridor"] is not None:
+        shade = ov.copy()
+        cv2.fillConvexPoly(shade, cor["corridor"].astype(np.int32),
+                           (255, 255, 0))
+        cv2.addWeighted(shade, 0.18, ov, 0.82, 0, ov)
+    for p in cor["borders"]:
+        cv2.polylines(ov, [p.astype(np.int32)], False, (0, 165, 255), 3)
+    if cor["centerline"] is not None:
+        cv2.polylines(ov, [cor["centerline"].astype(np.int32)], False,
+                      (255, 255, 0), 4)
+    rx, ry = cor["ref"]
+    cv2.drawMarker(ov, (int(rx), int(ry)), (0, 255, 255),
+                   cv2.MARKER_STAR, 18, 2)
+    return ov
 
 
 def calibrate(gray, args):
@@ -80,35 +238,77 @@ def calibrate(gray, args):
     return chosen[2], chosen[3]
 
 
-def draw_panel(bgr, roi, res, gsd, ey_s, eth_s, idx, t, status, height=480):
+def _raw_passthrough(res, roi_shape):
+    """Filter-shaped dict straight from the raw detection (--no-rowlock)."""
+    import math as _math
+    h, w = roi_shape
+    cl = res.centerline()
+    raw_cx = (RowLockFilter._base_x(cl, h) if cl is not None else w / 2.0)
+    th = _math.radians(float(res.e_theta_deg))
+    t = np.array([_math.sin(th), -_math.cos(th)])
+    return {"filt_cx": float(raw_cx), "filt_eth": float(res.e_theta_deg),
+            "filt_S": float(res.spacing_px),
+            "filt_ey_px": float(res.ey_px), "filt_t": t, "delta_px": 0.0,
+            "raw_cx": float(raw_cx), "status": "RAW", "pending": 0}
+
+
+def draw_panel(bgr, roi, res, filt, map_info, gsd, idx, t, status,
+               height=480):
     def resize_h(img):
         s = height / img.shape[0]
         return cv2.resize(img, (max(int(img.shape[1] * s), 1), height))
 
-    left = resize_h(bgr)
+    h, w = roi.shape
+    # left: original frame with the photo-style locked overlay
+    try:
+        left_full = draw_original_overlay(bgr, res, filt, map_info)
+    except Exception:
+        left_full = bgr
+    left = resize_h(left_full)
+    # middle: BEV with stabilized rows + locked corridor
     vis = cv2.cvtColor(np.clip(roi, 0, 255).astype(np.uint8),
                        cv2.COLOR_GRAY2BGR)
-    for x0, y0, x1, y1 in res.line_endpoints():
-        cv2.line(vis, (int(x0), int(y0)), (int(x1), int(y1)),
+    delta = filt["delta_px"] or 0.0
+    tdir = filt["filt_t"]
+    cx, S = filt["filt_cx"], filt["filt_S"]
+    L = 1.6 * float(np.hypot(h, w))
+    rt = res.direction
+    for xi in res.intersections + delta:
+        p = np.array([xi, 0.0])
+        a, b = p - rt * L, p + rt * L
+        cv2.line(vis, (int(a[0]), int(a[1])), (int(b[0]), int(b[1])),
                  (0, 0, 255), 1)
-    cl = res.centerline()
-    if cl:
-        cv2.line(vis, (int(cl[0]), int(cl[1])), (int(cl[2]), int(cl[3])),
-                 (255, 255, 0), 2)
+    perp = np.array([-tdir[1], tdir[0]])
+    for sgn in (-1.0, 1.0):
+        p = np.array([cx + sgn * 0.5 * S * perp[0],
+                      (h - 1.0) + sgn * 0.5 * S * perp[1]])
+        a, b = p - tdir * L, p + tdir * L
+        cv2.line(vis, (int(a[0]), int(a[1])), (int(b[0]), int(b[1])),
+                 (0, 165, 255), 2)
+    p = np.array([cx, h - 1.0])
+    a, b = p - tdir * L, p + tdir * L
+    cv2.line(vis, (int(a[0]), int(a[1])), (int(b[0]), int(b[1])),
+             (255, 255, 0), 2)
+    if filt.get("raw_cx") is not None:
+        pr = np.array([filt["raw_cx"], h - 1.0])
+        ar, br = pr - rt * L, pr + rt * L
+        cv2.line(vis, (int(ar[0]), int(ar[1])), (int(br[0]), int(br[1])),
+                 (200, 200, 200), 1)
     rx, ry = res.ref_point
     cv2.drawMarker(vis, (int(rx), int(ry)), (0, 255, 255),
                    cv2.MARKER_STAR, 14, 2)
+    cv2.circle(vis, (int(cx), int(h - 1)), 5, (255, 0, 255), 2)
     vis = resize_h(vis)
 
-    bar = np.full((height, 380, 3), 30, np.uint8)
-    ey_txt = (f"e_y smoothed : {ey_s:.1f} cm"
-              if ey_s is not None and np.isfinite(ey_s) else "e_y smoothed : n/a")
+    bar = np.full((height, 400, 3), 30, np.uint8)
+    ey_txt = (f"e_y locked  : {filt['filt_ey_px'] * gsd * 100:.1f} cm"
+              if np.isfinite(filt["filt_ey_px"]) else "e_y locked  : n/a")
     lines = [
         f"frame {idx}   t = {t:.1f} s",
         f"rows found   : {res.n_rows}",
         f"row spacing  : {res.spacing_px * gsd * 100:.0f} cm",
         ey_txt,
-        f"e_theta smth : {eth_s:.2f} deg",
+        f"e_theta lock : {filt['filt_eth']:.2f} deg",
         f"prominence   : {res.prominence:.1f}x",
         f"status       : {status}",
     ]
@@ -130,7 +330,19 @@ def main(argv=None):
     ap.add_argument("--max-frames", type=int, default=0,
                     help="stop after N processed frames (0 = all)")
     ap.add_argument("--smooth", type=float, default=0.35,
-                    help="EMA weight of the new measurement (0..1)")
+                    help="row-lock EMA weight of accepted measurements (0..1)")
+    ap.add_argument("--persist-frames", type=int, default=5,
+                    help="consistent outlier frames before a lane change is "
+                         "accepted (default 5)")
+    ap.add_argument("--row-gate-frac", type=float, default=0.35,
+                    help="centerline jump gate as fraction of spacing "
+                         "(default 0.35)")
+    ap.add_argument("--heading-gate", type=float, default=8.0,
+                    help="per-frame heading jump gate in deg (default 8)")
+    ap.add_argument("--spacing-gate", type=float, default=0.20,
+                    help="spacing change gate as fraction (default 0.20)")
+    ap.add_argument("--no-rowlock", action="store_true",
+                    help="disable the temporal row-lock filter (draw raw)")
     ap.add_argument("--height", type=float, default=1.0)
     ap.add_argument("--fov", type=float, default=70.0)
     ap.add_argument("--scan", default="20:60:5")
@@ -181,7 +393,15 @@ def main(argv=None):
         out_path = os.path.join(args.out, f"{stem}_overlay.mp4")
         writer = {"obj": None, "path": out_path, "fourcc": fourcc}
 
-    ey_s, eth_s, last = None, None, None
+    rowlock = (None if args.no_rowlock else RowLockFilter(
+        smooth=args.smooth, row_gate_frac=args.row_gate_frac,
+        max_spacing_change=args.spacing_gate,
+        max_heading_jump=args.heading_gate,
+        persist_frames=args.persist_frames))
+    if args.no_rowlock:
+        print("row-lock filter disabled (--no-rowlock): drawing raw detections")
+
+    last, last_map = None, None
     idx, n_proc = 0, 0
     cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
     t_start = time.perf_counter()
@@ -196,35 +416,43 @@ def main(argv=None):
         gray = exg_gray(cv2.cvtColor(bgr, cv2.COLOR_BGR2RGB))
         status = "OK"
         res = None
+        map_info = last_map
         try:
-            roi, gsd, _ = rectify_forward(gray, pitch, args.height, args.fov,
-                                       args.gsd, yaw_deg=yaw,
-                                       range_m=args.range_m)
+            roi, gsd, map_info = rectify_forward(gray, pitch, args.height,
+                                                 args.fov, args.gsd,
+                                                 yaw_deg=yaw,
+                                                 range_m=args.range_m)
             lo, hi, prior = spacing_band_px(gsd, args)
             d = DFTRowDetector(min_period_px=lo, max_period_px=hi,
                                spacing_prior_px=prior)
             res = d.detect(roi, ref_xy=(roi.shape[1] / 2.0,
                                         roi.shape[0] - 1.0))
-            last = res
+            last, last_map = res, map_info
         except Exception as exc:
             if last is None:
                 idx += 1
                 continue
             status = f"HELD ({exc})"
             res = last
+            map_info = last_map
             roi, gsd = None, None
         if roi is None:
             try:
-                roi, gsd, _ = rectify_forward(gray, pitch, args.height,
-                                           args.fov, args.gsd, yaw_deg=yaw,
-                                           range_m=args.range_m)
+                roi, gsd, map_info = rectify_forward(gray, pitch, args.height,
+                                                     args.fov, args.gsd,
+                                                     yaw_deg=yaw,
+                                                     range_m=args.range_m)
             except Exception:
                 idx += 1
                 continue
 
-        ey_s = ema(ey_s, res.ey_px * gsd * 100.0, args.smooth)
-        eth_s = ema_angle(eth_s, res.e_theta_deg, args.smooth)
-        panel = draw_panel(bgr, roi, res, gsd, ey_s, eth_s, idx, t, status)
+        if rowlock is None:
+            f = _raw_passthrough(res, roi.shape)
+        else:
+            f = rowlock.update(res, roi.shape)
+            if status == "OK":
+                status = f["status"]
+        panel = draw_panel(bgr, roi, res, f, map_info, gsd, idx, t, status)
         if writer is not None and writer["obj"] is None:
             writer["obj"] = cv2.VideoWriter(
                 writer["path"], writer["fourcc"],
@@ -233,9 +461,10 @@ def main(argv=None):
         if writer is not None and writer["obj"] is not None:
             writer["obj"].write(panel)
         wr.writerow([idx, round(t, 3), pitch, yaw,
-                     round(res.spacing_px * gsd, 4), res.n_rows,
-                     None if ey_s is None else round(ey_s, 2),
-                     round(eth_s, 2), round(res.prominence, 1), status])
+                     round(f["filt_S"] * gsd, 4), res.n_rows,
+                     round(f["filt_ey_px"] * gsd * 100.0, 2),
+                     round(f["filt_eth"], 2), round(res.prominence, 1),
+                     status])
         if args.show:
             cv2.imshow("DFT crop rows (q quits)", panel)
             if cv2.waitKey(1) & 0xFF == ord("q"):
