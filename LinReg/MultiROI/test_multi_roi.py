@@ -168,6 +168,55 @@ def flanking_clusters(clusters, mo_x):
     return c_left, c_right
 
 
+def trim_merged_flank(flank, other, z, x_lo, l_thresh):
+    """Trim a merged mega-cluster back to its corridor-adjacent row.
+
+    A sub-L weed bridge can fuse a crop row to off-row vegetation into
+    one wide cluster whose outer edge lands mid-furrow (strip 1 with its
+    full-width initial view is the classic victim, and every strip above
+    then inherits the bad window). When `flank` dwarfs its counterpart
+    (over 2x wider) while spanning over 1.5*L, and holds a below-threshold
+    run of at least 0.5*L, the run marks a genuine separation: keep the
+    piece adjacent to the corridor interior (leftmost piece for a right
+    flank, rightmost for a left flank) when it is at least 0.5*L wide,
+    else the whole cluster. Solid wide rows have no such valley and pass
+    through untouched.
+    """
+    a, b = flank
+    ow = other[1] - other[0]
+    if not (b - a > 2.0 * max(ow, 1) and b - a > 1.5 * l_thresh):
+        return flank
+    min_run = max(2, int(round(0.5 * l_thresh)))
+    min_piece = max(2, int(round(0.5 * l_thresh)))
+    n_z = len(z)
+    lo_i, hi_i = max(0, int(a - x_lo)), min(n_z - 1, int(b - x_lo))
+    if hi_i <= lo_i:
+        return flank
+    best, run_s = None, None
+    for i in range(lo_i, hi_i + 1):
+        if z[i] == 0:
+            if run_s is None:
+                run_s = i
+        elif run_s is not None:
+            if i - run_s >= min_run and (best is None or i - run_s > best[0]):
+                best = (i - run_s, run_s, i - 1)
+            run_s = None
+    if run_s is not None and hi_i + 1 - run_s >= min_run and \
+            (best is None or hi_i + 1 - run_s > best[0]):
+        best = (hi_i + 1 - run_s, run_s, hi_i)
+    if best is None:
+        return flank
+    _, s, e = best
+    # corridor interior lies toward `other`: keep that side's piece
+    if (other[0] + other[1]) / 2.0 < (a + b) / 2.0:
+        keep = (a, x_lo + s - 1)      # right flank -> leftmost piece
+    else:
+        keep = (x_lo + e + 1, b)      # left flank -> rightmost piece
+    if keep[1] - keep[0] >= min_piece:
+        return (int(keep[0]), int(keep[1]))
+    return flank
+
+
 class MultiROIDetector:
     """Adaptive multi-ROI crop row detector (Zhou et al. 2021)."""
 
@@ -307,6 +356,8 @@ class MultiROIDetector:
         strip_left = [None] * self.n
         strip_right = [None] * self.n
         strip_width = [None] * self.n
+        strip_l_edge = [None] * self.n  # outer x of the left flanking cluster
+        strip_r_edge = [None] * self.n  # outer x of the right flanking cluster
         strip_two_sided = [False] * self.n
         strip_suppressed = [False] * self.n  # true when lookahead prior held ROI/midpoint
 
@@ -391,11 +442,20 @@ class MultiROIDetector:
 
             if clusters:
                 c_left, c_right = flanking_clusters(clusters, mo_x)
+                if c_left is not None and c_right is not None:
+                    # merged-cluster repair before any window/midpoint renewal:
+                    # a sub-L weed bridge fusing a row to off-row vegetation
+                    # puts a flank edge mid-furrow and every strip above
+                    # inherits it, so trim back to the corridor-adjacent row
+                    c_right = trim_merged_flank(c_right, c_left, z, x_lo, l_thresh)
+                    c_left = trim_merged_flank(c_left, c_right, z, x_lo, l_thresh)
                 # stash per-strip two-sided evidence for lookahead map (even mu=1)
                 if c_left is not None and c_right is not None:
                     strip_left[mu - 1] = (c_left[0] + c_left[1]) / 2.0
                     strip_right[mu - 1] = (c_right[0] + c_right[1]) / 2.0
                     strip_width[mu - 1] = c_right[1] - c_left[0]
+                    strip_l_edge[mu - 1] = float(c_left[0])
+                    strip_r_edge[mu - 1] = float(c_right[1])
                     strip_two_sided[mu - 1] = True
                 # Window + corridor renewal ONLY on a two-sided pick.
                 # A lone cluster is insufficient evidence: sliding mo_x
@@ -663,6 +723,8 @@ class MultiROIDetector:
             width = float(strip_width[idx]) if strip_width[idx] is not None else None
             left_x = float(strip_left[idx]) if strip_left[idx] is not None else None
             right_x = float(strip_right[idx]) if strip_right[idx] is not None else None
+            left_edge = float(strip_l_edge[idx]) if strip_l_edge[idx] is not None else None
+            right_edge = float(strip_r_edge[idx]) if strip_r_edge[idx] is not None else None
             two_sided = bool(strip_two_sided[idx])
             # accepted_nav: whether this strip's center contributed to q_accepted
             accepted_nav = False
@@ -680,6 +742,8 @@ class MultiROIDetector:
                 "width": width,  # None if not two-sided
                 "left_x": left_x,
                 "right_x": right_x,
+                "left_edge": left_edge,    # outer x of left flanking cluster
+                "right_edge": right_edge,  # outer x of right flanking cluster
                 "two_sided": two_sided,
                 "accepted_nav": bool(accepted_nav),
                 "suppressed": bool(strip_suppressed[idx]),
@@ -1161,6 +1225,61 @@ def nav_report_angle(res):
     return nav_angle(res.get("nav_line"))
 
 
+def traced_roi_quads(res):
+    """Per-strip corridor quads that follow curved/converging rows.
+
+    Each strip's own two-sided flanking pick gives the outer edges of the
+    left/right rows at that height; edges are linearly interpolated to
+    every strip boundary, so the quad chain bends with the rows instead
+    of staircasing axis-aligned rectangles. One-sided/empty strips borrow
+    their neighbours' edges via the interpolation (clamped at the ends).
+
+    Returns a list of (quad, strip_no) with quad =
+    [(x_lt, y_top), (x_rt, y_top), (x_rb, y_bot), (x_lb, y_bot)],
+    or None when fewer than 2 strips carry two-sided edges (caller falls
+    back to the plain ROI rectangles).
+    """
+    prof = res.get("strip_profile") or []
+    rois = res.get("rois") or []
+    ys, ls, rs = [], [], []
+    for p in prof:
+        try:
+            le, ri, yc = p.get("left_edge"), p.get("right_edge"), p.get("y_center")
+            if le is None or ri is None or yc is None:
+                continue
+            le, ri, yc = float(le), float(ri), float(yc)
+        except (TypeError, ValueError):
+            continue
+        if not (math.isfinite(le) and math.isfinite(ri) and math.isfinite(yc)) or ri <= le:
+            continue
+        ys.append(yc)
+        ls.append(le)
+        rs.append(ri)
+    if len(ys) < 2:
+        return None
+    # image-y ascending (top strip first) for np.interp
+    order = np.argsort(np.array(ys))
+    ya = np.array(ys)[order]
+    la = np.array(ls)[order]
+    ra = np.array(rs)[order]
+    quads = []
+    for i, (_x_lo, _x_hi, y1, y2) in enumerate(rois, start=1):
+        try:
+            yt, yb = float(y1), float(y2)
+        except (TypeError, ValueError):
+            continue
+        if not (math.isfinite(yt) and math.isfinite(yb)) or yb <= yt:
+            continue
+        x_lt, x_rt = float(np.interp(yt, ya, la)), float(np.interp(yt, ya, ra))
+        x_lb, x_rb = float(np.interp(yb, ya, la)), float(np.interp(yb, ya, ra))
+        if not all(math.isfinite(v) for v in (x_lt, x_rt, x_lb, x_rb)):
+            continue
+        if min(x_rt, x_rb) <= max(x_lt, x_lb):
+            continue
+        quads.append(([(x_lt, yt), (x_rt, yt), (x_rb, yb), (x_lb, yb)], i))
+    return quads or None
+
+
 def draw_results(bgr, res, draw_rois=False):
     """Figure 11/12 style visualization.
 
@@ -1187,11 +1306,21 @@ def draw_results(bgr, res, draw_rois=False):
     _y_bot_c = bh - 1
 
     if draw_rois:
-        for i, (x_lo, x_hi, y1, y2) in enumerate(res["rois"], start=1):
-            cv2.rectangle(binary_vis, (int(x_lo), int(y1)),
-                          (int(x_hi), int(y2)), COLOR_ROI, 2)
-            cv2.putText(binary_vis, str(i), (int(x_lo) + 4, int(y2) - 6),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 1)
+        quads = traced_roi_quads(res)
+        if quads is not None:
+            for quad, i in quads:
+                cv2.polylines(binary_vis,
+                              [np.array(quad, dtype=np.int32)], True,
+                              COLOR_ROI, 2)
+                cv2.putText(binary_vis, str(i),
+                            (int(quad[3][0]) + 4, int(quad[3][1]) - 6),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 1)
+        else:
+            for i, (x_lo, x_hi, y1, y2) in enumerate(res["rois"], start=1):
+                cv2.rectangle(binary_vis, (int(x_lo), int(y1)),
+                              (int(x_hi), int(y2)), COLOR_ROI, 2)
+                cv2.putText(binary_vis, str(i), (int(x_lo) + 4, int(y2) - 6),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 1)
         # Q midpoints: bright green = used by the nav fit,
         # red = rejected/excluded (strip-1 dot or outlier)
         for qx, qy in res.get("q_rejected", []):

@@ -65,7 +65,7 @@ DETECTION LINES (straight, TLS)
 
 **Visualization contract** (`multiroi_masks/` and composite):
 - composite is 2x2: TL raw binary (`ExG+Otsu`, before cleaning), TR weed-removal before/after (white=kept, red=removed `struct-clean` pixels with count + `% veg`), BL mask + ROIs, BR overlay on original
-- mask panel white boxes = per-strip ROIs (now bottom 3/4 only, `36px` vs `48px` for `480h`), green dots `q_accepted`, red dots `q_rejected`/`suppressed`/`ignore_initial`
+- mask panel white quads = per-strip ROI corridor traced through each strip's own flanking row edges (bends with curved/converging rows; falls back to plain boxes when fewer than 2 strips have two-sided picks), green dots `q_accepted`, red dots `q_rejected`/`suppressed`/`ignore_initial`
 - blue polyline = navigation curve (spline) or straight TLS when `--line`
 - dark-blue lines = detection lines
 - overlay bottom panel: filtered red line `P->Q` (8px red bottom, 5px yellow top), raw thin cyan line, green lookahead boxes + centre dots, yellow `pred_bottom_x` (lookahead prediction), centre star `width/2, height-20`, text `v,w,err`
@@ -94,6 +94,7 @@ Every deviation fixed an observed failure; full evidence in `EXPERIMENT_NOTES.md
 | 14 | Lookahead corridor map (visible-future memory) | long gaps persist 10+ frames and would otherwise be accepted after `persist_frames` |
 | 15 | Scalar temporal filter + command smoother | single-frame jumps became violent `w` spikes and lane drift |
 | 16 | Spike guard in the temporal filter (hold + delayed commit) | a stale map-hold/curve-tangent outlier (~20-30 deg for < 1 s) was EMA-followed into a sharp drawn-line spike (crops.mp4 fr49-71) |
+| 17 | Merged-flank trim at pick time | strip 1 fused a row to off-row weeds over a sub-L bridge (107 px mega-cluster), outer edge landed mid-furrow and poisoned every window above; an asymmetric flank with a deep interior valley is cut back to its corridor-adjacent row (cropL75) |
 
 Known remaining: strongly curved fields exceed linear det-line model (photo_2); extreme sparse may yield few worthy strips; weed exactly on row line is indistinguishable.
 
